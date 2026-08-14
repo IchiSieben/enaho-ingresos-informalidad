@@ -1,0 +1,13 @@
+# Dependencias del proyecto ENAHO: ingreso laboral e informalidad.
+# Versiones fijadas a las verificadas en el entorno de desarrollo (Python 3.12.10).
+
+pandas==3.0.5
+numpy==2.5.2
+scikit-learn==1.9.0
+statsmodels==0.14.6
+joblib==1.5.3
+pyarrow==24.0.0
+openpyxl==3.1.5
+matplotlib==3.11.1
+streamlit==1.61.1
+pypdf==6.16.0

@@ -1,0 +1,17 @@
+# Microdatos del INEI: no se re-publican en el repo (se enlaza a la fuente).
+data/
+
+# Material del curso (enunciado y archivos de terceros, incluido el dataset
+# sintetico con DNIs de apariencia real): queda local, no se publica.
+docs/referencia/
+
+# Entorno y caches
+.venv/
+__pycache__/
+*.pyc
+
+# Logs de corridas (solo evidencia renombrada a mano se versiona)
+logs/
+
+# Cache de OOF (derivable; pesa y no aporta al repo)
+models/_oof_clasificador.npy

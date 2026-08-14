@@ -1,0 +1,38 @@
+{
+  "torneo_E8": {
+    "params": {
+      "regressor__modelo__max_depth": 12,
+      "regressor__modelo__min_samples_leaf": 5,
+      "regressor__modelo__n_estimators": 200
+    },
+    "score": -612.9803386955604,
+    "segundos": 458.6649869000539
+  },
+  "torneo_E9": {
+    "params": {
+      "regressor__modelo__learning_rate": 0.05,
+      "regressor__modelo__max_depth": 5,
+      "regressor__modelo__n_estimators": 400
+    },
+    "score": -610.8985533335779,
+    "segundos": 303.4382718000561
+  },
+  "clasif_rf": {
+    "params": {
+      "modelo__max_depth": 16,
+      "modelo__min_samples_leaf": 5,
+      "modelo__n_estimators": 400
+    },
+    "score": 0.962050424216686,
+    "segundos": 80.2449542999966
+  },
+  "clasif_gb": {
+    "params": {
+      "modelo__learning_rate": 0.05,
+      "modelo__max_depth": 5,
+      "modelo__n_estimators": 200
+    },
+    "score": 0.9626695520535691,
+    "segundos": 276.8195395999355
+  }
+}

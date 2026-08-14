@@ -1,0 +1,511 @@
+{
+  "clasificador": {
+    "target": "informal",
+    "descripcion_target": "Empleo informal (regla INEI derivada: independiente/empleador sin RUC; dependiente sin afiliación a pensión). Validada contra la tasa oficial 2025.",
+    "algoritmo_recomendado": "gb",
+    "prevalencia_train": 0.6777,
+    "prevalencia_ponderada": 0.6411,
+    "metricas_test": {
+      "prauc": 0.9605,
+      "rocauc": 0.9274,
+      "brier": 0.0974
+    },
+    "puntos_operativos_oof": [
+      {
+        "punto": "umbral 0,5",
+        "umbral": 0.5,
+        "precision": 0.881,
+        "recall": 0.929,
+        "lift": 1.3,
+        "señalados_por_1000": 714,
+        "F1": 0.904
+      },
+      {
+        "punto": "F1 óptimo",
+        "umbral": 0.4324,
+        "precision": 0.871,
+        "recall": 0.943,
+        "lift": 1.29,
+        "señalados_por_1000": 733,
+        "F1": 0.906
+      },
+      {
+        "punto": "precisión ≥ 0.90",
+        "umbral": 0.6054,
+        "precision": 0.9,
+        "recall": 0.893,
+        "lift": 1.33,
+        "señalados_por_1000": 673,
+        "F1": 0.897
+      },
+      {
+        "punto": "precisión ≥ 0.85",
+        "umbral": 0.3178,
+        "precision": 0.85,
+        "recall": 0.96,
+        "lift": 1.25,
+        "señalados_por_1000": 765,
+        "F1": 0.902
+      },
+      {
+        "punto": "precisión ≥ 0.80",
+        "umbral": 0.1558,
+        "precision": 0.8,
+        "recall": 0.983,
+        "lift": 1.18,
+        "señalados_por_1000": 833,
+        "F1": 0.882
+      }
+    ],
+    "n_entrenamiento": 38105,
+    "n_test": 9527,
+    "features": [
+      {
+        "nombre": "anios_educ",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 18.0,
+        "default": 11.0,
+        "etiqueta": "Años de educación aprobados",
+        "nota": "El rango del formulario (0–18) es más estrecho que el del entrenamiento (0–18). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "edad",
+        "tipo": "numerico",
+        "min": 14.0,
+        "max": 80.0,
+        "default": 44.0,
+        "etiqueta": "Edad (años)",
+        "nota": "El rango del formulario (14–80) es más estrecho que el del entrenamiento (14–95). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "exper",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 89.0,
+        "default": 27.0,
+        "etiqueta": "Experiencia potencial (años)"
+      },
+      {
+        "nombre": "exper2",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 7921.0,
+        "default": 729.0,
+        "etiqueta": "exper2"
+      },
+      {
+        "nombre": "horas_total",
+        "tipo": "numerico",
+        "min": 4.0,
+        "max": 84.0,
+        "default": 46.0,
+        "etiqueta": "Horas trabajadas por semana (todas las ocupaciones)",
+        "nota": "El rango del formulario (4–84) es más estrecho que el del entrenamiento (0–112). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "sexo",
+        "tipo": "categorico",
+        "opciones": [
+          "Hombre",
+          "Mujer"
+        ],
+        "default": "Hombre",
+        "etiqueta": "Sexo"
+      },
+      {
+        "nombre": "area",
+        "tipo": "categorico",
+        "opciones": [
+          "Rural",
+          "Urbana"
+        ],
+        "default": "Urbana",
+        "etiqueta": "Área de residencia"
+      },
+      {
+        "nombre": "dominio",
+        "tipo": "categorico",
+        "opciones": [
+          "Costa Centro",
+          "Costa Norte",
+          "Costa Sur",
+          "Lima Metropolitana",
+          "Selva",
+          "Sierra Centro",
+          "Sierra Norte",
+          "Sierra Sur"
+        ],
+        "default": "Selva",
+        "etiqueta": "Dominio geográfico"
+      },
+      {
+        "nombre": "rama",
+        "tipo": "categorico",
+        "opciones": [
+          "Administración pública",
+          "Agropecuario y pesca",
+          "Alojamiento y restaurantes",
+          "Comercio",
+          "Construcción",
+          "Enseñanza",
+          "Manufactura",
+          "Minería e hidrocarburos",
+          "Otros servicios",
+          "Salud y asistencia social",
+          "Servicio doméstico",
+          "Servicios profesionales y financieros",
+          "Transporte y almacenamiento"
+        ],
+        "default": "Agropecuario y pesca",
+        "etiqueta": "Rama de actividad (agrupada)"
+      },
+      {
+        "nombre": "tamano_empresa",
+        "tipo": "categorico",
+        "opciones": [
+          "101 a 500",
+          "21 a 50",
+          "51 a 100",
+          "Hasta 20",
+          "Más de 500"
+        ],
+        "default": "Hasta 20",
+        "etiqueta": "Tamaño de la empresa (personas)"
+      },
+      {
+        "nombre": "categoria",
+        "tipo": "categorico",
+        "opciones": [
+          "Empleado",
+          "Empleador",
+          "Independiente",
+          "Obrero",
+          "Trabajador del hogar"
+        ],
+        "default": "Independiente",
+        "etiqueta": "Categoría ocupacional"
+      }
+    ],
+    "punto_operativo": {
+      "criterio": "precisión ≥ 0,90 para la clase informal (aprobado 14/08/2026)",
+      "umbral": 0.6054,
+      "precision_oof": 0.9,
+      "recall_oof": 0.893,
+      "lift": 1.33,
+      "frase_exposicion": "De cada 1.000 trabajadores señalados, 900 son efectivamente informales, frente a 678 si se señalara al azar (lift 1,33x).",
+      "referencias": {
+        "umbral_05": {
+          "umbral": 0.5,
+          "precision": 0.881,
+          "recall": 0.929,
+          "F1": 0.904
+        },
+        "f1_optimo": {
+          "umbral": 0.4324,
+          "precision": 0.871,
+          "recall": 0.943,
+          "F1": 0.906
+        }
+      }
+    },
+    "ablacion": [
+      {
+        "variante": "completa",
+        "n_predictores": 11,
+        "PRAUC_cv": 0.9626,
+        "ROCAUC_cv": 0.9289,
+        "PRAUC_test": 0.9605,
+        "ROCAUC_test": 0.9274,
+        "caida_PRAUC_cv": 0.0
+      },
+      {
+        "variante": "V1: sin tamano_empresa",
+        "n_predictores": 10,
+        "PRAUC_cv": 0.9571,
+        "ROCAUC_cv": 0.9156,
+        "PRAUC_test": 0.9557,
+        "ROCAUC_test": 0.9152,
+        "caida_PRAUC_cv": 0.0055
+      },
+      {
+        "variante": "V2: sin tamano_empresa ni categoria",
+        "n_predictores": 9,
+        "PRAUC_cv": 0.9415,
+        "ROCAUC_cv": 0.8903,
+        "PRAUC_test": 0.9404,
+        "ROCAUC_test": 0.8913,
+        "caida_PRAUC_cv": 0.0211
+      }
+    ],
+    "encuadre": "Herramienta de focalización, no de predicción a futuro: identifica la configuración laboral asociada a la informalidad desde variables observables en registros administrativos."
+  },
+  "regresor": {
+    "target": "ingreso_mes",
+    "descripcion_target": "Ingreso laboral mensual monetario (suma de las versiones imputadas/deflactadas/anualizadas del INEI / 12: ingreso suavizado, no el del mes de referencia). Solo ocupados con ingreso > 0.",
+    "algoritmo_recomendado": "E9 Gradient Boosting (log target)",
+    "smearing_duan": 1.4009,
+    "nota_smearing": "predict() devuelve la MEDIANA condicional (expm1); la media condicional = (pred+1)*smearing_duan - 1 (Duan 1983, residuos OOF de train).",
+    "metricas_test": {
+      "mae_mediana": 610.8,
+      "mae_media_smear": 741.1,
+      "rmse_media_smear": 1226.7,
+      "r2_soles": 0.42
+    },
+    "n_entrenamiento": 38105,
+    "n_test": 9527,
+    "ingreso_mediano_train": 1089.6,
+    "features": [
+      {
+        "nombre": "anios_educ",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 18.0,
+        "default": 11.0,
+        "etiqueta": "Años de educación aprobados",
+        "nota": "El rango del formulario (0–18) es más estrecho que el del entrenamiento (0–18). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "edad",
+        "tipo": "numerico",
+        "min": 14.0,
+        "max": 80.0,
+        "default": 44.0,
+        "etiqueta": "Edad (años)",
+        "nota": "El rango del formulario (14–80) es más estrecho que el del entrenamiento (14–95). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "exper",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 89.0,
+        "default": 27.0,
+        "etiqueta": "Experiencia potencial (años)"
+      },
+      {
+        "nombre": "exper2",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 7921.0,
+        "default": 729.0,
+        "etiqueta": "exper2"
+      },
+      {
+        "nombre": "horas_total",
+        "tipo": "numerico",
+        "min": 4.0,
+        "max": 84.0,
+        "default": 45.0,
+        "etiqueta": "Horas trabajadas por semana (todas las ocupaciones)",
+        "nota": "El rango del formulario (4–84) es más estrecho que el del entrenamiento (0–112). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "sexo",
+        "tipo": "categorico",
+        "opciones": [
+          "Hombre",
+          "Mujer"
+        ],
+        "default": "Hombre",
+        "etiqueta": "Sexo"
+      },
+      {
+        "nombre": "area",
+        "tipo": "categorico",
+        "opciones": [
+          "Rural",
+          "Urbana"
+        ],
+        "default": "Urbana",
+        "etiqueta": "Área de residencia"
+      },
+      {
+        "nombre": "dominio",
+        "tipo": "categorico",
+        "opciones": [
+          "Costa Centro",
+          "Costa Norte",
+          "Costa Sur",
+          "Lima Metropolitana",
+          "Selva",
+          "Sierra Centro",
+          "Sierra Norte",
+          "Sierra Sur"
+        ],
+        "default": "Selva",
+        "etiqueta": "Dominio geográfico"
+      },
+      {
+        "nombre": "rama",
+        "tipo": "categorico",
+        "opciones": [
+          "Administración pública",
+          "Agropecuario y pesca",
+          "Alojamiento y restaurantes",
+          "Comercio",
+          "Construcción",
+          "Enseñanza",
+          "Manufactura",
+          "Minería e hidrocarburos",
+          "Otros servicios",
+          "Salud y asistencia social",
+          "Servicio doméstico",
+          "Servicios profesionales y financieros",
+          "Transporte y almacenamiento"
+        ],
+        "default": "Agropecuario y pesca",
+        "etiqueta": "Rama de actividad (agrupada)"
+      },
+      {
+        "nombre": "tamano_empresa",
+        "tipo": "categorico",
+        "opciones": [
+          "101 a 500",
+          "21 a 50",
+          "51 a 100",
+          "Hasta 20",
+          "Más de 500"
+        ],
+        "default": "Hasta 20",
+        "etiqueta": "Tamaño de la empresa (personas)"
+      },
+      {
+        "nombre": "categoria",
+        "tipo": "categorico",
+        "opciones": [
+          "Empleado",
+          "Empleador",
+          "Independiente",
+          "Obrero",
+          "Trabajador del hogar"
+        ],
+        "default": "Independiente",
+        "etiqueta": "Categoría ocupacional"
+      }
+    ]
+  },
+  "clasificador_reducido": {
+    "variante": "V1: sin tamano_empresa",
+    "metricas": {
+      "PRAUC_cv": 0.9571,
+      "ROCAUC_cv": 0.9156,
+      "PRAUC_test": 0.9557,
+      "ROCAUC_test": 0.9152
+    },
+    "features": [
+      {
+        "nombre": "anios_educ",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 18.0,
+        "default": 11.0,
+        "etiqueta": "Años de educación aprobados",
+        "nota": "El rango del formulario (0–18) es más estrecho que el del entrenamiento (0–18). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "edad",
+        "tipo": "numerico",
+        "min": 14.0,
+        "max": 80.0,
+        "default": 44.0,
+        "etiqueta": "Edad (años)",
+        "nota": "El rango del formulario (14–80) es más estrecho que el del entrenamiento (14–95). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "exper",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 89.0,
+        "default": 27.0,
+        "etiqueta": "Experiencia potencial (años)"
+      },
+      {
+        "nombre": "exper2",
+        "tipo": "numerico",
+        "min": 0.0,
+        "max": 7921.0,
+        "default": 729.0,
+        "etiqueta": "exper2"
+      },
+      {
+        "nombre": "horas_total",
+        "tipo": "numerico",
+        "min": 4.0,
+        "max": 84.0,
+        "default": 46.0,
+        "etiqueta": "Horas trabajadas por semana (todas las ocupaciones)",
+        "nota": "El rango del formulario (4–84) es más estrecho que el del entrenamiento (0–112). El modelo se entrenó con los datos intactos; el formulario no ofrece valores implausibles presentes en la fuente."
+      },
+      {
+        "nombre": "sexo",
+        "tipo": "categorico",
+        "opciones": [
+          "Hombre",
+          "Mujer"
+        ],
+        "default": "Hombre",
+        "etiqueta": "Sexo"
+      },
+      {
+        "nombre": "area",
+        "tipo": "categorico",
+        "opciones": [
+          "Rural",
+          "Urbana"
+        ],
+        "default": "Urbana",
+        "etiqueta": "Área de residencia"
+      },
+      {
+        "nombre": "dominio",
+        "tipo": "categorico",
+        "opciones": [
+          "Costa Centro",
+          "Costa Norte",
+          "Costa Sur",
+          "Lima Metropolitana",
+          "Selva",
+          "Sierra Centro",
+          "Sierra Norte",
+          "Sierra Sur"
+        ],
+        "default": "Selva",
+        "etiqueta": "Dominio geográfico"
+      },
+      {
+        "nombre": "rama",
+        "tipo": "categorico",
+        "opciones": [
+          "Administración pública",
+          "Agropecuario y pesca",
+          "Alojamiento y restaurantes",
+          "Comercio",
+          "Construcción",
+          "Enseñanza",
+          "Manufactura",
+          "Minería e hidrocarburos",
+          "Otros servicios",
+          "Salud y asistencia social",
+          "Servicio doméstico",
+          "Servicios profesionales y financieros",
+          "Transporte y almacenamiento"
+        ],
+        "default": "Agropecuario y pesca",
+        "etiqueta": "Rama de actividad (agrupada)"
+      },
+      {
+        "nombre": "categoria",
+        "tipo": "categorico",
+        "opciones": [
+          "Empleado",
+          "Empleador",
+          "Independiente",
+          "Obrero",
+          "Trabajador del hogar"
+        ],
+        "default": "Independiente",
+        "etiqueta": "Categoría ocupacional"
+      }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+variante,n_predictores,PRAUC_cv,ROCAUC_cv,PRAUC_test,ROCAUC_test,caida_PRAUC_cv
+completa,11,0.9626,0.9289,0.9605,0.9274,0.0
+V1: sin tamano_empresa,10,0.9571,0.9156,0.9557,0.9152,0.0055
+V2: sin tamano_empresa ni categoria,9,0.9415,0.8903,0.9404,0.8913,0.0211
