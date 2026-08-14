@@ -203,7 +203,23 @@ Los microdatos **no se redistribuyen** en este repositorio (`data/` está en
 (https://proyectos.inei.gob.pe/microdatos/, ENAHO 2025, encuesta 1031,
 módulos 02, 03 y 05).
 
-## 6. Marco bibliográfico
+## 6. Documentación
+
+- [Manual de usuario](docs/manual_usuario.md) — para quien abre la app sin
+  conocer el proyecto: qué es (y qué no), cómo llenar el formulario, cómo
+  leer cada salida y preguntas frecuentes.
+- [Arquitectura](docs/arquitectura.md) — para desarrolladores: el flujo
+  completo con diagrama, mapa archivo por archivo, las decisiones de diseño
+  con su porqué, cómo reproducir todo y cómo se agregaría una variable nueva.
+- [Guía de interpretación de métricas](docs/interpretacion_metricas.md) —
+  cada métrica del proyecto (MAE, R², smearing, PR-AUC, calibración, odds
+  ratios, VIF…) con qué es, cómo se calcula aquí, el valor obtenido, cómo
+  leerlo y qué es razonable esperar según la literatura.
+- [Guion de exposición](docs/guion_exposicion.md) — la narrativa en tres
+  actos para presentar en 10–15 minutos, los números para tener a mano y las
+  preguntas anticipadas con respuesta.
+
+## 7. Marco bibliográfico
 
 - Mincer, J. (1974). *Schooling, Experience, and Earnings*. NBER. — E3 es
   literalmente esta ecuación.
