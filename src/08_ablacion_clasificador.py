@@ -20,7 +20,8 @@ from sklearn.pipeline import Pipeline
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from comun import (DIR_MODELS, DIR_PROCESSED, DIR_REPORTS, RUTA_CACHE_PARAMS,
                    RUTA_SCHEMA, SEMILLA, construir_preprocesador,
-                   extraer_features, formato_md, guardar_con_limite)
+                   escribir_json_atomico, extraer_features, formato_md,
+                   guardar_con_limite)
 
 N_JOBS = 8
 KF = KFold(n_splits=5, shuffle=True, random_state=SEMILLA)
@@ -127,8 +128,8 @@ def main() -> None:
                      ["PRAUC_cv", "ROCAUC_cv", "PRAUC_test", "ROCAUC_test"]},
         "features": extraer_features(pipe_red, X_red.loc[idx_tr]),
     }
-    RUTA_SCHEMA.write_text(json.dumps(schema, indent=2, ensure_ascii=False),
-                           encoding="utf-8")
+    escribir_json_atomico(RUTA_SCHEMA,
+                          json.dumps(schema, indent=2, ensure_ascii=False))
     print("Punto operativo y ablación escritos en feature_schema.json")
 
 

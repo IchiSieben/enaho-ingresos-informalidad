@@ -85,11 +85,11 @@ punto operativo con precisión ≥ 0,90 → umbral 0,605, recall 0,893, **lift
 | Cifra | Qué significa en una línea | Si la cuestionan |
 |---|---|---|
 | **S/ 610,9 / 610,8** (MAE cv/test E9) | Error medio en soles del modelo desplegado | Coinciden casi al sol: no hay sobreajuste del proceso de selección (`reports/comparacion_torneo.csv`). |
-| **0,42 / 0,575** (R² soles / log, E9) | Fracción de varianza explicada, en cada escala | No son comparables entre sí; la literatura Mincer ronda 0,25–0,35 en log — estamos en el rango alto (ver pregunta 1). |
+| **0,42 / 0,575** (R² soles / log, E9) | Fracción de varianza explicada, en cada escala | No son comparables entre sí; las Mincer clásicas rara vez superan 0,4 — estamos en el rango alto (ver pregunta 1). |
 | **2,28 % / 1.093** | Población afectada por el centinela 999999 | Documentado en el diccionario del INEI; R² 0,023→0,248 al limpiarlo (`reports/00_autopsia_baseline.md`). |
 | **3,98** | Asimetría del ingreso: cola derecha larga | Justifica el target en log y el criterio MAE. |
 | **×1,401** | Factor de smearing de Duan: mediana → media | Duan (1983), calculado con residuos out-of-fold de train, nunca test. |
-| **+4,8 %/año** | Retorno a la educación, neto de canales ocupacionales | Condicional vs incondicional: sin controles de empleo sube a 6,5 % (E4) y el bruto de literatura es 9–10 % (ver pregunta 5). |
+| **13 % bruto (E2) vs 4,8 % neto (E6)** | El retorno a la educación, leído en pareja: bruto = exp(0,1223)−1 de la regresión cruda; neto = con los canales ocupacionales descontados | La brecha ES la respuesta: la educación paga en gran parte vía acceso a mejores empleos; el punto intermedio E4 (sin controles de empleo) da 6,5 % (ver pregunta 5). |
 | **S/ 79 (+11,5 %)** | Brecha E6→E9: lo que aportan las no linealidades | Athey & Imbens 2019: es una estimación del límite de la forma funcional lineal, no magia del boosting. |
 | **0,9626 / 0,678** | PR-AUC cv del GB / baseline de prevalencia | El mérito es la distancia sobre 0,678, no el 0,96 suelto; sin las 2 variables casi definicionales aún da 0,9415 (`reports/ablacion_clasificador.csv`). |
 | **0,605 → 0,900 / 0,893** | Umbral operativo → precisión / recall | Elegido sobre OOF de train; el test lo confirma exactamente (0,900/0,893). |
@@ -105,9 +105,9 @@ punto operativo con precisión ≥ 0,90 → umbral 0,605, recall 0,893, **lift
 **1. ¿Por qué el R² es "bajo" (0,42)?**
 Porque el ingreso individual depende de mucho que ninguna encuesta observa
 (habilidad, redes, calidad del empleo). Las ecuaciones de Mincer clásicas
-sobre microdatos rondan R² 0,25–0,35 en log (Card 1999; Lemieux 2006;
-Heckman et al. 2006); nuestro 0,575 en log está en el rango alto porque
-añade controles de empleo. Un R² de 0,8 aquí sería señal de fuga, no de
+en cortes transversales rara vez superan un R² de 0,4 (Card 1999; Lemieux
+2006; Heckman et al. 2006); nuestro 0,575 en log está en el rango alto
+porque añade controles de empleo. Un R² de 0,8 aquí sería señal de fuga, no de
 calidad — lo sabemos porque la variable que "explicaba demasiado"
 (INGHOG2D) resultó contener al target (`reports/00_autopsia_baseline.md`).
 
@@ -136,12 +136,18 @@ explicativo es WLS con FAC500A (`reports/modelo_explicativo.md`), y los
 descriptivos de la app van ponderados. Cada tabla declara cuál es.
 
 **5. ¿Por qué 4,8 % de retorno a la educación si la literatura dice 9–10 %?**
-Porque condicionamos en categoría ocupacional, tamaño de empresa y rama —
-que son canales por los que la educación opera. El 4,8 % es el retorno
-*neto* de esos canales; el 9–10 % de Psacharopoulos & Patrinos (2018) es el
-*bruto* de una Mincer sin esos controles. Nuestra propia E4 (sin esos
-controles) da 6,5 %, y la regresión cruda de solo educación implica ~13 %:
-la secuencia completa muestra el mecanismo, no una discrepancia.
+La respuesta completa es la **lectura en pareja**: en nuestros propios
+datos, el retorno *bruto* es **13 %** (E2, la regresión cruda de solo
+educación: exp(0,1223)−1, `reports/torneo_regresion.md`) y el *neto* es
+**4,8 %** (E6, condicionando en categoría ocupacional, tamaño de empresa y
+rama, `reports/modelo_explicativo.md`). La brecha entre ambos ES el
+hallazgo: esos controles son canales por los que la educación opera —
+estudiar más te lleva a mejores empleos, y el 4,8 % es lo que la educación
+paga *dentro* del mismo tipo de empleo. El 9–10 % de Psacharopoulos &
+Patrinos (2018) es un bruto sin esos controles, perfectamente compatible
+con nuestro 13 % bruto; el punto intermedio E4 (6,5 %) completa la
+secuencia. No hay discrepancia con la literatura: hay dos preguntas
+distintas, cada una con su número.
 
 **6. ¿Por qué la app muestra la mediana y no la media?**
 El modelo entrena en log y la inversión directa estima la mediana
@@ -167,7 +173,9 @@ métricas puntuales (MAE, umbral operativo) se recalcularían y el precómputo
 de UI se negaría a publicar si el nuevo umbral no reprodujera el schema —
 el sistema obliga a re-aprobar el punto operativo. La advertencia honesta:
 el modelo no está pensado para extrapolar a otro año sin reentrenar; es
-transversal, no un pronóstico.
+transversal, no un pronóstico. Frase de cierre: **«los coeficientes
+cambiarían, el método no; la validación temporal está declarada como
+trabajo futuro»**.
 
 ## Cierre — qué demuestran los dos proyectos juntos (~min 13–15)
 

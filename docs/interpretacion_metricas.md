@@ -94,9 +94,8 @@ reporta. Lo que NO significa un R² de 0,42: que el modelo "se equivoque el
 58 % de las veces" — el R² no es una tasa de acierto.
 
 **(e)** La pregunta inevitable es "¿0,42 no es bajo?". No: **las ecuaciones
-de ingreso sobre microdatos de encuestas de hogares rondan R² de 0,25–0,35
-en escala log** (las Mincer clásicas: Card 1999; Lemieux 2006; Heckman,
-Lochner & Todd 2006 [verificar rango exacto por estudio]), porque el ingreso
+de Mincer clásicas en cortes transversales rara vez superan un R² de 0,4**
+(Card 1999; Lemieux 2006; Heckman, Lochner & Todd 2006), porque el ingreso
 individual depende de mucho que ninguna encuesta observa (habilidad, redes,
 calidad del empleo, suerte). Nuestro 0,575 en log — con controles de
 categoría, tamaño de empresa y rama que una Mincer clásica no lleva — está
@@ -156,7 +155,8 @@ años de educación se convierte a porcentaje con (exp(coef)−1)·100.
 `reports/modelo_explicativo.md`). En el mismo reporte, el E4 — sin
 categoría, tamaño de empresa ni dominio — da **+6,5 %**; y en el torneo sin
 ponderar, la regresión cruda de solo educación (E2) da un coeficiente de
-0,1223 (~13 % aparente, `reports/torneo_regresion.md`).
+0,1223 — es decir un retorno bruto aparente de exp(0,1223)−1 ≈ **13 %**
+(`reports/torneo_regresion.md`).
 
 **(d)** La secuencia 13 % → 6,5 % → 4,8 % no es una contradicción: es el
 mismo retorno medido con más o menos canales descontados. Nuestra

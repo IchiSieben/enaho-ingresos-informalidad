@@ -27,7 +27,7 @@ from sklearn.model_selection import KFold, cross_val_predict, train_test_split
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from comun import (DIR_MODELS, DIR_PROCESSED, DIR_REPORTS, RUTA_SCHEMA,
-                   SEMILLA, separar_columnas)
+                   SEMILLA, escribir_json_atomico, separar_columnas)
 from importlib import import_module
 torneo = import_module("04_torneo_regresion")
 
@@ -442,9 +442,9 @@ def main() -> None:
                         "del modelo muestrales; entrenamiento sin ponderar."),
     }
 
-    RUTA_SALIDA.write_text(
-        json.dumps(artefactos, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8")
+    escribir_json_atomico(
+        RUTA_SALIDA,
+        json.dumps(artefactos, ensure_ascii=False, separators=(",", ":")))
     kb = RUTA_SALIDA.stat().st_size / 1024
     log(f"\n{RUTA_SALIDA.name}: {kb:.1f} KB")
     if kb > 500:

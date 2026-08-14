@@ -54,7 +54,7 @@ esos dos archivos o de los `.joblib`.
 
 | Archivo | Qué hace | Qué produce |
 |---|---|---|
-| `comun.py` | Utilidades compartidas (adaptadas del proyecto SIS-diabetes): constantes de dominio (centinelas, llaves, mapas de códigos), lector de CSV del INEI (`sep=";"`, latin-1, llaves como texto), recodificación de años de educación, agrupación de ramas CIIU, preprocesador (`ColumnTransformer` con imputación de mediana + `StandardScaler` + `OneHotEncoder` con colapso de categorías raras a «OTROS», umbral 300 obs.), extracción del contrato de features desde el pipeline ajustado, caché de hiperparámetros, guardado con límite de tamaño y formateo Markdown. | — |
+| `comun.py` | Utilidades compartidas (adaptadas del proyecto SIS-diabetes): constantes de dominio (centinelas, llaves, mapas de códigos), lector de CSV del INEI (`sep=";"`, latin-1, llaves como texto), recodificación de años de educación, agrupación de ramas CIIU, preprocesador (`ColumnTransformer` con imputación de mediana + `StandardScaler` + `OneHotEncoder` con colapso de categorías raras a «OTROS», umbral 300 obs.), extracción del contrato de features desde el pipeline ajustado, caché de hiperparámetros, escritura atómica de JSON (tmp + `os.replace`), guardado con límite de tamaño y formateo Markdown. | — |
 | `00_extraer_diccionario.py` | Extrae el texto del `Diccionario_2025.pdf` (381 páginas) para consultarlo con grep. | `data/interim/diccionario_2025.txt` |
 | `00_inventario.py` | Inventario por columna de los 6 módulos: dtype, únicos, % de nulos antes y después de convertir el centinela 999999 — la diferencia mide el problema. | `reports/inventario_columnas.csv`, `reports/inventario_modulos.csv` |
 | `01_fase0_poblacion.py` | Verificación empírica sobre archivos completos: códigos de OCU500, magnitud del centinela por variable monetaria, candidatas de ingreso, cascada de población (84.853 → 57.716 → 47.899) y merges con educación y Sumaria. | `data/interim/fase0_poblacion.parquet` |
@@ -175,13 +175,23 @@ eso `css(T)` fija `color-scheme` en `[data-testid="stIFrame"]` y
 `css_iframe(T)` lo fija en el `html` embebido, ambos derivados de la misma
 paleta activa.
 
-### 3.8 Escritura del schema por secciones
+### 3.8 Escritura atómica con `os.replace` y schema por secciones
 
-`guardar_schema(clave, contenido)` lee el JSON existente, reemplaza solo la
-clave (`clasificador`, `regresor`, `clasificador_reducido`) y reescribe: los
-scripts 06, 07 y 08 pueden correr en cualquier orden relativo sin pisarse
-las secciones. La integridad numérica entre schema y artefactos de UI la
-garantiza la verificación de §3.2, que corre después de todos.
+Todos los JSON que la app consume se escriben con
+`escribir_json_atomico()` (`src/comun.py`): el contenido va primero a
+`<archivo>.json.tmp` y `os.replace` lo mueve al destino — una operación
+atómica del sistema de archivos. Si la máquina se cuelga a mitad de la
+escritura (ya pasó dos veces en este portafolio), el archivo publicado
+nunca queda truncado: o está la versión anterior completa o la nueva
+completa. Aplica a `feature_schema.json`, `ui_artifacts.json` y
+`_hiperparametros.json`.
+
+Además, `guardar_schema(clave, contenido)` lee el JSON existente, reemplaza
+solo la clave (`clasificador`, `regresor`, `clasificador_reducido`) y
+reescribe: los scripts 06, 07 y 08 pueden correr en cualquier orden
+relativo sin pisarse las secciones. La integridad numérica entre schema y
+artefactos de UI la garantiza la verificación de §3.2, que corre después de
+todos.
 
 ### 3.9 Otras convenciones heredadas del proyecto SIS
 

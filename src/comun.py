@@ -9,6 +9,7 @@ de artefactos; cambian las constantes de dominio (ENAHO 2025, encuesta 1031).
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import joblib
@@ -257,6 +258,17 @@ def extraer_features(pipeline_ajustado: Pipeline, X_entrenamiento: pd.DataFrame)
 RUTA_CACHE_PARAMS = DIR_MODELS / "_hiperparametros.json"
 
 
+def escribir_json_atomico(ruta: Path, texto: str) -> None:
+    """
+    Escribe a <ruta>.tmp y os.replace al destino: si la maquina se cuelga a
+    mitad de la escritura (ya paso dos veces en este portafolio), el archivo
+    publicado nunca queda truncado.
+    """
+    tmp = ruta.with_suffix(ruta.suffix + ".tmp")
+    tmp.write_text(texto, encoding="utf-8")
+    os.replace(tmp, ruta)
+
+
 def busqueda_cacheada(clave: str, ejecutar) -> tuple[dict, float, float, bool]:
     """
     Ejecuta la busqueda de hiperparametros o la recupera de disco. Borrar
@@ -273,8 +285,8 @@ def busqueda_cacheada(clave: str, ejecutar) -> tuple[dict, float, float, bool]:
     params, score, segundos = ejecutar()
     DIR_MODELS.mkdir(parents=True, exist_ok=True)
     cache[clave] = {"params": params, "score": score, "segundos": segundos}
-    RUTA_CACHE_PARAMS.write_text(json.dumps(cache, indent=2, ensure_ascii=False),
-                                 encoding="utf-8")
+    escribir_json_atomico(RUTA_CACHE_PARAMS,
+                          json.dumps(cache, indent=2, ensure_ascii=False))
     return params, score, segundos, False
 
 
@@ -285,8 +297,8 @@ def guardar_schema(clave: str, contenido: dict) -> None:
     if RUTA_SCHEMA.exists():
         schema = json.loads(RUTA_SCHEMA.read_text(encoding="utf-8"))
     schema[clave] = contenido
-    RUTA_SCHEMA.write_text(json.dumps(schema, indent=2, ensure_ascii=False),
-                           encoding="utf-8")
+    escribir_json_atomico(RUTA_SCHEMA,
+                          json.dumps(schema, indent=2, ensure_ascii=False))
 
 
 def importancia_por_variable(pipeline_ajustado: Pipeline) -> pd.Series:
