@@ -7,7 +7,9 @@
 # Ponderacion (decision de Fase 1): los descriptivos de cohorte que muestra la
 # app van PONDERADOS con FAC500A; las curvas del modelo (umbral, ROC, PR,
 # calibracion) son muestrales porque describen al modelo, no a la poblacion.
+import ast
 import json
+import re
 import subprocess
 import sys
 import time
@@ -26,8 +28,9 @@ from sklearn.metrics import (average_precision_score, precision_recall_curve,
 from sklearn.model_selection import KFold, cross_val_predict, train_test_split
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from comun import (DIR_MODELS, DIR_PROCESSED, DIR_REPORTS, RUTA_SCHEMA,
-                   SEMILLA, escribir_json_atomico, separar_columnas)
+from comun import (DIR_MODELS, DIR_PROCESSED, DIR_REPORTS, ETIQUETAS,
+                   RUTA_SCHEMA, SEMILLA, escribir_json_atomico,
+                   separar_columnas)
 from importlib import import_module
 torneo = import_module("04_torneo_regresion")
 
@@ -239,6 +242,95 @@ def hash_commit() -> str | None:
 
 
 # --------------------------------------------------------------------------
+# Bloque "variables": matriz especificacion x variable, Lasso E7 y descartadas
+# --------------------------------------------------------------------------
+# Derivadas de spec -> variable conceptual (una fila por variable, no por dummy)
+NORMALIZA_VAR = {"hombre": "sexo", "urbano": "area", "log_horas": "horas",
+                 "horas_total": "horas", "primaria": "nivel_educ",
+                 "secundaria": "nivel_educ", "tecnica": "nivel_educ",
+                 "universitaria": "nivel_educ"}
+ORDEN_VARIABLES = ["anios_educ", "nivel_educ", "edad", "exper", "exper2",
+                   "sexo", "area", "horas", "miembros", "dominio", "rama",
+                   "tamano_empresa", "categoria", "contrato"]
+ETIQUETAS_MATRIZ = ETIQUETAS | {
+    "nivel_educ": "Nivel educativo (dummies)",
+    "exper2": "Experiencia² (años²)",
+    "horas": "Horas semanales (log u horas según spec)",
+    "miembros": "Miembros del hogar",
+    "contrato": "Tipo de contrato",
+}
+
+
+def artefactos_variables() -> dict:
+    """Matriz leida de las specs REALES de 04, Lasso E7 leido del reporte."""
+    specs = {k: set(v["num"]) | set(v["cat"])
+             for k, v in torneo.ESPECIFICACIONES.items()}
+    specs["E7"] = set(torneo.E7_NUM) | set(torneo.E7_CAT)
+    specs["E8"] = set(torneo.COLS_ARBOLES)
+    specs["E9"] = set(torneo.COLS_ARBOLES)
+    orden_espec = [f"E{i}" for i in range(1, 10)]
+    normalizadas = {e: {NORMALIZA_VAR.get(c, c) for c in cols}
+                    for e, cols in specs.items()}
+    sobran = set().union(*normalizadas.values()) - set(ORDEN_VARIABLES)
+    if sobran:
+        raise SystemExit(f"Variables de las specs sin fila en la matriz: {sobran}")
+    filas = [{"variable": v,
+              "etiqueta": ETIQUETAS_MATRIZ.get(v, v),
+              "entra": {e: v in normalizadas[e] for e in orden_espec}}
+             for v in ORDEN_VARIABLES]
+
+    # Lasso E7: numeros del reporte generado por 04 (no se recalcula aqui)
+    texto = (DIR_REPORTS / "torneo_regresion.md").read_text(encoding="utf-8")
+    m = re.search(r"Candidatas: (\d+) columnas; Lasso \(alpha=([0-9.]+)\) "
+                  r"conserva (\d+)\.", texto)
+    m2 = re.search(r"- Eliminadas: (\[[^\]]*\])", texto)
+    if not (m and m2):
+        raise SystemExit("No se pudo leer el bloque E7 de reports/torneo_regresion.md")
+    eliminadas = ast.literal_eval(m2.group(1))
+
+    descartadas = [
+        {"nombre": "«Índice de bienestar» (INGHOG2D; y derivados GASHOG2D, POBREZA)",
+         "motivo": "Circularidad mecánica: el ingreso individual es un sumando "
+                   "del ingreso del hogar (ρ Spearman 0,575; 0,619 per cápita). "
+                   "Excluido de todo modelo.",
+         "evidencia": "reports/00_autopsia_baseline.md §5"},
+        {"nombre": "P511A — tipo de contrato",
+         "motivo": "Cuasi-definicional de la informalidad para asalariados "
+                   "(AUC univariado 0,846): prohibida en el clasificador. En la "
+                   "regresión solo participa como candidata de E7.",
+         "evidencia": "reports/01_preparacion_fase1.md"},
+        {"nombre": "Centinela 999999 (nota: no es una variable)",
+         "motivo": "Código de faltante del INEI en variables monetarias, leído "
+                   "como valor real en el baseline; convertido a NaN antes de "
+                   "todo cálculo (R² 0,023 → 0,248 al limpiarlo).",
+         "evidencia": "reports/00_autopsia_baseline.md §1–2"},
+        {"nombre": "TFNR — trabajadores familiares no remunerados",
+         "motivo": "Restricción de población, no variable: 6.500 ocupados con "
+                   "ingreso = 0 quedan fuera de la población de modelado "
+                   "(informales por definición; la prevalencia lo declara).",
+         "evidencia": "reports/01_preparacion_fase1.md"},
+    ]
+
+    return {
+        "matriz": {"especificaciones": orden_espec, "filas": filas},
+        "nota_matriz": ("Leída de las especificaciones de "
+                        "src/04_torneo_regresion.py. E7: columnas candidatas al "
+                        "Lasso (la selección decide cuáles quedan). E6 suelta la "
+                        "dummy rama=Servicio doméstico, colineal perfecta con "
+                        "categoría=Trabajador del hogar."),
+        "lasso_e7": {
+            "candidatas": int(m.group(1)),
+            "alpha": float(m.group(2)),
+            "conservadas": int(m.group(3)),
+            "eliminadas": eliminadas,
+            "drop_manual_e6": list(torneo.ESPECIFICACIONES["E6"].get("drop", [])),
+            "fuente": "reports/torneo_regresion.md",
+        },
+        "descartadas": descartadas,
+    }
+
+
+# --------------------------------------------------------------------------
 # Seccion torneo: la narrativa en tres actos con numeros CALCULADOS
 # --------------------------------------------------------------------------
 def artefactos_torneo(df: pd.DataFrame) -> dict:
@@ -300,6 +392,7 @@ def artefactos_torneo(df: pd.DataFrame) -> dict:
         },
         "sensibilidad_especie": sensibilidad,
         "explicativo_e6_ponderado": {"r2": r(m6.rsquared, 4), "efectos_pct": efectos6},
+        "variables": artefactos_variables(),
     }
 
 

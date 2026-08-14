@@ -432,7 +432,7 @@ def _ecuacion(coefs: dict, titulo: str) -> str:
            "\n".join(lineas) + "</div>"
 
 
-def seccion_torneo(art: dict) -> None:
+def seccion_torneo(schema: dict, art: dict) -> None:
     t = art.get("torneo")
     if not t:
         html("<div class='senal senal-aviso'><div>▲</div><div>Falta el bloque "
@@ -510,6 +510,98 @@ def seccion_torneo(art: dict) -> None:
                                 [f["MAE_cv"] for f in orden],
                                 t["desplegada"], T()),
             28 + len(orden) * 32 + 30)
+
+    # ---- Qué variable entra dónde y cuánto pesa ----
+    vb = t.get("variables")
+    if vb:
+        html("<h2>Qué variable entra dónde y cuánto pesa</h2>")
+        col_m, col_i = st.columns([54, 46], gap="large")
+        with col_m:
+            m = vb["matriz"]
+            cab = "".join(
+                f"<th style='text-align:center'>{e}"
+                f"{' ★' if e == t['desplegada'] else ''}</th>"
+                for e in m["especificaciones"])
+            filas = ""
+            for f in m["filas"]:
+                celdas = ""
+                for e in m["especificaciones"]:
+                    entra = f["entra"].get(e, False)
+                    destacada = entra and e == t["desplegada"]
+                    color = (T()["acento_alto"] if destacada
+                             else T()["texto"] if entra else T()["texto_tenue"])
+                    celdas += (f"<td style='text-align:center;color:{color}'>"
+                               f"{'●' if entra else '·'}</td>")
+                filas += (f"<tr><td style='text-align:left'>{f['etiqueta']}"
+                          f"</td>{celdas}</tr>")
+            html(f"<table class='tabla'><thead><tr><th>Variable</th>{cab}"
+                 f"</tr></thead><tbody>{filas}</tbody></table>")
+            html(f"<div class='sutil' style='margin-top:8px'>"
+                 f"{vb['nota_matriz']}</div>")
+        with col_i:
+            imp = art.get("regresor", {}).get("importancia_permutacion")
+            if imp:
+                html(f"<div class='eyebrow'>Peso en {t['desplegada']} · "
+                     "importancia por permutación</div>")
+                st.write("")
+                etiquetas = {f["nombre"]: f.get("etiqueta", f["nombre"])
+                             for f in schema["regresor"]["features"]}
+                # versiones cortas: esta columna es más angosta que la de ingreso
+                etiquetas |= {"horas_total": "Horas semanales",
+                              "exper2": "Experiencia²"}
+                grafico(graficos.barras_importancia(
+                    imp["variables"], imp["media"], imp["desviacion"], T(),
+                    unidad="aumento del MAE al permutar (S/)",
+                    etiquetas=etiquetas),
+                    30 + len(imp["variables"]) * 30 + 18)
+                html("<div class='sutil'>La matriz dice quién entra; estas "
+                     "barras dicen cuánto pesa en el modelo desplegado "
+                     "(precomputado en models/ui_artifacts.json).</div>")
+
+        l7 = vb.get("lasso_e7")
+        if l7:
+            html("<h3>Qué eliminó el Lasso en E7</h3>")
+            drop_manual = set(l7.get("drop_manual_e6", []))
+            eliminadas = l7["eliminadas"]
+            coincide = sorted(drop_manual & set(eliminadas))
+            extras = [e for e in eliminadas if e not in drop_manual]
+            partes = [
+                f"De <b>{l7['candidatas']}</b> columnas candidatas, el Lasso "
+                f"(α = {l7['alpha']:.5f}) conservó <b>{l7['conservadas']}</b> "
+                f"y eliminó {len(eliminadas)}: "
+                + ", ".join(f"<code>{e}</code>" for e in eliminadas)
+                + f" ({l7.get('fuente', '')})."]
+            if coincide:
+                partes.append(
+                    "La selección automática <b>confirmó la depuración manual "
+                    "de E6</b>: eliminó "
+                    + ", ".join(f"<code>{c}</code>" for c in coincide)
+                    + ", la misma dummy que E6 suelta a mano por colinealidad "
+                      "perfecta con categoría=Trabajador del hogar.")
+            if extras:
+                partes.append(
+                    "Donde discrepa: además descartó "
+                    + ", ".join(f"<code>{e}</code>" for e in extras)
+                    + ", dummies de categorías con poca masa muestral que E6 "
+                      "conserva — la penalización del Lasso castiga a los "
+                      "grupos chicos, no necesariamente a los irrelevantes "
+                      "(la cautela de Belloni et al. 2014 que el reporte "
+                      "declara).")
+            html(f"<div class='panel'><div style='font-size:13px;"
+                 f"line-height:1.75;color:{T()['texto']}'>"
+                 + " ".join(partes) + "</div></div>")
+
+        desc = vb.get("descartadas")
+        if desc:
+            html("<h3>Variables descartadas y por qué</h3>")
+            filas = "".join(
+                f"<tr><td style='text-align:left'>{d['nombre']}</td>"
+                f"<td style='text-align:left'>{d['motivo']}</td>"
+                f"<td style='text-align:left'><code>{d['evidencia']}</code>"
+                f"</td></tr>" for d in desc)
+            html(f"<table class='tabla'><thead><tr><th>Variable</th>"
+                 f"<th>Motivo</th><th>Evidencia</th></tr></thead>"
+                 f"<tbody>{filas}</tbody></table>")
 
     e6 = t["explicativo_e6_ponderado"]["efectos_pct"]
     html("<h2>Las dos lecturas finales</h2>")
@@ -717,7 +809,7 @@ def main() -> None:
     elif seccion == "informalidad":
         seccion_informalidad(schema, art)
     elif seccion == "torneo":
-        seccion_torneo(art)
+        seccion_torneo(schema, art)
     else:
         seccion_ficha(schema, art)
 

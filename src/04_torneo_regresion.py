@@ -150,6 +150,12 @@ ESPECIFICACIONES = {
                    "con categoría=Trabajador del hogar)", "interp": "alta"},
 }
 
+# Candidatas de E7 (Lasso) a nivel de modulo: 09_precomputar_ui.py las lee
+# para la matriz especificacion x variable de la app.
+E7_NUM = ["anios_educ", "exper", "exper2", "log_horas", "miembros"]
+E7_CAT = ["sexo", "area", "dominio", "rama", "tamano_empresa", "categoria",
+          "contrato"]
+
 REJILLAS = {
     "E8": (RandomForestRegressor(random_state=SEMILLA, n_jobs=N_JOBS),
            {"regressor__modelo__n_estimators": [200, 400],
@@ -269,10 +275,7 @@ def main() -> None:
 
     # --- E7: Lasso + post-Lasso OLS ---
     anotar("\n## E7 — Lasso y post-Lasso\n")
-    cand_num = ["anios_educ", "exper", "exper2", "log_horas", "miembros"]
-    cand_cat = ["sexo", "area", "dominio", "rama", "tamano_empresa", "categoria",
-                "contrato"]
-    X7 = disenar(df, cand_num, cand_cat)
+    X7 = disenar(df, E7_NUM, E7_CAT)
     lasso = Pipeline([("esc", StandardScaler()),
                       ("modelo", LassoCV(cv=KF, random_state=SEMILLA, n_jobs=N_JOBS))])
     lasso.fit(X7.loc[idx_tr], np.log1p(y.loc[idx_tr]))
