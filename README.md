@@ -1,9 +1,12 @@
+> **▶ Demo en vivo:** https://enaho-ingresos-informalidad.streamlit.app
+
 # Ingreso laboral e informalidad en el Perú — ENAHO 2025
 
 Dos modelos desplegados en Streamlit sobre los microdatos de la Encuesta
 Nacional de Hogares (ENAHO 2025, INEI): un **regresor del ingreso laboral
 mensual** y un **clasificador de empleo informal**. Proyecto hermano del de
-[SIS-diabetes], con los mismos estándares: reproducibilidad total
+**SIS-diabetes** (predicción de adherencia al seguimiento y costo de
+atención con datos abiertos del SIS), con los mismos estándares: reproducibilidad total
 (`random_state=42`), formulario dirigido por `feature_schema.json`,
 precómputo de UI, umbrales elegidos sobre probabilidades out-of-fold y
 limitaciones declaradas.

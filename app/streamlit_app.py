@@ -689,6 +689,10 @@ def main() -> None:
     with st.sidebar:
         html("<div class='marca'>INEI · ENAHO 2025</div>"
              "<div class='marca-titulo'>Ingreso laboral<br>e informalidad</div>")
+        html(f"<div class='sutil' style='margin:-12px 0 16px 0'>"
+             f"<a href='https://github.com/IchiSieben/enaho-ingresos-informalidad' "
+             f"target='_blank' style='color:{T()['acento_alto']};"
+             f"text-decoration:none'>Código y metodología en GitHub ↗</a></div>")
         for clave, titulo in SECCIONES:
             activo = st.session_state["seccion"] == clave
             if st.button(titulo, key=f"nav_{clave}",
