@@ -1,3 +1,6 @@
+# 06_entrenar_clasificador.py — clasificador de empleo informal
+# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Licencia: Apache-2.0 (ver LICENSE)
 # FASE 2b — Clasificador de empleo informal (informal=1, clase MAYORITARIA).
 #
 # Baseline obligado: regresion logistica con odds ratios. Luego RF y GB con

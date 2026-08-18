@@ -1,3 +1,6 @@
+# 05_modelo_explicativo.py — modelo explicativo WLS con FAC500A
+# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Licencia: Apache-2.0 (ver LICENSE)
 # FASE 2 — Modelo explicativo (entregable separado del torneo).
 # E4 y E6 en log, PONDERADAS con FAC500A (WLS) y errores HC3, sobre la muestra
 # completa: lectura poblacional de los coeficientes. El torneo E1-E9 va sin

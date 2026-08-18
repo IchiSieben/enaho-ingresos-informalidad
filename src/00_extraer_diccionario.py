@@ -1,3 +1,6 @@
+# 00_extraer_diccionario.py — extrae el diccionario ENAHO a texto consultable
+# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Licencia: Apache-2.0 (ver LICENSE)
 # Extrae el texto del diccionario ENAHO 2025 a un .txt consultable con grep.
 # El PDF es el mismo en todos los modulos; basta extraerlo una vez.
 from pathlib import Path

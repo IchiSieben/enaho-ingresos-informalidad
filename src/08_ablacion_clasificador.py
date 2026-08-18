@@ -1,3 +1,6 @@
+# 08_ablacion_clasificador.py — ablación estructural del clasificador
+# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Licencia: Apache-2.0 (ver LICENSE)
 # FASE 2b (cierre) — Ablacion estructural del clasificador y fijado del punto
 # operativo en el schema.
 #

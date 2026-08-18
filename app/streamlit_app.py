@@ -1,3 +1,6 @@
+# streamlit_app.py — app Streamlit: predicción, torneo y ficha
+# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Licencia: Apache-2.0 (ver LICENSE)
 """
 FASE 3 — App: ingreso laboral e informalidad en el Perú (ENAHO 2025).
 
