@@ -41,8 +41,10 @@ MAX_CATEGORIAS = 30
 LIMITE_MB = 50.0
 
 # El INEI usa 999999 (a veces 999999.9) como codigo de faltante en variables
-# monetarias; anchos menores usan 9999/99/9 segun el diccionario.
-CENTINELAS_MONETARIOS = [999999, 999999.9]
+# monetarias; anchos menores usan 9999/99999 segun el diccionario. Ampliado
+# tras el barrido de la auditoria (18/08/2026): sin fuga activa hoy (las
+# columnas que usan estos anchos no estan en el pipeline), es prevencion.
+CENTINELAS_MONETARIOS = [999999, 999999.9, 99999, 9999]
 
 LLAVES_PERSONA = ["CONGLOME", "VIVIENDA", "HOGAR", "CODPERSO"]
 LLAVES_HOGAR = ["CONGLOME", "VIVIENDA", "HOGAR"]

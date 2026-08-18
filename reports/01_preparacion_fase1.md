@@ -97,6 +97,15 @@ tamano_empresa    0.5
 
 ## Validación de constructo: prevalencia reconstruida sobre TODOS los ocupados
 
+> **Nota de trazabilidad (auditoría, 18/08/2026):** esta sección es una
+> **anotación manual post-hoc**, no la genera `src/03_fase1_preparacion.py`
+> (el script actual produce 9 secciones vía `reportar()`; esta y las dos
+> siguientes no están entre ellas — verificado reejecutando el script:
+> el `.md` resultante sale 36 líneas más corto). Los números sí se
+> re-verificaron con código independiente durante la auditoría y son
+> exactos (`67,3% / 61,3% / 91,6%`, reproducidos byte a byte). El traslado
+> de esta lógica al script queda para la Fase 7.
+
 La población de modelado excluye a los TFNR (sin ingreso), que son informales
 por definición. Para validar la regla se reconstruyó la tasa sobre los 57.716
 ocupados completos (regla derivada + TFNR:=informal; cobertura 99,8%):
@@ -107,16 +116,28 @@ Urbano:             61,3%   (INEI: 64,5%       ->  -3,2 pts)
 Rural:              91,6%   (INEI: 94,8%       ->  -3,2 pts)
 ```
 
-Dentro del margen de 3-4 pts en los tres contrastes, con un sesgo uniforme y
-explicable: la afiliación a pensiones (P558A5) incluye afiliaciones
-autofinanciadas, de modo que algunos asalariados oficialmente informales
-cuentan aquí como formales. La derivación queda VALIDADA como constructo.
-En la población de modelado (con ingreso > 0) la prevalencia es 67,4%
-muestral / 63,7% ponderada — menor que la nacional por la exclusión de TFNR
-(6.500 filas; 1,43 M de personas ponderadas), restricción de población
+La brecha frente al INEI es **uniforme (~3 pts) en los tres cortes**
+—nacional, urbano y rural, con desviación estándar de solo 0,14 pts entre
+ellos— pese a que la prevalencia base varía entre 61% y 92% según el corte.
+Un error de muestreo o de cobertura afectaría a cada estrato con una
+magnitud distinta, proporcional a su varianza; que la brecha se mantenga
+prácticamente constante en niveles tan distintos es la firma de un **sesgo
+sistemático de definición, no de ruido muestral**: la afiliación a pensiones
+(P558A5) incluye afiliaciones autofinanciadas, de modo que un subconjunto
+estable de asalariados que el INEI cuenta como informales (por otros
+criterios, p. ej. tipo de contrato o seguro de salud) queda clasificado aquí
+como formal, en la misma proporción sin importar el estrato. La derivación
+queda VALIDADA como constructo, con esa fuente de sesgo documentada y
+acotada. En la población de modelado (con ingreso > 0) la prevalencia es
+67,4% muestral / 63,7% ponderada — menor que la nacional por la exclusión de
+TFNR (6.500 filas; 1,43 M de personas ponderadas), restricción de población
 documentada, no error.
 
 ## Decisión sobre P511A (tipo de contrato)
+
+> **Nota de trazabilidad (auditoría, 18/08/2026):** anotación manual
+> post-hoc, misma situación que la sección anterior — no la genera el
+> script actual. Traslado a código pendiente para la Fase 7.
 
 AUC univariado 0,846: por debajo del umbral de exclusión (0,85) pero
 consistente con su papel de casi-definición para asalariados. NO forma parte
@@ -125,6 +146,10 @@ conserva en el dataset (`contrato`) únicamente para la réplica E5 de la
 consigna de regresión y este diagnóstico.
 
 ## Ponderación (decisión de diseño)
+
+> **Nota de trazabilidad (auditoría, 18/08/2026):** anotación manual
+> post-hoc, misma situación que las dos secciones anteriores — no la genera
+> el script actual. Traslado a código pendiente para la Fase 7.
 
 - Descriptivos, prevalencias, medianas de cohorte de la app y OLS con lectura
   poblacional: PONDERADOS con FAC500A (viene con coma decimal; convertida).
