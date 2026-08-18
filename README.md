@@ -219,7 +219,18 @@ módulos 02, 03 y 05).
   actos para presentar en 10–15 minutos, los números para tener a mano y las
   preguntas anticipadas con respuesta.
 
-## 7. Marco bibliográfico
+## 7. Qué puedes reutilizar
+
+| Parte | Licencia | Condición |
+|---|---|---|
+| Código (`src/`, `app/`, `run.ps1`) y artefactos de `models/` | [Apache-2.0](LICENSE) | Los derivados deben declarar los cambios y conservar el contenido de [`NOTICE`](NOTICE) (sección 4d). |
+| Documentación, `reports/*.md` y figuras | [CC BY-NC 4.0](docs/LICENSE-DOCS.md) | Atribución obligatoria; sin uso comercial. |
+| Microdatos ENAHO 2025 | Del INEI, **no se redistribuyen aquí** | Descarga de la [fuente oficial](https://proyectos.inei.gob.pe/microdatos/) bajo sus términos de uso. |
+
+Para citar el proyecto, GitHub genera la cita desde [`CITATION.cff`](CITATION.cff)
+(botón «Cite this repository»).
+
+## 8. Marco bibliográfico
 
 - Mincer, J. (1974). *Schooling, Experience, and Earnings*. NBER. — E3 es
   literalmente esta ecuación.

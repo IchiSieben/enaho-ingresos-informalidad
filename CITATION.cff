@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "Si usas este software o su metodología, cítalo con estos metadatos."
+type: software
+title: "Ingreso laboral e informalidad en el Perú — ENAHO 2025"
+abstract: >-
+  Regresor del ingreso laboral mensual y clasificador de empleo informal
+  sobre los microdatos de la ENAHO 2025 (INEI, Perú), con torneo auditable
+  de nueve especificaciones (E1-E9), corrección de smearing de Duan y app
+  Streamlit desplegada.
+authors:
+  - family-names: Palacios
+    given-names: Yoichi
+    alias: IchiSieben
+    email: yoichi.palacios@gmail.com
+version: 1.0.0
+date-released: "2026-08-14"
+license: Apache-2.0
+url: "https://enaho-ingresos-informalidad.streamlit.app"
+repository-code: "https://github.com/IchiSieben/enaho-ingresos-informalidad"
+keywords:
+  - ENAHO
+  - Perú
+  - ingreso laboral
+  - informalidad
+  - ecuación de Mincer
+  - machine learning
+  - scikit-learn
+  - Streamlit

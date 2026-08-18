@@ -1,0 +1,21 @@
+Ingreso laboral e informalidad en el Perú — ENAHO 2025
+Copyright 2026 Yoichi Palacios (IchiSieben)
+
+Contacto: yoichi.palacios@gmail.com
+Repositorio original: https://github.com/IchiSieben/enaho-ingresos-informalidad
+
+Este producto incluye software desarrollado por Yoichi Palacios para el
+proyecto ENAHO 2025 (regresor de ingreso laboral y clasificador de empleo
+informal sobre microdatos públicos del INEI).
+
+Conforme a la sección 4(d) de la Licencia Apache 2.0, toda redistribución
+del trabajo o de obras derivadas debe conservar el contenido de este
+archivo NOTICE.
+
+Los microdatos de la ENAHO 2025 son del Instituto Nacional de Estadística
+e Informática (INEI) del Perú y NO se redistribuyen en este repositorio;
+se obtienen de https://proyectos.inei.gob.pe/microdatos/ bajo sus propios
+términos de uso.
+
+La documentación, los reportes (reports/*.md) y las figuras se licencian
+por separado bajo CC BY-NC 4.0 (ver docs/LICENSE-DOCS.md), no bajo Apache-2.0.
