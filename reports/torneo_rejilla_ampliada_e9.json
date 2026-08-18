@@ -1,0 +1,17 @@
+{
+  "id": "E9",
+  "best_params": {
+    "regressor__modelo__n_estimators": 800,
+    "regressor__modelo__learning_rate": 0.01,
+    "regressor__modelo__max_depth": 7
+  },
+  "mae_grid": 607.3128040877044,
+  "mae_cv": 607.3128040877044,
+  "mae_test": 606.0107277542166,
+  "mae_test_smear": 734.7792100597427,
+  "rmse_test": 1212.7745371190688,
+  "r2_test_soles": 0.43316135866615735,
+  "r2_escala_propia": 0.5764314792651994,
+  "smearing": 1.4015050472138773,
+  "segundos": 192.52480620000279
+}

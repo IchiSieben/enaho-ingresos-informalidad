@@ -1,0 +1,9 @@
+[09:04:05] Cargando poblacion...
+- Experiencia potencial cruda negativa en 107 casos (0.2%): jóvenes aún en formación. Truncada en 0 (y en la ficha técnica: en baja educación la experiencia potencial SOBREestima la real — Heckman, Lochner & Todd 2006).
+- Casos completos del torneo: 47,632 (se pierden 267 filas, 0.6%, casi todas por tamaño de empresa faltante)
+Filas: 47,632 | Train 38,105 | Test 9,527
+[09:04:09] E8: 27 combinaciones x 5 pliegues = 135 fits, GridSearchCV n_jobs=20, RF n_jobs=1
+[09:32:42] E8 listo en 28.5 min. best_params_={'regressor__modelo__max_depth': 12, 'regressor__modelo__min_samples_leaf': 5, 'regressor__modelo__n_estimators': 800}  MAE_cv=S/ 613.0
+
+[09:34:55] Escrito: reports/torneo_rejilla_ampliada_e8.json
+DONE

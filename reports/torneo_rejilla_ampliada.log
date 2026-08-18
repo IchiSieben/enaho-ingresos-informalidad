@@ -1,0 +1,35 @@
+[07:26:29] Cargando poblacion (identica al script oficial)...
+- Experiencia potencial cruda negativa en 107 casos (0.2%): jóvenes aún en formación. Truncada en 0 (y en la ficha técnica: en baja educación la experiencia potencial SOBREestima la real — Heckman, Lochner & Todd 2006).
+- Casos completos del torneo: 47,632 (se pierden 267 filas, 0.6%, casi todas por tamaño de empresa faltante)
+Filas: 47,632 | Train 38,105 | Test 9,527 | KFold(5, shuffle, 42)
+
+[07:26:33] E9: 27 combinaciones x 5 pliegues = 135 fits, n_jobs=20
+[08:38:05] E9 listo en 71.5 min. best_params_={'regressor__modelo__learning_rate': 0.01, 'regressor__modelo__max_depth': 7, 'regressor__modelo__n_estimators': 800}  MAE_cv=S/ 607.3
+
+[08:41:14] E8: 27 combinaciones x 5 pliegues = 135 fits, n_jobs=20
+C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py:146: UserWarning: resource_tracker: process died unexpectedly, relaunching. Some folders/semaphores might leak.
+  warnings.warn(
+C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py:146: UserWarning: resource_tracker: process died unexpectedly, relaunching. Some folders/semaphores might leak.
+  warnings.warn(
+C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py:146: UserWarning: resource_tracker: process died unexpectedly, relaunching. Some folders/semaphores might leak.
+  warnings.warn(
+C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py:146: UserWarning: resource_tracker: process died unexpectedly, relaunching. Some folders/semaphores might leak.
+  warnings.warn(
+Traceback (most recent call last):
+  File "C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py", line 326, in main
+    registry[rtype][name] -= 1
+    ~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'C:\\Users\\Usuario\\AppData\\Local\\Temp\\joblib_memmapping_folder_37700_ac218dfb806940c1bc7a22b26ecbfc56_606e2aa0ad19484ea83b4854ba9130c1\\37700-1894755728176-4199c8ac50f1401387ca47caab2e0bf9.pkl'
+Traceback (most recent call last):
+  File "C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py", line 326, in main
+    registry[rtype][name] -= 1
+    ~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'C:\\Users\\Usuario\\AppData\\Local\\Temp\\joblib_memmapping_folder_37700_ac218dfb806940c1bc7a22b26ecbfc56_606e2aa0ad19484ea83b4854ba9130c1\\37700-1894755728176-4199c8ac50f1401387ca47caab2e0bf9.pkl'
+C:\Users\Usuario\Documents\Portfolio\DespliegueML\proyecto_enaho_ingresos\.venv\Lib\site-packages\joblib\externals\loky\backend\resource_tracker.py:359: UserWarning: resource_tracker: There appear to be 1 leaked file objects to clean up at shutdown
+  warnings.warn(
+ERROR: The process with PID 15480 (child process of PID 1752) could not be terminated.
+Reason: The operation attempted is not supported.
+ERROR: The process with PID 1752 (child process of PID 13668) could not be terminated.
+Reason: The operation attempted is not supported.
+ERROR: The process with PID 13668 (child process of PID 37700) could not be terminated.
+Reason: The operation attempted is not supported.

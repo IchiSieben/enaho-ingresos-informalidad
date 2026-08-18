@@ -1,0 +1,17 @@
+{
+  "id": "E8",
+  "best_params": {
+    "regressor__modelo__max_depth": 12,
+    "regressor__modelo__min_samples_leaf": 5,
+    "regressor__modelo__n_estimators": 800
+  },
+  "mae_grid": 612.964152821799,
+  "mae_cv": 612.964152821799,
+  "mae_test": 612.4406570332084,
+  "mae_test_smear": 739.9388353348928,
+  "rmse_test": 1223.3715512697877,
+  "r2_test_soles": 0.42321220472891474,
+  "r2_escala_propia": 0.5682870452199515,
+  "smearing": 1.4039724192881158,
+  "segundos": 1712.0869380000222
+}

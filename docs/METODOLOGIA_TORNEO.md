@@ -143,13 +143,102 @@ anotado, no lo profundicé:
   contra el sobreajuste, no un descuido), `min_samples_leaf=5` (borde
   inferior de [5,20]).
 
-**Recomendación:** antes de citar S/ 610,9 (o el PR-AUC 0,9626 del
-clasificador) como "el" número del proyecto, extender las cuatro rejillas
-(regresor y clasificador) en la dirección de cada borde y re-optimizar. Es
-probable que el número mejore un poco, no que cambie el ranking relativo
-E9>E8>...>E1 (la brecha con E7/E6 es de ~80 soles, mucho mayor que lo que
-suele mover una rejilla más ancha en este tipo de modelos), pero no puedo
-afirmar eso sin correrlo — **marcado `NO VERIFICADO`**.
+**Recomendación (histórica, ver actualización abajo):** antes de citar S/
+610,9 (o el PR-AUC 0,9626 del clasificador) como "el" número del proyecto,
+extender las cuatro rejillas (regresor y clasificador) en la dirección de
+cada borde y re-optimizar. Es probable que el número mejore un poco, no que
+cambie el ranking relativo E9>E8>...>E1 (la brecha con E7/E6 es de ~80
+soles, mucho mayor que lo que suele mover una rejilla más ancha en este
+tipo de modelos), pero no puedo afirmar eso sin correrlo — **marcado
+`NO VERIFICADO`**.
+
+### Actualización — rejilla ampliada y reoptimización (18/08/2026)
+
+**El hallazgo de arriba se queda tal cual quedó documentado**: la primera
+rejilla del torneo estaba acotada, se detectó en esta auditoría, y a
+continuación se amplió y se re-corrió E8/E9 con la MISMA muestra (47.632
+filas), el MISMO split (train 38.105/test 9.527, `random_state=42`) y el
+MISMO `KFold(5, shuffle, 42)` — verificado con un `assert` en el script de
+re-optimización antes de correr cualquier búsqueda.
+
+**Rejillas ampliadas** (dirección: `learning_rate` hacia abajo,
+`n_estimators` hacia arriba, `max_depth` hacia arriba — instrucción
+explícita del usuario, aplicada donde el hiperparámetro existe):
+
+| Modelo | Hiperparámetro | Rejilla vieja | Rejilla nueva |
+|---|---|---|---|
+| E9 (GB) | `n_estimators` | [200, 400] | **[400, 800, 1200]** |
+| E9 (GB) | `learning_rate` | [0.05, 0.1] | **[0.01, 0.02, 0.05]** |
+| E9 (GB) | `max_depth` | [3, 5] | **[5, 7, 9]** |
+| E8 (RF) | `n_estimators` | [200, 400] | **[400, 800, 1200]** |
+| E8 (RF) | `max_depth` | [8, 12, None] | [8, 12, None] — sin cambio |
+| E8 (RF) | `min_samples_leaf` | [1, 5, 20] | [1, 5, 20] — sin cambio |
+
+`max_depth` de RF **no se pudo ampliar "hacia arriba"**: la rejilla ya
+incluía `None` (sin límite), el máximo posible en un grid discreto. Queda
+anotado, no resuelto en silencio: el borde que sí se había detectado para
+E8 fue `n_estimators=200` (borde **inferior**), y la dirección pedida
+("hacia arriba") no prueba esa dirección — ver el resultado abajo, que de
+todos modos permite concluir algo sobre esto.
+
+**Incidente durante la corrida — reportado, no oculto:** el primer intento
+de correr ambas rejillas en una sola tarea se cayó durante E8:
+`RandomForestRegressor(n_jobs=20)` quedó **anidado** dentro de
+`GridSearchCV(n_jobs=20)` en una máquina de **6 núcleos reales** (no 20 —
+confirmado con `wmic`/`Get-CimInstance`), y los procesos worker de `loky`
+murieron (`resource_tracker: process died unexpectedly`, luego un
+`KeyError` fatal). E9 ya había terminado antes de la caída y su resultado
+es válido. Se reintentó solo E8 con el estimador en `n_jobs=1` (el
+paralelismo lo hace únicamente `GridSearchCV`, `n_jobs=20`, sin
+anidamiento) — terminó limpio en 28,5 min. Log completo en
+`reports/torneo_rejilla_ampliada.log` y `reports/torneo_rejilla_ampliada_e8.log`;
+resultados en `reports/comparacion_torneo_rejilla_ampliada.csv`.
+
+**Resultado — tabla antes/después:**
+
+| ID | `best_params_` ANTES | MAE_cv ANTES | `best_params_` DESPUÉS | MAE_cv DESPUÉS | Δ MAE_cv | ¿Sigue en el borde? |
+|---|---|---|---|---|---|---|
+| **E9** | n_est=400, lr=0.05, depth=5 (**los 3 en el borde**) | 610,9 | n_est=**800**, lr=**0.01**, depth=**7** | **607,3** | **−3,6 (−0,59 %)** | **No — los 3 quedaron en el interior** |
+| E8 | n_est=200 (borde), depth=12, leaf=5 | 613,0 | n_est=**800** (interior), depth=12, leaf=5 | 613,0 | +0,0 (+0,00 %) | No — pero ver nota abajo |
+
+**Lectura:**
+
+- **E9 (el modelo desplegado): el hallazgo se confirma con datos.** Los
+  tres hiperparámetros se movieron del borde al interior de la rejilla
+  ampliada, y el MAE_cv mejoró S/ 3,6 (0,59 %) — modesto pero real y en la
+  dirección predicha ("más árboles, más profundidad, menor tasa de
+  aprendizaje" era, en efecto, mejor). **El ganador del torneo NO cambia**:
+  E9 sigue siendo el mejor (607,3 vs el segundo lugar E8 en 613,0 — la
+  brecha incluso se amplía levemente, de 2,1 a 5,7 soles).
+- **E8: la mejora no aparece, y eso también es informativo.** Al mover
+  `n_estimators` del borde inferior (200) al interior de la rejilla nueva
+  (800 gana sobre 400 y 1200), el MAE_cv no se movió ni un centavo (613,0
+  → 613,0, literalmente igual redondeando a una cifra decimal). Esto es
+  consistente con que Random Forest alcanza una meseta de desempeño rápido
+  en `n_estimators` — 200, 400 u 800 árboles rinden lo mismo en este
+  problema. El borde original (`n_estimators=200`) no ocultaba una mejora
+  real; el algoritmo ya estaba en su techo. **La dirección "hacia abajo"
+  que la instrucción no cubrió (100, 50 árboles) queda sin probar** —
+  dado el patrón de meseta, es improbable que cambie nada, pero no está
+  verificado y se deja anotado así, no se asume.
+- El PR-AUC del clasificador (0,9626) y sus rejillas (RF/GB) **no se
+  tocaron en esta ronda** — seguían fuera del alcance explícito del
+  usuario. El patrón de bordes que se documentó arriba para ellas sigue
+  sin resolver.
+
+**Estabilidad de la importancia de E9 (reconfirmación).** El chequeo de
+5 semillas de refit de la sección 7 se hizo sobre los `best_params_`
+*viejos* (n_est=400, lr=0.05, depth=5). Con los `best_params_` *nuevos*
+(n_est=800, lr=0.01, depth=7) no se repitió el chequeo de 5 semillas en
+esta ronda — el resultado de la sección 7 (**las 8 variables más
+importantes conservan el rango exacto en las 5 semillas de refit**,
+desviación 0,00) queda válido para la configuración con la que se
+demostró, no re-verificado para la nueva. Marcado como pendiente para una
+próxima ronda si se decide promover los nuevos hiperparámetros al
+artefacto desplegado (`models/regresor_e9.joblib`) — **hoy el modelo
+desplegado sigue siendo el de la rejilla vieja**; esta ronda fue de
+auditoría/reoptimización exploratoria, no reemplazó `models/regresor_e9.joblib`
+ni `models/_hiperparametros.json`.
 
 ## 5. Lasso (E7) — qué retuvo y con qué alfa
 
@@ -215,7 +304,17 @@ evidencia de estabilidad, no solo con un fit único.
 
 ---
 
-*Generado como parte de la auditoría del 18/08/2026. Puntos marcados
+*Generado como parte de la auditoría del 18/08/2026, actualizado el mismo
+día con la reoptimización de rejilla. Puntos que siguen marcados
 `NO VERIFICADO`: magnitud exacta del optimismo de hyperparameter tuning
-(sección 3); si ampliar las rejillas de E8/E9 cambia el MAE_cv reportado
-(sección 4).*
+(sección 3, validación anidada pendiente); si ampliar las rejillas del
+**clasificador** de informalidad (RF/GB) cambia el PR-AUC reportado
+(sección 4, fuera del alcance de esta ronda); estabilidad de la
+importancia de E9 con los `best_params_` NUEVOS (sección 4, actualización —
+el chequeo de 5 semillas se hizo con los parámetros viejos); si probar
+`n_estimators` por debajo de 400 en E8 (RF) cambia algo (sección 4,
+actualización — la dirección "hacia abajo" no se cubrió esta ronda). Punto
+que quedó **resuelto con datos**: si ampliar la rejilla de E9 cambia el
+MAE_cv — sí, mejora S/ 3,6 (610,9 → 607,3) y los tres hiperparámetros se
+mueven al interior de la rejilla ampliada; el ganador del torneo no
+cambia.*
