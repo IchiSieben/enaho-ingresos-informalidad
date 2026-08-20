@@ -928,6 +928,74 @@ def seccion_torneo(schema: dict, art: dict) -> None:
 # --------------------------------------------------------------------------
 # Sección 4: ficha técnica
 # --------------------------------------------------------------------------
+# Hallazgos de la auditoría interna. Resumen de INFORME_AUDITORIA.md: se
+# escriben aquí a mano y a propósito, porque son juicios sobre el proyecto, no
+# métricas que se puedan recalcular. La cifra de cada uno sí sale del informe.
+AUDITORIA = [
+    {"sev": "corregido", "titulo": "El código de faltante leído como un ingreso",
+     "texto": "El INEI codifica «no sabe» como 999999. Ese valor se estaba "
+              "leyendo como un ingreso real de 999.999 soles, y con él la "
+              "regresión daba +11 soles por vivir en zona urbana. Convertirlo "
+              "a dato faltante subió el R² de 0,023 a 0,248 y devolvió el "
+              "sentido económico a todos los coeficientes."},
+    {"sev": "a corregir", "titulo": "La rejilla de hiperparámetros estaba acotada",
+     "texto": "Los tres hiperparámetros del modelo desplegado quedaron en el "
+              "borde de los valores que se probaron: señal de que el óptimo "
+              "estaba fuera. Se amplió y se volvió a buscar: el error baja de "
+              "S/ 610,90 a S/ 607,31 y los tres quedan ya en el interior. La "
+              "mejora es sistemática (gana en los 5 pliegues) pero de 0,59 %, "
+              "así que NO se promovió: no justifica regenerar el modelo en "
+              "producción. Las rejillas del clasificador siguen sin revisar."},
+    {"sev": "corregido", "titulo": "Una cifra del INEI con la etiqueta equivocada",
+     "texto": "Se publicaba que el gradiente por tamaño de empresa «replica el "
+              "patrón oficial (88,6 % en microempresas)». Ese 88,6 % es del "
+              "INEI y corresponde al tramo de 1 a 10 trabajadores, que no es "
+              "la categoría «Hasta 20» de este proyecto — cuyo valor propio es "
+              "81,1 %. No era un dato inventado, era una comparación mal "
+              "etiquetada."},
+    {"sev": "corregido", "titulo": "Tres afirmaciones distintas sobre el mismo dato",
+     "texto": "Sobre el R² esperable circulaban «0,4–0,5», «rara vez supera "
+              "0,4» y «ningún R² supera 0,5», en cuatro sitios a la vez. Al ir "
+              "a las fuentes resultó que ni Lemieux (2006) ni Heckman et al. "
+              "(2006) reportan un R², así que no se les podía citar para eso. "
+              "Ahora la afirmación se define una sola vez, sobre los cuadros "
+              "de Mincer y Card, y se dice cuál es lectura propia."},
+    {"sev": "estructural", "titulo": "La solución, para que no vuelva a pasar",
+     "texto": "Los dos primeros problemas tenían la misma raíz: cifras "
+              "escritas a mano que nadie vuelve a comprobar. Ahora las tasas "
+              "por grupo se calculan en el precómputo (`tasas_observadas`) y "
+              "los títulos de los gráficos se generan desde ahí, y la "
+              "bibliografía vive en un solo módulo. Una cifra escrita a mano "
+              "puede quedar obsoleta en silencio; una calculada, no."},
+]
+
+
+def seccion_auditoria() -> None:
+    """Los hallazgos de auditoría del propio proyecto, publicados."""
+    html("<h2>Qué encontró la auditoría de este proyecto</h2>")
+    html("<div class='entradilla'>Este proyecto se auditó a sí mismo y "
+         "publica lo que encontró, incluido lo que estaba mal. Cualquiera "
+         "puede clonar un repositorio; lo que no se copia es haber buscado "
+         "los errores propios y haberlos dejado por escrito.</div>")
+    colores = {"corregido": ("ref-abierto", "corregido"),
+               "a corregir": ("ref-pago", "pendiente"),
+               "estructural": ("etiqueta-dato", "solución de fondo")}
+    filas = []
+    for h in AUDITORIA:
+        clase, etiqueta = colores[h["sev"]]
+        filas.append(
+            f"<div class='hallazgo'>"
+            f"<div class='hallazgo-cab'>"
+            f"<span class='ref-acceso {clase}'>{etiqueta}</span>"
+            f"<b>{h['titulo']}</b></div>"
+            f"<div class='sutil'>{h['texto']}</div></div>")
+    html(f"<div class='ref-lista'>{''.join(filas)}</div>")
+    html("<div class='sutil' style='margin-top:12px'>El informe completo, con "
+         "los hallazgos clasificados por severidad y la lista de lo que quedó "
+         "sin verificar, está en "
+         "<code>INFORME_AUDITORIA.md</code> del repositorio.</div>")
+
+
 def seccion_ficha(schema: dict, art: dict) -> None:
     clas, reg = schema["clasificador"], schema["regresor"]
     a = art.get("clasificador", {})
@@ -1136,6 +1204,8 @@ def seccion_ficha(schema: dict, art: dict) -> None:
     html("<table class='tabla'><tbody>"
          + "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in proc)
          + "</tbody></table>")
+
+    seccion_auditoria()
 
     html("<h2>Referencias</h2>")
     html("<div class='sutil' style='max-width:78ch;margin-bottom:16px'>"

@@ -461,6 +461,19 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   border: 1px dashed {T['borde']};
 }}
 
+/* ---------- Hallazgos de auditoría ---------- */
+.hallazgo {{
+  border-left: 2px solid {T['borde']};
+  padding-left: var(--e3);
+}}
+.hallazgo-cab {{
+  display: flex; align-items: baseline; gap: var(--e2);
+  flex-wrap: wrap;
+  margin-bottom: var(--e1);
+  color: {T['texto']};
+  font-size: {F['cuerpo']};
+}}
+
 /* ---------- Fila de veredicto (cabina) ----------
    La cifra y el veredicto en una sola línea, para que la franja y las
    consecuencias del umbral quepan sin scroll en un portátil de 768 px. */
@@ -528,17 +541,35 @@ a.ref-llamada:hover {{ text-decoration: underline; }}
   border-radius: var(--r-md) !important;
   background: {T['superficie']} !important;
 }}
+/* Borde de acento a la izquierda: el bloque se lee como un aparte, no como
+   cuerpo principal. */
+[data-testid="stExpander"] {{
+  border-left: 3px solid {T['acento']} !important;
+}}
 [data-testid="stExpander"] summary {{
   font-size: {F['mini']} !important;
   font-weight: 500;
   color: {T['texto_medio']} !important;
-  padding: var(--e2) var(--e3) !important;
+  padding: var(--e3) var(--e4) !important;
+  display: flex !important;
+  align-items: center !important;   /* icono y etiqueta a la misma base */
+  gap: var(--e1);
 }}
 [data-testid="stExpander"] summary:hover {{ color: {T['acento_alto']} !important; }}
+/* Padding uniforme: antes sobraba aire en medio y no habia nada abajo. */
 [data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
-  padding: 0 var(--e3) var(--e3) var(--e3) !important;
+  padding: 0 var(--e4) var(--e4) var(--e4) !important;
 }}
-[data-testid="stExpander"] p {{ font-size: {F['mini']} !important; }}
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] > div {{
+  gap: var(--e3) !important;
+}}
+[data-testid="stExpander"] p,
+[data-testid="stExpander"] .sutil {{
+  font-size: {F['mini']} !important;
+  line-height: 1.6 !important;
+  max-width: 75ch;               /* de borde a borde en monitor ancho no se lee */
+}}
+[data-testid="stExpander"] .sutil br + br {{ line-height: 2.2; }}
 
 hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 
