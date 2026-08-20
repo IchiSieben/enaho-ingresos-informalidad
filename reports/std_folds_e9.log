@@ -1,0 +1,24 @@
+- Experiencia potencial cruda negativa en 107 casos (0.2%): jóvenes aún en formación. Truncada en 0 (y en la ficha técnica: en baja educación la experiencia potencial SOBREestima la real — Heckman, Lochner & Todd 2006).
+- Casos completos del torneo: 47,632 (se pierden 267 filas, 0.6%, casi todas por tamaño de empresa faltante)
+
+[12:20:46] Rejilla vieja (n=400, lr=0.05, depth=5)
+  pliegue 1: MAE S/ 618.54 (26s)
+  pliegue 2: MAE S/ 611.16 (24s)
+  pliegue 3: MAE S/ 606.02 (22s)
+  pliegue 4: MAE S/ 610.35 (25s)
+  pliegue 5: MAE S/ 608.42 (23s)
+  MAE por pliegue: [618.54, 611.16, 606.02, 610.35, 608.42]
+  Media: 610.90 | Desv. estandar (muestral, ddof=1): 4.71 | (poblacional, ddof=0): 4.21
+  Error estandar de la media (desv_muestral/sqrt(5)): 2.11
+
+[12:22:45] Rejilla nueva (n=800, lr=0.01, depth=7)
+  pliegue 1: MAE S/ 615.10 (60s)
+  pliegue 2: MAE S/ 606.02 (60s)
+  pliegue 3: MAE S/ 604.67 (59s)
+  pliegue 4: MAE S/ 604.64 (59s)
+  pliegue 5: MAE S/ 606.14 (59s)
+  MAE por pliegue: [615.1, 606.02, 604.67, 604.64, 606.14]
+  Media: 607.31 | Desv. estandar (muestral, ddof=1): 4.41 | (poblacional, ddof=0): 3.94
+  Error estandar de la media (desv_muestral/sqrt(5)): 1.97
+
+DONE

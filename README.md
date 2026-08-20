@@ -218,6 +218,15 @@ módulos 02, 03 y 05).
 - [Guion de exposición](docs/guion_exposicion.md) — la narrativa en tres
   actos para presentar en 10–15 minutos, los números para tener a mano y las
   preguntas anticipadas con respuesta.
+- [Metodología del torneo](docs/METODOLOGIA_TORNEO.md) — qué varía entre E1
+  y E9, la verificación de que las nueve se compararon sobre la misma
+  muestra y los mismos pliegues, las rejillas de hiperparámetros con su
+  re-optimización, el Lasso de E7 y la estabilidad de la importancia de
+  variables.
+- [Informe de auditoría](INFORME_AUDITORIA.md) — revisión interna del
+  repositorio: hallazgos clasificados por severidad, el embudo de datos con
+  el N de cada paso, el barrido de centinelas, la reconciliación de la tasa
+  de informalidad con el INEI y la lista de lo que quedó sin verificar.
 
 ## 7. Qué puedes reutilizar
 

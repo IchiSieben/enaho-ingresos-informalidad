@@ -209,7 +209,7 @@ resultados en `reports/comparacion_torneo_rejilla_ampliada.csv`.
   dirección predicha ("más árboles, más profundidad, menor tasa de
   aprendizaje" era, en efecto, mejor). **El ganador del torneo NO cambia**:
   E9 sigue siendo el mejor (607,3 vs el segundo lugar E8 en 613,0 — la
-  brecha incluso se amplía levemente, de 2,1 a 5,7 soles).
+  brecha incluso se amplía levemente, de 2,1 a 5,65 soles).
 - **E8: la mejora no aparece, y eso también es informativo.** Al mover
   `n_estimators` del borde inferior (200) al interior de la rejilla nueva
   (800 gana sobre 400 y 1200), el MAE_cv no se movió ni un centavo (613,0
@@ -225,6 +225,49 @@ resultados en `reports/comparacion_torneo_rejilla_ampliada.csv`.
   tocaron en esta ronda** — seguían fuera del alcance explícito del
   usuario. El patrón de bordes que se documentó arriba para ellas sigue
   sin resolver.
+
+### ¿La mejora de E9 es distinguible del ruido? — dispersión entre pliegues
+
+Recalculé el MAE de **cada uno de los 5 pliegues** por separado, para ambas
+configuraciones de E9, sobre el mismo `KFold(5, shuffle, 42)`:
+
+| Config | MAE por pliegue (S/) | MAE_cv | Desv. est. entre pliegues (ddof=1) |
+|---|---|---|---|
+| Rejilla **vieja** (n=400, lr=0.05, depth=5) | 618,54 · 611,16 · 606,02 · 610,35 · 608,42 | **610,90** | **4,71** |
+| Rejilla **nueva** (n=800, lr=0.01, depth=7) | 615,10 · 606,02 · 604,67 · 604,64 · 606,14 | **607,31** | **4,41** |
+
+La media de los pliegues reproduce exactamente el `MAE_cv` reportado en la
+tabla del torneo (610,90 y 607,31), lo que valida el cálculo.
+
+**Dos lecturas, y conviene tener las dos a mano:**
+
+1. **En dispersión bruta, la diferencia se confunde con el ruido.** La
+   brecha entre configuraciones (S/ 3,59) es **menor que una desviación
+   estándar entre pliegues** (4,71 y 4,41). Dicho de otro modo: la
+   variabilidad de un mismo modelo al cambiar de pliegue es mayor que la
+   diferencia entre los dos modelos.
+2. **Pero la prueba correcta es pareada, y ahí la mejora sí es
+   sistemática.** Los 5 pliegues son *los mismos* en ambas
+   configuraciones (mismo objeto `KFold`, misma semilla), así que
+   comparar sus medias como muestras independientes descarta información.
+   Pliegue a pliegue, la configuración nueva gana en **5 de 5**, con
+   diferencias de +3,44 / +5,14 / +1,35 / +5,71 / +2,28 (media 3,58,
+   desv. 1,85, error estándar 0,83). El **t pareado da 4,34 con p =
+   0,012** (df=4): la mejora es consistente, no ruido de muestreo. Un t
+   de muestras independientes daría p = 0,25, pero es el test equivocado
+   aquí precisamente porque ignora el pareamiento.
+
+**Decisión: los hiperparámetros nuevos NO se promueven al modelo
+desplegado.** El motivo no es que la mejora sea estadísticamente
+indistinguible —el test pareado muestra que no lo es— sino que es
+**sustantivamente irrelevante**: S/ 3,59 de MAE sobre un ingreso mediano
+de S/ 750 es una mejora del 0,59 %, muy por debajo del error de medición
+del propio instrumento (la ENAHO imputa ingresos y el centinela 999999
+afectaba al 2,28 % de la población). No justifica regenerar
+`models/regresor_e9.joblib`, revalidar el factor de smearing, rehacer el
+precómputo de la UI ni repetir el chequeo de estabilidad de importancia.
+El modelo desplegado sigue siendo el de la rejilla original, y este
+apartado queda como hallazgo de auditoría documentado.
 
 **Estabilidad de la importancia de E9 (reconfirmación).** El chequeo de
 5 semillas de refit de la sección 7 se hizo sobre los `best_params_`
@@ -315,6 +358,7 @@ el chequeo de 5 semillas se hizo con los parámetros viejos); si probar
 `n_estimators` por debajo de 400 en E8 (RF) cambia algo (sección 4,
 actualización — la dirección "hacia abajo" no se cubrió esta ronda). Punto
 que quedó **resuelto con datos**: si ampliar la rejilla de E9 cambia el
-MAE_cv — sí, mejora S/ 3,6 (610,9 → 607,3) y los tres hiperparámetros se
-mueven al interior de la rejilla ampliada; el ganador del torneo no
-cambia.*
+MAE_cv — sí, mejora S/ 3,59 (610,90 → 607,31), los tres hiperparámetros
+se mueven al interior de la rejilla ampliada y la mejora es sistemática
+(5/5 pliegues, t pareado p = 0,012); el ganador del torneo no cambia y la
+mejora se juzga sustantivamente irrelevante, por lo que no se promueve.*
