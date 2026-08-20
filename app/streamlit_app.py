@@ -899,9 +899,10 @@ def seccion_ficha(schema: dict, art: dict) -> None:
     html(f"<table class='tabla'><thead><tr><th>Algoritmo</th><th>PR-AUC cv</th>"
          f"<th>PR-AUC test</th><th>ROC-AUC test</th><th>Brier</th></tr></thead>"
          f"<tbody>{filas}</tbody></table>")
-    # El gradiente por tamaño sale de tasas_observadas, no escrito a mano: la
-    # versión anterior citaba un 88,6 % que no reproducía ninguna fuente del
-    # repo (auditoría 20/08/2026).
+    # El gradiente sale de tasas_observadas, no escrito a mano. Antes citaba el
+    # 88,6 % del INEI etiquetado como «microempresas», que el lector mapea a la
+    # categoría «Hasta 20» de este proyecto — y esa vale 81,1 %. La cifra del
+    # INEI es del tramo 1-10, que no es el mismo (auditoría 20/08/2026, AC-5).
     tam = a.get("tasas_observadas", {}).get("tamano_empresa")
     gradiente = ""
     if tam:

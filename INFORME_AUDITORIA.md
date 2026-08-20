@@ -25,9 +25,15 @@ listado explícitamente en la sección 6, **NO VERIFICADO**.
   mejora S/ 3,59 (0,59 %) y el ganador no cambia. La mejora es real pero
   sustantivamente irrelevante, así que **el modelo desplegado se deja como
   está**, con el hallazgo documentado.
-- **Dos correcciones aplicadas** durante la auditoría: se amplió la
-  constante de centinelas por prevención, y se marcaron como anotación
-  manual tres secciones de un reporte que el pipeline no reproduce.
+- **Correcciones aplicadas** durante la auditoría: se amplió la constante de
+  centinelas por prevención; se marcaron como anotación manual tres
+  secciones de un reporte que el pipeline no reproduce; y se corrigió una
+  cifra del INEI que se presentaba con una etiqueta engañosa (AC-5, el
+  hallazgo desarrollado en §2.2.1), sustituyéndola por el dato propio
+  generado desde un artefacto.
+- **Un barrido completo de cifras escritas a mano** en `app/`, `docs/` y
+  `reports/` confirmó que las demás son trazables. Las excepciones están en
+  AC-5, AC-6 y NV-7.
 - **Lo que falta** son las fases 3 a 6 del plan de trabajo (laboratorio,
   explicación de métricas, tooltips, visualizaciones) y cuatro
   verificaciones pendientes listadas en la sección 6.
@@ -50,7 +56,56 @@ auditoría, no una omisión.
 | **AC-1** | **Rejillas del clasificador de informalidad sin auditar.** El mismo patrón de bordes detectado en el regresor aparece en el clasificador: GB tiene 3 de 3 hiperparámetros en el borde (`n_estimators=200`, `learning_rate=0.05`, `max_depth=5`), RF tiene 2 de 3. El PR-AUC de 0,9626 que se cita como cifra del proyecto **no está confirmado como óptimo**. | `models/_hiperparametros.json` vs `REJILLAS` en `src/06_entrenar_clasificador.py:54-63` | **Pendiente.** Fuera del alcance de esta ronda. |
 | **AC-2** | **Trazabilidad rota en el reporte de Fase 1.** Tres secciones de `reports/01_preparacion_fase1.md` (validación de constructo, decisión sobre P511A, ponderación) no las genera `src/03_fase1_preparacion.py`. Verificado reejecutando el script: produce un archivo 36 líneas más corto. Los números son correctos (se re-verificaron con código independiente), pero la afirmación de que todo se reproduce corriendo el pipeline no se sostiene para esa parte. | Reejecución del script + `git log --follow` (el script no cambió desde `b61e7fb`) | **Mitigado**: las tres secciones quedan marcadas como anotación manual post-hoc (commit `ce5ea10`). **Falta** trasladarlas al script. |
 | **AC-3** | **Optimismo por doble inmersión en la selección de hiperparámetros.** `GridSearchCV` usa el mismo `KFold` y los mismos datos con los que después se rankean las especificaciones: para E9, `best_score_` y el `MAE_cv` de la tabla son la misma cantidad (610,9 en ambos). La magnitud del sesgo no está cuantificada. | `src/04_torneo_regresion.py:306-310` vs `models/_hiperparametros.json` | **Pendiente.** Requiere validación anidada. |
+| **AC-5** | **Cifra externa del INEI presentada con una etiqueta que el lector mapea a una categoría propia.** El README, la ficha técnica de la app y dos documentos afirmaban que «el gradiente por tamaño de empresa del modelo replica el patrón oficial (**88,6 %** de informalidad en microempresas vs 15,6 % en grandes)». Ver el desarrollo completo abajo. | `src/08_ablacion_clasificador.py:102` (origen, escrito a mano) | **Corregido** en la app; **pendiente** en README y `docs/`. |
+| **AC-6** | **Afirmación de literatura sin fuente y con el rango equivocado.** La ficha técnica dice que un R² de «0,4–0,5 es techo habitual con encuestas de hogares». No hay referencia que lo respalde en el repositorio, y el rango que la literatura de ecuaciones de ingresos reporta (Lemieux 2006) es más bien **0,2–0,35**. Además mezcla dos cosas distintas: el R² de 0,42 es del modelo E9 en soles, mientras que el rango de la literatura se refiere a ecuaciones tipo Mincer en logaritmo (aquí, E3: R² 0,27). | `app/streamlit_app.py:999` | **Pendiente.** |
 | **AC-4** | **`n_jobs=20` en una máquina de 6 núcleos reales.** No es solo ineficiencia: durante la re-optimización, `RandomForestRegressor(n_jobs=20)` anidado dentro de `GridSearchCV(n_jobs=20)` mató los procesos worker de `loky` y tumbó una corrida de 70 minutos. | `reports/torneo_rejilla_ampliada.log`; núcleos confirmados con `Get-CimInstance Win32_Processor` | **Mitigado** en el script de re-optimización (`n_jobs=1` en el estimador). **Falta** revisar el mismo patrón en `src/06_entrenar_clasificador.py` y `src/08_ablacion_clasificador.py`. |
+
+### 2.2.1 AC-5 en detalle: el 88,6 % y por qué importa
+
+Este es el hallazgo que más trabajo costó entender bien, y el diagnóstico
+inicial de la auditoría fue **impreciso**: se anotó como «número inventado».
+No lo es. Queda aquí el desarrollo correcto.
+
+**Qué se afirmaba.** README, ficha técnica de la app,
+`docs/interpretacion_metricas.md` y `docs/guion_exposicion.md` (dos veces)
+decían que el gradiente por tamaño de empresa «replica el patrón oficial
+(88,6 % de informalidad en microempresas vs 15,6 % en grandes)».
+
+**De dónde sale.** De `src/08_ablacion_clasificador.py:102`, escrito a mano
+dentro del texto que el script vuelca al reporte. Ahí la frase está
+completa y es correcta: «el patrón oficial del INEI 2025 (88,6 % de
+informalidad en empresas de **1-10 trabajadores**, 44 % en **11-50**,
+15,6 % en **>50**)». Son cifras **del INEI**, no del modelo, y por eso no
+podían reproducirse desde ningún artefacto: no son un cálculo propio.
+
+**Dónde está el problema.** Al resumir esa frase en el README y en la app
+se perdió el tramo y quedó «microempresas». El lector mapea esa palabra a
+la categoría del proyecto, que es **«Hasta 20»** trabajadores, y cuyo valor
+propio es **81,1 %** ponderado (83,6 % crudo). Es decir, se leía como si
+81,1 % y 88,6 % fueran la misma cosa. Los cuatro números en juego:
+
+| Fuente | Valor | Qué mide |
+|---|---|---|
+| Publicado como «microempresas» | **88,6 %** | INEI, tramo **1-10** trabajadores |
+| Dato propio, ponderado | **81,1 %** | categoría **«Hasta 20»** de este proyecto |
+| Dato propio, crudo | **83,6 %** | misma categoría, sin ponderar |
+| Dependencia parcial | **75,0 %** | efecto marginal, no una tasa observada |
+
+Los tramos **no son comparables**: 1-10 no es «Hasta 20». La comparación
+seguía siendo legítima como validación externa —el gradiente va en la misma
+dirección y con magnitudes parecidas—, pero presentada así invitaba a leer
+una coincidencia numérica que no existe.
+
+**Qué se hizo.** En la app, ese gradiente ahora se genera desde el bloque
+nuevo `tasas_observadas` de `src/09_precomputar_ui.py`: muestra el dato
+propio (81,1 % en «Hasta 20» frente a 10,0 % en «101 a 500»), calculado y no
+escrito. La solución es **estructural**: cualquier título o cifra por grupo
+sale del artefacto, así que no puede volver a desincronizarse ni a quedar
+mal etiquetado.
+
+**Qué falta.** Restaurar la validación externa **bien hecha** —citando al
+INEI con su tramo explícito y su referencia— en lugar de haberla suprimido,
+y corregir las cuatro apariciones que siguen en `README.md` y `docs/`.
 
 ### 2.3 Cosmético
 
@@ -300,6 +355,7 @@ comprobado:
 | **NV-3** | **Si `n_estimators` por debajo de 400 cambia algo en E8.** El borde detectado en E8 era inferior (200), y la ampliación pedida iba «hacia arriba», así que esa dirección no se probó. Dado el patrón de meseta observado, es improbable que cambie, pero no está comprobado. | Menor: E8 no es el modelo desplegado. |
 | **NV-4** | **Estabilidad de la importancia con los hiperparámetros nuevos.** El chequeo de 5 semillas se hizo con la configuración vieja, que es la desplegada. No se repitió con la nueva. | Solo importaría si en el futuro se decidiera promover los hiperparámetros nuevos. |
 | **NV-5** | **Reproducibilidad de tres secciones del reporte de Fase 1.** Sus números se re-verificaron con código independiente y son exactos, pero el pipeline documentado no los genera (AC-2). | Afecta a la afirmación de reproducibilidad total, no a la corrección de los datos. |
+| **NV-7** | **Las cifras oficiales del INEI que se usan como contraste no tienen referencia verificable.** 70,2 % nacional, 64,5 % urbano, 94,8 % rural, y el gradiente 88,6 / 44 / 15,6 % por tramo de empresa se citan sin decir de qué publicación salen. Son externas: no se pueden recalcular, solo referenciar. | Toda la validación externa del target descansa en ellas. |
 | **NV-6** | **Fases 3 a 6 del plan de trabajo.** Pestaña de laboratorio, explicación de métricas, tooltips y modo tutorial, y visualizaciones 3D no se ejecutaron en esta ronda. | Son mejoras planificadas, no defectos. |
 
 ---
