@@ -24,7 +24,7 @@ En la población de estudio, el ingreso "ingenuo" (P524A1 ∪ P530A leído como
 mensual) contiene **1.093 centinelas (2,28%)**: la media salta a S/ 24.022
 contra una mediana de S/ 794.
 
-## 2. Reproducción de la especificación de la compañera
+## 2. Reproducción de la especificación inicial del curso
 
 Misma ecuación (niveles, dummies de nivel educativo, horas, miembros), mismo
 dataset, dos corridas. Errores estándar HC3.
@@ -45,7 +45,7 @@ Lectura: con 2,28% de filas en 999999, el modelo "aprende" a perseguir
 outliers de un millón de soles: residir en zona urbana "cuesta" 27 mil soles y
 la educación técnica "reduce" el ingreso en 13 mil. Basta convertir el
 centinela a NaN para que **todos** los signos se vuelvan económicamente
-plausibles y el R² se multiplique por 10. La ecuación de la compañera
+plausibles y el R² se multiplique por 10. La ecuación inicial
 (urbano +11,47, hombre +6,39) es consistente con este mecanismo: coeficientes
 diluidos por ruido masivo en la variable dependiente.
 

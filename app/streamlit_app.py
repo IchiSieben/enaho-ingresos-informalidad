@@ -681,10 +681,12 @@ def seccion_torneo(schema: dict, art: dict) -> None:
 
     cabecera(
         "¿Por qué este modelo y no otro?",
-        "Este proyecto no muestra solo el modelo ganador: muestra el camino. "
-        "Se probaron nueve formas distintas de estimar el ingreso, todas sobre "
-        "los mismos datos y con la misma prueba. Aquí está la comparación "
-        "completa, incluida la primera versión que salió mal.",
+        "Nueve maneras de armar el mismo modelo de ingreso compitieron con reglas "
+        "idénticas: misma muestra, misma partición, misma vara de medir. Gana "
+        "la que se equivoca menos en soles con datos que no vio. Aquí está la "
+        "comparación completa, incluida la versión inicial del curso: su "
+        "diagnóstico destapó un error en los datos de origen que afectaba a "
+        "cualquiera que usara esa base sin conocerlo.",
         "Las nueve especificaciones comparten muestra, partición "
         "entrenamiento/prueba y los mismos cinco pliegues de validación "
         "cruzada, con semilla fija. Sin eso el ranking no sería comparable. La "
@@ -697,12 +699,18 @@ def seccion_torneo(schema: dict, art: dict) -> None:
     html("<h2>Acto 1 · La ecuación inicial</h2>")
     c1, c2 = st.columns(2, gap="large")
     with c1:
-        html(_ecuacion(aut["ecuacion_companera"],
-                       "Versión inicial del grupo (datos con centinela)"))
+        html(_ecuacion(aut["ecuacion_inicial"],
+                       "Versión inicial (con el centinela sin limpiar)"))
         html("<div class='sutil' style='margin-top:8px'>+11 soles por residir "
              "en zona urbana y +6 por ser hombre: incompatible con las brechas "
-             "conocidas del mercado laboral peruano. Ese resultado no se "
-             "descartó — se diagnosticó.</div>")
+             "conocidas del mercado laboral peruano. <b>El problema no estaba "
+             "en cómo se modeló, sino en los datos.</b> El INEI codifica «no "
+             "sabe» como 999999, y ese código se estaba leyendo como un "
+             "ingreso real de 999.999 soles. Unos pocos registros así "
+             "deforman cualquier regresión, la haga quien la haga. Encontrarlo "
+             "no fue suerte: salió de revisar si los coeficientes tenían "
+             "sentido económico, que es exactamente lo que hay que hacer "
+             "antes de dar un modelo por bueno.</div>")
     with c2:
         html(_ecuacion(aut["corrida_limpia"]["coefs"],
                        "Misma especificación, centinela 999999 → NaN"))

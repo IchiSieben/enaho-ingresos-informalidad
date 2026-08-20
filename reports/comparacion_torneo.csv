@@ -5,6 +5,6 @@ E7,Post-Lasso: OLS sobre las variables que Lasso conserva,686.9,686.9,840.5,1383
 E6,"Depurada: E4 + categoría + tamaño empresa + dominio (sin la dummy rama=Servicio doméstico, colineal perfecta con categoría=Trabajador del hogar)",690.1,691.2,841.2,1373.2,0.273,0.509,1.438,32,alta
 E4,Mincer extendido: E3 + sexo + área + log(horas) + rama,729.3,733.6,857.0,1395.1,0.25,0.429,1.498,18,alta
 E3,Mincer clásico: educ + exp + exp²,823.2,834.2,842.4,1376.2,0.27,0.27,1.564,3,alta
-E5,"Réplica de la compañera (niveles, sin centinela)",830.3,837.1,837.1,1401.6,0.243,0.243,,9,alta
+E5,"Réplica del baseline del curso (niveles, ya sin centinela)",830.3,837.1,837.1,1401.6,0.243,0.243,,9,alta
 E2,log(ingreso) ~ años educación,847.3,862.4,879.1,1409.5,0.234,0.216,1.607,1,alta
 E1,"Ingreso ~ años educación (consigna, niveles)",900.6,906.4,906.4,1465.7,0.172,0.172,,1,alta

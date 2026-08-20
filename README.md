@@ -12,8 +12,10 @@ precómputo de UI, umbrales elegidos sobre probabilidades out-of-fold y
 limitaciones declaradas.
 
 La diferencia de este proyecto es que **no muestra solo el modelo ganador:
-muestra el camino**. Una regresión inicial con coeficientes implausibles se
-convierte en la primera pieza de un torneo de nueve especificaciones.
+muestra el camino**. Una regresión inicial con coeficientes implausibles
+destapó un error en los datos de origen —el código de faltante del INEI leído
+como un ingreso real— y se convirtió en la primera pieza de un torneo de
+nueve especificaciones.
 
 ## 1. La autopsia: de dónde parte todo
 
@@ -27,8 +29,11 @@ INGRESO = 653,35 + 11,47·urbano + 6,39·hombre + 16,11·edad
 ```
 
 +11 soles por residir en zona urbana y +6 por ser hombre son incompatibles
-con las brechas conocidas del mercado laboral peruano. Ese resultado no se
-descartó: se **diagnosticó** reproduciendo la especificación sobre los
+con las brechas conocidas del mercado laboral peruano. **El problema no
+estaba en cómo se modeló, sino en los datos**: el INEI codifica «no sabe»
+como 999999 y ese código se leía como un ingreso real de 999.999 soles, algo
+que deforma cualquier regresión sobre esa base. En vez de descartar el
+resultado se **diagnosticó**, reproduciendo la especificación sobre los
 microdatos reales (`reports/00_autopsia_baseline.md`). Tres causas, por orden
 de daño:
 

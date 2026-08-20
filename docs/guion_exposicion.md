@@ -8,9 +8,9 @@ la tabla de números para tener a mano y las preguntas anticipadas.
 
 ## La narrativa en tres actos
 
-### Acto 1 — La ecuación de la compañera (~min 0–3)
+### Acto 1 — La ecuación inicial y lo que escondía (~min 0–3)
 
-Una primera regresión del grupo sobre estos datos produjo, en niveles:
+La primera regresión del curso sobre estos datos produjo, en niveles:
 INGRESO = 653,35 + **11,47·urbano** + **6,39·hombre** + 16,11·edad + …
 (README §1). Once soles por vivir en zona urbana y seis por ser hombre son
 incompatibles con las brechas conocidas del mercado laboral peruano. La

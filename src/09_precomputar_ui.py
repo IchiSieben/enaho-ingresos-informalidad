@@ -393,8 +393,9 @@ def artefactos_torneo(df: pd.DataFrame) -> dict:
     n_cent = int(aut["INGRESO_A"].isin([999999, 999999.9]).sum())
     asimetria = r(aut["INGRESO_B"].dropna().skew(), 2)
 
-    # Ecuacion de la companera: dato de partida del curso (ver docs/referencia)
-    companera = {"const": 653.35, "urbano": 11.47, "hombre": 6.39, "edad": 16.11,
+    # Ecuacion inicial del curso: el punto de partida del proyecto. El fallo
+    # que destapo estaba en los datos del INEI, no en su modelado.
+    baseline_curso = {"const": 653.35, "urbano": 11.47, "hombre": 6.39, "edad": 16.11,
                  "primaria": 691.92, "secundaria": 1386.35, "tecnica": 2132.97,
                  "universitaria": 2834.57, "horas": 18.76, "miembros": 6.98}
 
@@ -430,7 +431,7 @@ def artefactos_torneo(df: pd.DataFrame) -> dict:
             "n_centinelas": n_cent,
             "pct_centinelas": r(100 * n_cent / len(aut), 2),
             "asimetria_limpia": asimetria,
-            "ecuacion_companera": companera,
+            "ecuacion_inicial": baseline_curso,
             "nota": ("La réplica se corrió sobre los microdatos reales de la "
                      "ENAHO 2025, no sobre el archivo de práctica del curso."),
         },

@@ -1,7 +1,7 @@
 # 02_fase0_autopsia.py — autopsia de la regresión baseline
 # Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
-# Fase 0.2 — Autopsia: reproducir la especificacion de la companera sobre los
+# Fase 0.2 — Autopsia: reproducir la especificacion inicial del curso sobre los
 # microdatos reales de la ENAHO 2025.
 #   INGRESO = b0 + b1*urbano + b2*hombre + b3*edad + dummies educ + b*horas + b*miembros
 # Corrida A: "tal cual" (ingreso en niveles, centinela 999999 SIN limpiar).
@@ -66,7 +66,7 @@ def main() -> None:
     crudo = crudo.rename(columns={"P524A1": "P524A1_crudo", "P530A": "P530A_crudo"})
     df = df.merge(crudo, on=LLAVES, how="left")
 
-    # --- Variables de la companera ---
+    # --- Variables de la especificacion inicial ---
     # INGRESO ingenuo: el monto del ultimo pago (P524A1) leido como "ingreso mensual",
     # y para independientes la ganancia neta del mes (P530A). Sin tocar el centinela.
     df["INGRESO_A"] = pd.to_numeric(df["P524A1_crudo"], errors="coerce").fillna(
