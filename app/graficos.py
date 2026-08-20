@@ -261,14 +261,33 @@ def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
     partes.append(f"<path d='{_ruta(list(zip(recall, precision)), x, y)}' "
                   f"fill='none' stroke='{T['acento']}' stroke-width='2'/>")
 
-    for nombre, idx in presets:
-        if not 0 <= idx < len(recall):
-            continue
-        px, py = x(recall[idx]), y(precision[idx])
-        partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='3.5' "
-                      f"fill='{T['dato']}' opacity='0.85'/>")
-        partes.append(f"<text x='{px + 7:.1f}' y='{py + 4:.1f}' class='et' "
-                      f"text-anchor='start'>{escape(nombre)}</text>")
+    # Los preajustes caen cerca unos de otros y sus etiquetas se pisaban
+    # («PUNTO OPERATIVO» sobre «MÁX. F1», ilegibles). Se agrupan los que estén
+    # a menos de 14 px en vertical y se dibuja UNA etiqueta con ambos nombres;
+    # los que quedan sueltos se separan alternando arriba/abajo.
+    marcas = [(nombre, x(recall[i]), y(precision[i]))
+              for nombre, i in presets if 0 <= i < len(recall)]
+    marcas.sort(key=lambda m: m[2])
+    grupos: list[list] = []
+    for marca in marcas:
+        if grupos and abs(marca[2] - grupos[-1][-1][2]) < 14:
+            grupos[-1].append(marca)
+        else:
+            grupos.append([marca])
+
+    for k, grupo in enumerate(grupos):
+        for _, px, py in grupo:
+            partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='3.5' "
+                          f"fill='{T['dato']}' opacity='0.85'/>")
+        nombre = " · ".join(g[0] for g in grupo)
+        px, py = grupo[0][1], sum(g[2] for g in grupo) / len(grupo)
+        dy = -8 if k % 2 == 0 else 14           # alterna para no encadenar choques
+        # si la etiqueta no cabe a la derecha, se ancla a la izquierda del punto
+        cabe = px + 10 + _ancho_texto(nombre, 10) < ancho - m["d"]
+        partes.append(
+            f"<text x='{px + (10 if cabe else -10):.1f}' y='{py + dy:.1f}' "
+            f"class='et' text-anchor='{'start' if cabe else 'end'}'>"
+            f"{escape(nombre)}</text>")
 
     px, py = x(punto[0]), y(punto[1])
     partes.append(f"<line x1='{px:.1f}' y1='{m['s']}' x2='{px:.1f}' "
@@ -312,13 +331,38 @@ def curva_calibracion(bins: list[dict], T: dict,
 # --------------------------------------------------------------------------
 # 6. Importancia por permutación
 # --------------------------------------------------------------------------
+def _ancho_texto(txt: str, px: float = 11.0) -> float:
+    """
+    Ancho aproximado de una cadena en px. Sin acceso al motor de fuentes, 0,56
+    em por carácter es una sobreestimación segura para la sans de la app: vale
+    para reservar margen y que nada quede cortado.
+    """
+    return len(str(txt)) * px * 0.56
+
+
+def _truncar(txt: str, ancho_max: float, px: float = 11.0) -> str:
+    """Recorta con elipsis para que quepa. El texto completo va en <title>."""
+    if _ancho_texto(txt, px) <= ancho_max:
+        return txt
+    cabe = max(int(ancho_max / (px * 0.56)) - 1, 4)
+    return txt[:cabe].rstrip() + "…"
+
+
 def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
                        ancho: int = 520, etiquetas: dict | None = None) -> str:
     etiquetas = etiquetas or {}
     n = len(variables)
     fila, arriba = 30, 30
     alto = arriba + n * fila + 18
-    izq, der = 210, 16
+    # Margenes CALCULADOS, no fijos: con 210 px a la izquierda etiquetas como
+    # «Horas trabajadas por semana (todas las ocupaciones)» se cortaban, y con
+    # 16 px a la derecha se cortaba el valor («13…» en vez de 131,2).
+    tope_izq = ancho * 0.42          # más allá, la barra se queda sin sitio
+    textos_izq = [_truncar(str(etiquetas.get(v, v)), tope_izq - 18)
+                  for v in variables]
+    izq = min(max([_ancho_texto(t) for t in textos_izq] + [90]) + 18, tope_izq)
+    textos_der = [_n(m, 3) if abs(m) < 100 else _n(m, 1) for m in media]
+    der = max([_ancho_texto(t, 11) for t in textos_der] + [40]) + 14
     ix = ancho - izq - der
     techo = max([m + d for m, d in zip(media, desviacion)] + [1e-9])
     piso = min(list(media) + [0.0])
@@ -348,16 +392,20 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
         for ex in (e0, e1):
             partes.append(f"<line x1='{ex:.1f}' y1='{y + 3:.1f}' x2='{ex:.1f}' "
                           f"y2='{y + 12:.1f}' stroke='{T['texto_medio']}' stroke-width='1.5'/>")
-        etiqueta = etiquetas.get(v, v)
+        completa = str(etiquetas.get(v, v))
         partes.append(f"<text x='{izq - 12}' y='{y + 12:.1f}' class='vs' "
-                      f"text-anchor='end'>{escape(str(etiqueta))}</text>")
+                      f"text-anchor='end'>{escape(textos_izq[i])}"
+                      f"<title>{escape(completa)}</title></text>")
         txt = _n(mu, 3) if abs(mu) < 100 else _n(mu, 1)
         anclaje_x = max(e1, cero + abs(largo)) + 8
         partes.append(f"<text x='{anclaje_x:.1f}' y='{y + 12:.1f}' class='vs' "
                       f"fill='{T['texto_tenue'] if despreciable else T['texto']}'>"
                       f"{txt}</text>")
-    partes.append(f"<text x='{izq}' y='{alto - 4}' class='et'>"
-                  f"barra atenuada = media dentro de ±1 desviación, indistinguible de cero</text>")
+    # Al pie y pegado al borde izquierdo: con `izq` calculado puede ser ancho y
+    # esta nota se saldria del lienzo.
+    partes.append(f"<text x='4' y='{alto - 4}' class='et'>"
+                  f"barra atenuada = indistinguible de cero (media dentro de "
+                  f"±1 desviación)</text>")
     partes.append("</svg>")
     return "".join(partes)
 
