@@ -69,8 +69,15 @@ Breusch-Pagan, gráficos de residuos): `reports/torneo_regresion.md` y
 **La brecha se interpreta, no solo se reporta**: E9 mejora a E6 en S/ 79 de
 MAE (+11,5 %). Esa diferencia estima el aporte de las no linealidades e
 interacciones que la forma funcional lineal no captura (Athey & Imbens 2019).
-Nótese que ningún R² supera 0,5 en soles: es el techo honesto de los modelos
-de ingreso individual con encuestas de hogares (Sohnesen & Stender 2017).
+Nótese que ningún R² supera 0,5 en soles. Para situarlo: la ecuación de
+Mincer explica típicamente entre un 25 % y un 35 % de la varianza del
+**logaritmo del salario** — Mincer (1974), cuadro 5.1: R² = 0,285; Card
+(1999), cuadro 1: 0,247–0,328 [1][3]. Ni Lemieux (2006) ni Heckman et al.
+(2006) reportan un R², así que no se les puede citar para esto. Y ojo con la
+escala: el 0,42 de E9 está **en soles**, mientras que esas cifras están **en
+logaritmo** (la Mincer de este torneo, E3, da 0,27). Que en un mercado con
+alta informalidad quepa esperar valores iguales o menores es lectura nuestra,
+no un resultado publicado.
 
 ### Las dos lecturas
 
@@ -109,8 +116,11 @@ están afiliados a ningún sistema de pensiones (P558A5=5).
 
 Sesgo uniforme de ~3 pts, explicable: la afiliación a pensiones incluye
 afiliaciones autofinanciadas. Además, el gradiente por tamaño de empresa del
-modelo replica el patrón oficial (88,6 % de informalidad en microempresas vs
-15,6 % en grandes).
+modelo va en el mismo sentido que el patrón oficial: el INEI reporta 88,6 %
+de informalidad en empresas de **1 a 10 trabajadores** y 15,6 % en las de más
+de 50 [8]. Los tramos de esa publicación no son los de este proyecto (aquí,
+«Hasta 20» da 81,1 % ponderado), así que lo que coincide es la dirección y la
+magnitud del gradiente, no cada cifra.
 
 **Benchmark** (selección por PR-AUC de validación cruzada; baseline =
 prevalencia 0,678):
@@ -257,11 +267,14 @@ Para citar el proyecto, GitHub genera la cita desde [`CITATION.cff`](CITATION.cf
 - Belloni, A., Chernozhukov, V. & Hansen, C. (2014). "High-Dimensional
   Methods and Inference on Structural and Treatment Effects". *JEP* 28(2). —
   El sustento (y las cautelas) del post-Lasso (E7).
-- Sohnesen, T. & Stender, N. (2017). "Is Random Forest a Superior Methodology
-  for Predicting Poverty?". World Bank Policy Research WP 7970. — Benchmark
+- Sohnesen, T. P. & Stender, N. (2016). "Is Random Forest a Superior
+  Methodology for Predicting Poverty? An Empirical Assessment". World Bank
+  Policy Research WP **7612** (el 7970 es otro paper). — Benchmark
   ML vs regresión en encuestas de hogares.
-- Yamada, G. — trabajos CIES / U. del Pacífico sobre retornos a la educación
-  en el Perú, contexto para los coeficientes educativos.
+- Yamada, G. (2007). *Retornos a la educación superior en el mercado laboral:
+  ¿vale la pena el esfuerzo?* CIES / U. del Pacífico. — Retornos por segmento
+  en Perú: 12,5 % anual para asalariados frente a 6,5 % para independientes
+  (2004), la brecha que este proyecto vuelve a encontrar.
 - INEI — Ficha técnica y diccionario de la ENAHO 2025; informes técnicos de
   empleo e informalidad 2025 (contraste de prevalencias).
 

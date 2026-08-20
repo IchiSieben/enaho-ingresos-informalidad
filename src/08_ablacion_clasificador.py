@@ -98,10 +98,21 @@ def main() -> None:
           "partir de variables observables en registros administrativos, sin "
           "verificar caso por caso la afiliación a pensiones. Dicho así, el "
           "PR-AUC alto es coherente y esperable, no sospechoso.\n",
+          # Los tramos del INEI (1-10, 11-50, >50) NO son los de este proyecto
+          # (Hasta 20, 21-50, 51-100, 101-500, Mas de 500). El gradiente va en
+          # el mismo sentido, que es lo que valida la regla, pero las cifras no
+          # son comparables una a una y hay que decirlo: al resumir esta frase
+          # sin el tramo se leia el 88,6 % como si fuera el dato propio de
+          # «Hasta 20», que vale 81,1 % (auditoria 20/08/2026, AC-5).
           "\nValidación externa adicional: el gradiente por tamaño de empresa "
-          "del modelo replica el patrón oficial del INEI 2025 (88,6% de "
-          "informalidad en empresas de 1-10 trabajadores, 44% en 11-50, 15,6% "
-          "en >50).\n"]
+          "va en el mismo sentido que el patrón oficial del INEI, que reporta "
+          "88,6 % de informalidad en empresas de 1-10 trabajadores, 44 % en "
+          "11-50 y 15,6 % en más de 50 [INEI, Producción y empleo informal en "
+          "el Perú: Cuenta Satélite de la Economía Informal 2022-2024, 2025]. "
+          "Los tramos de esa publicación no coinciden con los de este "
+          "proyecto, así que las cifras no son directamente comparables: lo "
+          "que se valida es la dirección y la magnitud del gradiente, no la "
+          "coincidencia de cada valor.\n"]
     with open(DIR_REPORTS / "clasificador_informalidad.md", "a", encoding="utf-8") as f:
         f.write("\n".join(md))
     tabla.to_csv(DIR_REPORTS / "ablacion_clasificador.csv", index=False)

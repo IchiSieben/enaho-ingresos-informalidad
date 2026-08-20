@@ -65,8 +65,9 @@ modelo falla mucho, los falla por miles de soles (los sueldos extremos son
 intrínsecamente impredecibles con 9 variables). NO se debe comparar el RMSE
 de un modelo con el MAE de otro: miden pérdidas distintas.
 
-**(e)** En ingresos individuales, RMSE ≈ 2×MAE es típico de una
-distribución log-normal-ish; una razón cercana a 1 sería sospechosa (¿se
+**(e)** En este dataset RMSE ≈ 2×MAE, lo que es coherente con una
+distribución de cola derecha larga (es una observación nuestra sobre estos
+datos, no una regla publicada); una razón cercana a 1 sería sospechosa (¿se
 truncó la cola?) y una razón mucho mayor indicaría outliers sin tratar —
 aquí ya tratados vía el centinela → NaN y el target log.
 
@@ -135,7 +136,9 @@ el MAE de la media (741) sea peor que el de la mediana (611) no significa
 que la media esté "mal": es la consecuencia esperada de evaluar un predictor
 de media con una métrica de mediana.
 
-**(e)** Un factor de smearing de 1,3–1,6 es lo normal con residuos log de
+**(e)** Los factores de smearing de este torneo van de 1,401 a 1,607 según la
+especificación; no conocemos una referencia que fije un rango «normal», así
+que el contraste es interno, no con la literatura. Con residuos log de
 ingresos (los del torneo van de 1,401 a 1,607 según la especificación,
 `reports/comparacion_torneo.csv`); un factor cercano a 1,0 indicaría
 residuos casi sin varianza (sospechoso) y uno mayor a 2 una cola residual
@@ -201,8 +204,9 @@ separado. El VIF sí fue diagnóstico en la autopsia: coeficientes que
 **cambian de signo** al añadir una variable redundante (secundaria +588 →
 −761) sin mejorar el ajuste es la firma de la colinealidad dañina.
 
-**(e)** En especificaciones Mincer, VIF ~10 en el par experiencia/
-experiencia² es universal (se puede evitar centrando la variable, sin
+**(e)** El VIF alto en el par experiencia/experiencia² es esperable por
+construcción —una variable es el cuadrado de la otra— y se puede evitar
+centrando la variable, sin cambiar nada sustantivo. Aquí ronda 10 (se puede evitar centrando la variable, sin
 cambiar nada sustantivo). El caso extremo del proyecto: la dummy
 rama=Servicio doméstico contra categoría=Trabajador del hogar es
 **colinealidad perfecta** (VIF infinito) — son la misma partición de la
@@ -323,8 +327,10 @@ sospechoso. **Ablación que lo acota:** sin `tamano_empresa`, PR-AUC_cv
 (`reports/ablacion_clasificador.csv`) — educación, área, rama y horas
 sostienen la señal restante, así que el 0,96 no colgaba de una variable
 tramposa. **Validación externa:** el gradiente por tamaño de empresa del
-modelo replica el patrón oficial del INEI 2025 — 88,6 % de informalidad en
-empresas de 1–10 trabajadores, 44 % en 11–50, 15,6 % en >50
+modelo va en el mismo sentido que el patrón oficial del INEI — que reporta
+88,6 % de informalidad en empresas de 1–10 trabajadores, 44 % en 11–50 y
+15,6 % en >50; esos tramos no son los de este proyecto, así que coincide la
+dirección del gradiente, no cada cifra
 (`reports/clasificador_informalidad.md`).
 
 **(d)** Qué SÍ sería sospechoso: usar como predictor una variable que

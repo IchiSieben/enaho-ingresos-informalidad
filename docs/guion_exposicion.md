@@ -85,7 +85,7 @@ punto operativo con precisión ≥ 0,90 → umbral 0,605, recall 0,893, **lift
 | Cifra | Qué significa en una línea | Si la cuestionan |
 |---|---|---|
 | **S/ 610,9 / 610,8** (MAE cv/test E9) | Error medio en soles del modelo desplegado | Coinciden casi al sol: no hay sobreajuste del proceso de selección (`reports/comparacion_torneo.csv`). |
-| **0,42 / 0,575** (R² soles / log, E9) | Fracción de varianza explicada, en cada escala | No son comparables entre sí; las Mincer clásicas rara vez superan 0,4 — estamos en el rango alto (ver pregunta 1). |
+| **0,42 / 0,575** (R² soles / log, E9) | Fracción de varianza explicada, en cada escala | No son comparables entre sí. Referencia en LOG: Mincer (1974) 0,285 y Card (1999) 0,247–0,328 (ver pregunta 1). |
 | **2,28 % / 1.093** | Población afectada por el centinela 999999 | Documentado en el diccionario del INEI; R² 0,023→0,248 al limpiarlo (`reports/00_autopsia_baseline.md`). |
 | **3,98** | Asimetría del ingreso: cola derecha larga | Justifica el target en log y el criterio MAE. |
 | **×1,401** | Factor de smearing de Duan: mediana → media | Duan (1983), calculado con residuos out-of-fold de train, nunca test. |
@@ -94,7 +94,7 @@ punto operativo con precisión ≥ 0,90 → umbral 0,605, recall 0,893, **lift
 | **0,9626 / 0,678** | PR-AUC cv del GB / baseline de prevalencia | El mérito es la distancia sobre 0,678, no el 0,96 suelto; sin las 2 variables casi definicionales aún da 0,9415 (`reports/ablacion_clasificador.csv`). |
 | **0,605 → 0,900 / 0,893** | Umbral operativo → precisión / recall | Elegido sobre OOF de train; el test lo confirma exactamente (0,900/0,893). |
 | **1,33×** | Lift: cuántas veces mejor que señalar al azar | 900 vs 678 de cada 1.000 señalados. |
-| **67,3 % vs 70,2 %** | Prevalencia derivada vs oficial INEI 2025 | Sesgo uniforme de ~3 pts explicable por afiliaciones autofinanciadas a pensiones; el gradiente por tamaño (88,6 %/15,6 %) replica el patrón oficial. |
+| **67,3 % vs 70,2 %** | Prevalencia derivada vs oficial INEI 2025 | Sesgo uniforme de ~3 pts explicable por afiliaciones autofinanciadas a pensiones; el gradiente por tamaño va en el mismo sentido que el oficial (el INEI reporta 88,6 % en empresas de 1-10 trabajadores y 15,6 % en las de más de 50; los tramos no son los nuestros, así que coincide la dirección, no cada cifra). |
 | **OR 16,7 / OR 0,82** | Chances de informalidad: microempresa / año de educación | Odds, no probabilidades; bases: empresa >500 y comparación por año (`reports/clasificador_informalidad.md`). |
 | **47.899 / 38.105 / 9.527** | Población final / train / test | Cascada documentada: 84.853 → 57.716 ocupados → 47.899 con ingreso; el torneo usa 47.632 casos completos. |
 | **24,6 %** | Ocupados con pago en especie/autoconsumo, excluido del target | Sensibilidad medida: el premio urbano cae solo de 54,6 % a 52,0 % al incluirlo (`reports/torneo_regresion.md`). |
@@ -104,10 +104,12 @@ punto operativo con precisión ≥ 0,90 → umbral 0,605, recall 0,893, **lift
 
 **1. ¿Por qué el R² es "bajo" (0,42)?**
 Porque el ingreso individual depende de mucho que ninguna encuesta observa
-(habilidad, redes, calidad del empleo). Las ecuaciones de Mincer clásicas
-en cortes transversales rara vez superan un R² de 0,4 (Card 1999; Lemieux
-2006; Heckman et al. 2006); nuestro 0,575 en log está en el rango alto
-porque añade controles de empleo. Un R² de 0,8 aquí sería señal de fuga, no de
+(habilidad, redes, calidad del empleo). La ecuación de Mincer explica
+típicamente entre un 25 % y un 35 % de la varianza del log del salario
+(Mincer 1974, cuadro 5.1: 0,285; Card 1999, cuadro 1: 0,247–0,328). Ojo:
+ni Lemieux (2006) ni Heckman et al. (2006) reportan un R², así que no se
+les cita para esto. Nuestro 0,575 en log está por encima de ese rango
+porque añade controles de empleo que una Mincer clásica no lleva. Un R² de 0,8 aquí sería señal de fuga, no de
 calidad — lo sabemos porque la variable que "explicaba demasiado"
 (INGHOG2D) resultó contener al target (`reports/00_autopsia_baseline.md`).
 
@@ -119,7 +121,7 @@ el PR-AUC sigue en 0,9415 (`reports/ablacion_clasificador.csv`). Y
 encuadre: es una herramienta de focalización sobre configuración laboral
 observable, no una predicción de evento futuro; en ese régimen, AUC alto es
 coherente. Además el gradiente por tamaño replica el patrón oficial del
-INEI (88,6 % micro vs 15,6 % grandes).
+INEI (que reporta 88,6 % en empresas de 1-10 trabajadores y 15,6 % en las de más de 50; sus tramos no son los nuestros).
 
 **3. ¿Por qué excluiste el ingreso en especie?**
 Definición estándar de ingreso monetario, pero no se escondió: el 24,6 % de

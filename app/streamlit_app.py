@@ -36,7 +36,9 @@ import streamlit.components.v1 as components
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import estilos
 import graficos
+import referencias
 from estilos import PALETAS
+from referencias import ref
 
 RAIZ = Path(__file__).resolve().parents[1]
 DIR_MODELS = RAIZ / "models"
@@ -102,15 +104,20 @@ def tarjeta(etiqueta: str, valor: str, nota: str = "", color: str | None = None,
             f"<div class='tarjeta-valor'{estilo}>{valor}</div>{frase}{pie}</div>")
 
 
-def cabecera(pregunta: str, llano: str, detalle: str) -> None:
+def cabecera(pregunta: str, llano: str, detalle: str, seccion: str) -> None:
     """
     Dos capas: el titulo es una pregunta, debajo va español llano, y el texto
     técnico exacto se muda a un expander. La precisión no se borra, se baja de
     capa.
+
+    `seccion` desambigua el expander. Streamlit identifica los widgets por
+    etiqueta y posicion en el arbol: cuatro expanders llamados igual y situados
+    igual son EL MISMO widget, asi que abrir el de una seccion abria el de
+    todas. El sufijo rompe la colision.
     """
     html(f"<h1>{pregunta}</h1>")
     html(f"<div class='entradilla'>{llano}</div>")
-    with st.expander("Detalle técnico"):
+    with st.expander(f"Detalle técnico · {seccion}"):
         html(f"<div class='sutil'>{detalle}</div>")
 
 
@@ -415,7 +422,8 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
         "comparables. «Anualizada ÷ 12» significa que se suma el ingreso de "
         "todo el año y se reparte en doce meses iguales: por eso es un ingreso "
         "estabilizado y no el del mes de la entrevista. La población son "
-        "ocupados de 14 años o más con ingreso laboral positivo.")
+        "ocupados de 14 años o más con ingreso laboral positivo.",
+        seccion="ingreso")
     st.write("")
 
     izq, der = st.columns([35, 65], gap="large")
@@ -500,7 +508,8 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
                  f"<b>De dónde sale la corrección × {d(smear, 3)}.</b> Para pasar "
                  f"de la mediana al promedio no basta con deshacer el "
                  f"logaritmo: hay que multiplicar por un factor que recupera la "
-                 f"masa de la cola alta. Es la corrección de <i>smearing</i> de "
+                 f"masa de la cola alta. Es la corrección de <i>smearing</i>"
+                 f"{ref('duan1983')} de "
                  f"Duan (1983), estimada con los residuos de validación cruzada "
                  f"del entrenamiento. Sin ella, el promedio saldría "
                  f"subestimado en torno a un "
@@ -546,7 +555,8 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
         "tributario); a los dependientes, si les aportan a un sistema de "
         "pensiones. La derivación se validó contra la tasa oficial: "
         "reconstruida sobre todos los ocupados da 67,3 % frente al 70,2 % que "
-        "publica el INEI para 2025.")
+        "publica el INEI para 2025." + ref("inei_informal"),
+        seccion="informalidad")
     st.write("")
 
     izq, der = st.columns([35, 65], gap="large")
@@ -680,7 +690,8 @@ def seccion_torneo(schema: dict, art: dict) -> None:
         "cruzada, con semilla fija. Sin eso el ranking no sería comparable. La "
         "selección se hace por el error de validación cruzada y no por el de "
         "prueba: elegir por prueba tras comparar nueve candidatos sería "
-        "seleccionar sobre el conjunto con el que luego se dice ser honesto.")
+        "seleccionar sobre el conjunto con el que luego se dice ser honesto.",
+        seccion="torneo")
 
     # ---- Acto 1 y 2 ----
     html("<h2>Acto 1 · La ecuación inicial</h2>")
@@ -885,7 +896,8 @@ def seccion_ficha(schema: dict, art: dict) -> None:
         "clasificador estima una probabilidad y se mide por cómo ordena los "
         "casos. Un regresor no tiene umbral, así que no puede tener curva ROC; "
         "un clasificador no tiene error en soles. Poner las métricas de uno en "
-        "el otro no es más rigor, es una confusión de categorías.")
+        "el otro no es más rigor, es una confusión de categorías.",
+        seccion="ficha técnica")
 
     html("<h2>¿Es demasiado bueno el clasificador de informalidad?</h2>")
     filas = ""
@@ -906,16 +918,27 @@ def seccion_ficha(schema: dict, art: dict) -> None:
     tam = a.get("tasas_observadas", {}).get("tamano_empresa")
     gradiente = ""
     if tam:
-        gradiente = (f", y el gradiente por tamaño de empresa replica el patrón "
-                     f"oficial ({d(tam['max']['pct_ponderado'], 1)} % de "
-                     f"informalidad en «{tam['max']['categoria']}» frente a "
+        # Se muestran los DOS y se dice que los tramos no coinciden: «Hasta 20»
+        # no es «1-10». Antes solo aparecía la cifra del INEI, etiquetada
+        # «microempresas», y se leía como si fuera el dato propio.
+        gradiente = (f". El gradiente por tamaño de empresa va en el mismo "
+                     f"sentido que el oficial: aquí "
+                     f"{d(tam['max']['pct_ponderado'], 1)} % de informalidad "
+                     f"en «{tam['max']['categoria']}» frente a "
                      f"{d(tam['min']['pct_ponderado'], 1)} % en "
-                     f"«{tam['min']['categoria']}», ponderado)")
+                     f"«{tam['min']['categoria']}» (ponderado); el INEI "
+                     f"reporta 88,6 % en empresas de <b>1 a 10 "
+                     f"trabajadores</b> y 15,6 % en las de más de 50. Los "
+                     f"tramos no son los mismos, así que las dos cifras no "
+                     f"son directamente comparables")
     html(f"<div class='sutil' style='margin-top:10px;max-width:78ch'>Baseline "
          f"de PR-AUC = prevalencia ({d(clas['prevalencia_train'], 3)} muestral; "
          f"{d(clas['prevalencia_ponderada'], 3)} ponderada). La regla del target "
          f"se validó contra la tasa oficial: reconstruida sobre todos los "
-         f"ocupados da 67,3 % frente al 70,2 % del INEI 2025{gradiente}.</div>")
+         f"ocupados da 67,3 % frente al 70,2 % que publica el "
+         f"INEI{ref('inei_informal')}{gradiente}. La definición de empleo "
+         f"informal que se replica es la internacional de la OIT "
+         f"(17.ª CIET){ref('oit_17ciet')}.</div>")
 
     abl = clas.get("ablacion", [])
     if abl:
@@ -969,7 +992,9 @@ def seccion_ficha(schema: dict, art: dict) -> None:
              f"{pct(base, 1)} de los trabajadores de la muestra es informal, "
              f"señalar a todo el mundo al azar ya acertaría {pct(base, 1)} de las "
              f"veces. Ese es el suelo contra el que hay que leer el "
-             f"{d(pr_auc, 4)}, no el 0,5 de una moneda.<br><br>"
+             f"{d(pr_auc, 4)}, no el 0,5 de una moneda. Por eso se mira PR-AUC y "
+             f"no solo ROC-AUC: con clases desbalanceadas la curva ROC da "
+             f"una impresión demasiado optimista{ref('saito2015')}.<br><br>"
              f"<b>Segundo, la relación es casi definicional y está declarada.</b> "
              f"Tamaño de empresa y categoría ocupacional están muy pegadas a la "
              f"regla que define el target. Por eso se midió qué pasa sin ellas: "
@@ -997,9 +1022,26 @@ def seccion_ficha(schema: dict, art: dict) -> None:
          + tarjeta("MAE test (mediana)", f"S/ {n(m['mae_mediana'])}")
          + tarjeta("MAE test (media smearing)", f"S/ {n(m['mae_media_smear'])}")
          + tarjeta("R² en soles", f"{d(m['r2_soles'], 3)}",
-                   "esperable en ingresos individuales: 0,4–0,5 es techo "
-                   "habitual con encuestas de hogares")
+                   llano="El modelo explica esa fracción de la variación del "
+                         "ingreso. Ver abajo por qué no es un valor bajo.")
          + "</div>")
+
+    # Afirmación canónica del R²: definida en app/referencias.py y citada aquí.
+    # Antes vivía escrita a mano en cuatro sitios con tres rangos distintos.
+    html("<h3>¿Un R² de "
+         + d(m["r2_soles"], 2) + " no es bajo?</h3>")
+    html(f"<div class='sutil' style='max-width:78ch'>"
+         f"<b>No, y conviene decir contra qué se compara.</b> "
+         + referencias.R2_MINCER_CANONICO.format(
+             ref_mincer=ref("mincer1974"), ref_card=ref("card1999"))
+         + "<br><br>" + referencias.R2_ADVERTENCIA_CONTEXTO
+         + "<br><br><b>Cuidado al comparar: no todos estos R² miden lo "
+         f"mismo.</b> El {d(m['r2_soles'], 2)} de la tarjeta es del modelo "
+         f"desplegado (E9) medido <b>en soles</b>. La ecuación de Mincer de "
+         f"este mismo torneo (E3) da <b>0,27</b> <b>en logaritmo</b>, que es "
+         f"la escala de las cifras de la literatura. Son números de escalas "
+         f"distintas: ponerlos uno al lado del otro sin decirlo sería "
+         f"comparar cosas diferentes.</div>")
 
     html("<h2>Limitaciones declaradas</h2>")
     lim = [
@@ -1018,7 +1060,7 @@ def seccion_ficha(schema: dict, art: dict) -> None:
         "<b>Experiencia potencial, no real.</b> Se usa edad − años de "
         "educación − 6 (truncada en 0; 0,2 % de casos negativos). En "
         "trabajadores de baja educación sobreestima la experiencia efectiva "
-        "(Heckman, Lochner & Todd, 2006).",
+        "(Heckman, Lochner & Todd, 2006)" + ref("heckman2006") + ".",
         "<b>Categoría ocupacional ramifica el target del clasificador.</b> "
         "Su importancia alta es por construcción, no un hallazgo.",
         "<b>Herramienta demostrativa.</b> Salidas poblacionales para ordenar "
@@ -1046,6 +1088,16 @@ def seccion_ficha(schema: dict, art: dict) -> None:
     html("<table class='tabla'><tbody>"
          + "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in proc)
          + "</tbody></table>")
+
+    html("<h2>Referencias</h2>")
+    html("<div class='sutil' style='max-width:78ch;margin-bottom:16px'>"
+         "Toda afirmación de esta app que no sea un cálculo propio sobre los "
+         "microdatos lleva su referencia. Donde la literatura no dice lo que "
+         "haría falta para respaldar una frase, se dice que la lectura es "
+         "nuestra en vez de atribuírsela a nadie. Se marca cuáles son de "
+         "acceso abierto: enlazar algo que el lector no puede abrir es "
+         "citar a medias.</div>")
+    html(referencias.lista_html())
 
 
 # --------------------------------------------------------------------------

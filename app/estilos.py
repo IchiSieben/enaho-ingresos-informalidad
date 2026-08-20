@@ -461,6 +461,46 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   border: 1px dashed {T['borde']};
 }}
 
+/* ---------- Referencias ----------
+   Las llamadas [1] son superíndices clicables; la lista de abajo numera igual.
+   Criterio de tesis: toda afirmación que no sea cálculo propio lleva una. */
+a.ref-llamada {{
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  color: {T['acento']};
+  text-decoration: none;
+  padding: 0 1px;
+  font-family: {FUENTE_MONO};
+}}
+a.ref-llamada:hover {{ text-decoration: underline; }}
+.ref-lista {{
+  display: flex; flex-direction: column; gap: var(--e3);
+  font-size: {F['mini']};
+  line-height: 1.55;
+  color: {T['texto_medio']};
+}}
+.ref-item {{ display: flex; gap: var(--e2); }}
+.ref-num {{
+  font-family: {FUENTE_MONO};
+  color: {T['acento']};
+  flex-shrink: 0;
+  min-width: 2.2em;
+}}
+.ref-item a {{ color: {T['acento_alto']}; word-break: break-word; }}
+.ref-acceso {{
+  font-family: {FUENTE_MONO};
+  font-size: {F['micro']};
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  margin-left: var(--e1);
+  white-space: nowrap;
+}}
+.ref-abierto {{ background: {T['senal_buena_fondo']}; color: {T['senal_buena_texto']}; }}
+.ref-pago    {{ background: {T['superficie_alta']}; color: {T['texto_tenue']}; }}
+
 /* ---------- Expander: la capa 2 ---------- */
 [data-testid="stExpander"] {{
   border: 1px solid {T['borde_sutil']} !important;
