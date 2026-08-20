@@ -135,23 +135,29 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
 # 2. Matriz de confusión operativa
 # --------------------------------------------------------------------------
 def matriz_confusion(tp: int, fp: int, tn: int, fn: int, T: dict,
-                     ancho: int = 520, alto: int = 260) -> str:
+                     ancho: int = 520, alto: int = 286) -> str:
     """Cuadrícula 2x2 con etiquetas operativas del problema de focalización."""
+    # Cada celda lleva el nombre llano Y el técnico: quien ya sabe qué es un
+    # falso negativo lo encuentra, y quien no, aprende cuál es cuál.
     celdas = [
-        (tp, "Informales señalados", "señalado y es informal", T["senal_buena"], 0, 0),
-        (fp, "Señalados innecesarios", "señalado pero es formal", T["senal_media"], 1, 0),
-        (fn, "Informales sin señalar", "no señalado y es informal", T["senal_mala"], 0, 1),
-        (tn, "Formales sin señalar", "no señalado y es formal", T["dato"], 1, 1),
+        (tp, "Informales señalados", "verdaderos positivos",
+         "señalado y es informal", T["senal_buena"], 0, 0),
+        (fp, "Señalados innecesarios", "falsos positivos (falsa alarma)",
+         "señalado pero es formal", T["senal_media"], 1, 0),
+        (fn, "Informales sin señalar", "falsos negativos (se escapan)",
+         "no señalado y es informal", T["senal_mala"], 0, 1),
+        (tn, "Formales sin señalar", "verdaderos negativos",
+         "no señalado y es formal", T["dato"], 1, 1),
     ]
     total = max(tp + fp + tn + fn, 1)
-    cw, ch, gap = 246, 104, 10
+    cw, ch, gap = 246, 116, 10
     x0, y0 = 6, 34
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
               f"aria-label='Matriz de resultados operativos'>"]
     partes.append(f"<text x='{x0}' y='16' class='et'>por cada 1.000 evaluados</text>")
 
-    for valor, titulo, sub, color, col, fila in celdas:
+    for valor, titulo, tecnico, sub, color, col, fila in celdas:
         x = x0 + col * (cw + gap)
         y = y0 + fila * (ch + gap)
         intensidad = min(valor / total * 2.2, 0.3)
@@ -160,11 +166,15 @@ def matriz_confusion(tp: int, fp: int, tn: int, fn: int, T: dict,
             f"fill='{color}' fill-opacity='{intensidad:.3f}' "
             f"stroke='{color}' stroke-opacity='0.35'/>")
         partes.append(
-            f"<text x='{x + 16}' y='{y + 42}' fill='{T['texto']}' "
+            f"<text x='{x + 16}' y='{y + 40}' fill='{T['texto']}' "
             f"style='font-size:28px;font-weight:600;letter-spacing:-0.02em;"
             f"font-variant-numeric:tabular-nums'>{_n(valor, 0)}</text>")
-        partes.append(f"<text x='{x + 16}' y='{y + 64}' class='vl'>{escape(titulo)}</text>")
-        partes.append(f"<text x='{x + 16}' y='{y + 84}' class='vs'>{escape(sub)}</text>")
+        partes.append(f"<text x='{x + 16}' y='{y + 60}' class='vl'>"
+                      f"{escape(titulo)}</text>")
+        partes.append(f"<text x='{x + 16}' y='{y + 78}' class='et' "
+                      f"fill='{color}'>{escape(tecnico)}</text>")
+        partes.append(f"<text x='{x + 16}' y='{y + 96}' class='vs'>"
+                      f"{escape(sub)}</text>")
     partes.append("</svg>")
     return "".join(partes)
 

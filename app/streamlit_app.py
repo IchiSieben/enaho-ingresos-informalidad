@@ -372,6 +372,7 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
 
     st.divider()
     html("<div class='eyebrow'>Qué pasa con este umbral</div>")
+    
     html(f"<div class='panel' style='margin-top:8px'>"
          f"<div style='font-size:15px;line-height:1.9;color:{T()['texto']}'>"
          f"Con umbral <b>{d(umbral, 3)}</b>:<br>"
@@ -380,7 +381,8 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
          f"de cada 100 señalados, <b style='color:{T()['senal_buena']}'>"
          f"{round(prec * 100)}</b> son informales · "
          f"se escapan <b style='color:{T()['senal_mala']}'>"
-         f"{round((1 - rec) * 100)}</b> de cada 100 informales."
+         f"{round((1 - rec) * 100)}</b> de cada 100 informales "
+         f"(<i>falsos negativos</i>: el modelo no los señaló y sí lo eran)."
          f"</div></div>")
 
     if a_curva := curva.get("precision_1"):
@@ -395,10 +397,21 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
              "abajo y a la derecha.</div>")
 
     st.write("")
-    grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 270)
+    html("<h3>Matriz de confusión: los cuatro resultados posibles</h3>")
+    html("<div class='sutil' style='max-width:78ch;margin-bottom:8px'>"
+         "Cada trabajador cae en una de estas cuatro casillas según lo que el "
+         "modelo dijo y lo que realmente era. <b>Subir el umbral</b> reduce "
+         "los falsos positivos y aumenta los falsos negativos: señalas menos "
+         "gente, aciertas más en los que señalas, pero se te escapan más "
+         "informales. <b>Bajarlo</b> hace exactamente lo contrario. No hay "
+         "un punto que mejore las dos cosas a la vez; por eso hay que "
+         "elegir.</div>")
+    grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 290)
     html(f"<div class='sutil'>Calculado sobre {n(total)} trabajadores del "
-         f"entrenamiento con probabilidades out-of-fold, escalado a 1.000. "
-         f"Precisión clase informal: {d(prec, 4)} · recall: {d(rec, 4)}.</div>")
+         f"entrenamiento con probabilidades <i>out-of-fold</i> —es decir, "
+         f"estimadas para cada persona por un modelo que no la usó al "
+         f"entrenar— y escalado a 1.000. Precisión de la clase informal: "
+         f"{d(prec, 4)} · recall: {d(rec, 4)}.</div>")
 
 
 # --------------------------------------------------------------------------
@@ -527,7 +540,13 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
     imp = b.get("importancia_permutacion")
     if st.session_state.get("ingreso") is not None and imp:
         st.divider()
-        html("<div class='eyebrow'>Qué determina el ingreso estimado</div>")
+        html("<h2>Si barajamos al azar esta variable, ¿cuántos soles más se "
+             "equivoca el modelo?</h2>")
+        html("<div class='entradilla'>Eso mide la <b>importancia por "
+             "permutación</b>: se desordena una sola variable, se vuelve a "
+             "estimar, y se mira cuánto empeora. Cuanto más empeora, más "
+             "dependía el modelo de esa variable. <b>MAE</b> es el error "
+             "promedio en soles.</div>")
         st.write("")
         etiquetas = {f["nombre"]: f.get("etiqueta", f["nombre"])
                      for f in reg["features"]}
@@ -593,7 +612,8 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
         html("<div class='entradilla'>Cada gráfico responde: si solo cambiara "
              "esta característica y todo lo demás se quedara igual, ¿cómo se "
              "movería la probabilidad? En cada uno, el color marca el valor del "
-             "perfil que armaste.</div>")
+             "perfil que armaste. Su nombre técnico es <b>dependencia "
+             "parcial</b>.</div>")
         with st.expander("Detalle técnico"):
             html("<div class='sutil'>Son curvas de <b>dependencia parcial</b>: "
                  "el modelo predice sobre toda la muestra fijando esta variable "
@@ -686,7 +706,9 @@ def seccion_torneo(schema: dict, art: dict) -> None:
         "la que se equivoca menos en soles con datos que no vio. Aquí está la "
         "comparación completa, incluida la versión inicial del curso: su "
         "diagnóstico destapó un error en los datos de origen que afectaba a "
-        "cualquiera que usara esa base sin conocerlo.",
+        "cualquiera que usara esa base sin conocerlo. <b>Todo lo de esta "
+        "sección es el modelo de INGRESO</b> (una regresión: estima soles). El clasificador de informalidad no compite aquí; su comparación está en la "
+        "Ficha técnica.",
         "Las nueve especificaciones comparten muestra, partición "
         "entrenamiento/prueba y los mismos cinco pliegues de validación "
         "cruzada, con semilla fija. Sin eso el ranking no sería comparable. La "
@@ -697,6 +719,9 @@ def seccion_torneo(schema: dict, art: dict) -> None:
 
     # ---- Acto 1 y 2 ----
     html("<h2>Acto 1 · La ecuación inicial</h2>")
+    html("<div class='entradilla'>Cada línea suma o resta soles al ingreso "
+         "estimado. Por ejemplo, «+ 11,47 · urbano» significa: si la persona "
+         "vive en zona urbana, súmale S/ 11,47 al total.</div>")
     c1, c2 = st.columns(2, gap="large")
     with c1:
         html(_ecuacion(aut["ecuacion_inicial"],
@@ -728,7 +753,8 @@ def seccion_torneo(schema: dict, art: dict) -> None:
          f"real de un millón de soles. R² sucio: "
          f"{d(aut['corrida_sucia']['r2'], 3)}; limpio: "
          f"{d(aut['corrida_limpia']['r2'], 3)}.<br>"
-         f"<b>2 · La colinealidad.</b> Años de educación y nivel educativo "
+         f"<b>2 · La colinealidad (dos variables que dicen lo mismo).</b> "
+         f"Años de educación y nivel educativo "
          f"detallado son la misma variable codificada dos veces: juntos "
          f"disparan el VIF a ~20 y voltean signos. No conviven en ninguna "
          f"especificación del torneo.<br>"
@@ -814,7 +840,10 @@ def seccion_torneo(schema: dict, art: dict) -> None:
 
         l7 = vb.get("lasso_e7")
         if l7:
-            html("<h3>Qué eliminó el Lasso en E7</h3>")
+            html("<h3>Qué variables sobran: lo que descartó el Lasso en E7</h3>")
+            html("<div class='sutil' style='max-width:78ch'>El <b>Lasso</b> es un método que penaliza tener muchas variables: deja en cero las que no "
+                 "aportan lo suficiente y así elige solas cuáles se quedan. Una <b>dummy</b> es una columna de sí/no que representa una categoría "
+                 "(por ejemplo, «trabaja en el sector X»).</div>")
             drop_manual = set(l7.get("drop_manual_e6", []))
             eliminadas = l7["eliminadas"]
             coincide = sorted(drop_manual & set(eliminadas))
@@ -934,7 +963,9 @@ def seccion_ficha(schema: dict, art: dict) -> None:
                      f"{d(tam['max']['pct_ponderado'], 1)} % de informalidad "
                      f"en «{tam['max']['categoria']}» frente a "
                      f"{d(tam['min']['pct_ponderado'], 1)} % en "
-                     f"«{tam['min']['categoria']}» (ponderado); el INEI "
+                     f"«{tam['min']['categoria']}» (ponderado a población, es decir, "
+                     f"contando a cada encuestado por las personas que "
+                     f"representa); el INEI "
                      f"reporta 88,6 % en empresas de <b>1 a 10 "
                      f"trabajadores</b> y 15,6 % en las de más de 50. Los "
                      f"tramos no son los mismos, así que las dos cifras no "
