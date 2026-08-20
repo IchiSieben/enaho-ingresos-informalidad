@@ -9,8 +9,8 @@ SVG de `graficos.py` viajan a un iframe (`st.components.v1.html`) que no ve
 las variables CSS del padre, así que la única fuente de verdad de color tiene
 que estar en Python y pasarse como parámetro a ambos mundos.
 
-Novedad de este proyecto: DOS paletas con las mismas claves en `PALETAS`
-("oscuro"/"claro") y un toggle en la barra lateral persistido en
+Novedad de este proyecto: TRES paletas con las mismas claves en `PALETAS`
+("claro"/"oscuro"/"terminal") y un selector en la barra lateral persistido en
 `st.session_state["tema"]`. Nada de duplicar bloques CSS a mano: `css(T)`
 genera el bloque completo desde la paleta activa.
 
@@ -34,7 +34,10 @@ PALETAS: dict[str, dict[str, str]] = {
         "borde_sutil":       "#1C222B",
         "texto":             "#E7EAF0",
         "texto_medio":       "#98A1B0",
-        "texto_tenue":       "#6B7585",
+        # Aclarado de #6B7585: aquel daba 3,8:1 sobre superficie, por debajo
+        # del AA que exige texto pequeño, y este color se usa justo en las
+        # etiquetas pequeñas (.eyebrow, .et, .tarjeta-etiqueta).
+        "texto_tenue":       "#778191",
         "acento":            "#6E7BF2",
         "acento_alto":       "#8A94F7",
         "acento_fondo":      "#1B1F38",
@@ -79,7 +82,42 @@ PALETAS: dict[str, dict[str, str]] = {
         "dato_tenue":        "#CBD0D9",
         "rejilla":           "#E4E1D8",
     },
+    # Tercer tema: consola. Azul (#306998) y amarillo (#FFD43B) de Python sobre
+    # fondo casi negro. El azul original es demasiado oscuro para texto sobre
+    # negro (2,3:1), así que para tinta se usa una versión aclarada y el azul
+    # de marca queda para fondos y trazos gruesos. Todos los pares de texto
+    # verificados a 4,5:1 o mejor.
+    "terminal": {
+        "fondo":             "#0A0C10",
+        "superficie":        "#11151C",
+        "superficie_alta":   "#171C25",
+        "superficie_hover":  "#1E2530",
+        "borde":             "#2B3440",
+        "borde_sutil":       "#1B2029",
+        "texto":             "#D6E2D0",   # verde-claro de consola, 13,4:1
+        "texto_medio":       "#9DB39A",   # 7,5:1
+        "texto_tenue":       "#7C917C",   # 5,0:1
+        "acento":            "#5FA8E8",   # azul Python aclarado, 7,4:1
+        "acento_alto":       "#FFD43B",   # amarillo Python, 12,9:1
+        "acento_fondo":      "#132433",
+        "boton_texto":       "#0A0C10",
+        "senal_buena":       "#5FD68C",
+        "senal_media":       "#FFD43B",
+        "senal_mala":        "#FF7B72",
+        "senal_buena_fondo": "#0E2418",
+        "senal_media_fondo": "#241E08",
+        "senal_mala_fondo":  "#2A1315",
+        "senal_buena_texto": "#9FE8BC",
+        "senal_media_texto": "#FFE58F",
+        "senal_mala_texto":  "#FFB3AE",
+        "dato":              "#8FA68C",
+        "dato_tenue":        "#39434E",
+        "rejilla":           "#222A34",
+    },
 }
+
+# El tema Terminal va TODO en monoespaciada, no solo las cifras.
+TEMAS_MONO = {"terminal"}
 
 E = {"1": "4px", "2": "8px", "3": "12px", "4": "16px",
      "6": "24px", "8": "32px", "12": "48px"}
@@ -97,9 +135,20 @@ IMPORT_FUENTES = (
 )
 
 
+def nombre_tema(T: dict[str, str]) -> str:
+    """Qué paleta es esta, por su color de fondo."""
+    for nombre, paleta in PALETAS.items():
+        if paleta["fondo"] == T["fondo"]:
+            return nombre
+    return "claro"
+
+
 def css(T: dict[str, str]) -> str:
     """Bloque CSS completo GENERADO desde la paleta activa."""
-    esquema = "dark" if T["fondo"] == PALETAS["oscuro"]["fondo"] else "light"
+    tema = nombre_tema(T)
+    esquema = "light" if tema == "claro" else "dark"
+    # En Terminal el cuerpo entero va en monoespaciada, no solo las cifras.
+    fuente_cuerpo = FUENTE_MONO if tema in TEMAS_MONO else FUENTE_UI
     return f"""<style>
 {IMPORT_FUENTES}
 
@@ -135,7 +184,7 @@ def css(T: dict[str, str]) -> str:
 }}
 
 html, body, [data-testid="stAppViewContainer"] * {{
-  font-family: {FUENTE_UI};
+  font-family: {fuente_cuerpo};
   -webkit-font-smoothing: antialiased;
 }}
 /* El selector `*` de arriba también alcanza a los iconos de Streamlit, que son
@@ -600,13 +649,15 @@ def css_iframe(T: dict[str, str]) -> str:
     padre es dark y el documento embebido queda en 'normal', Chromium pinta
     un lienzo blanco opaco detrás del contenido aunque todo sea transparente.
     """
-    esquema = "dark" if T["fondo"] == PALETAS["oscuro"]["fondo"] else "light"
+    tema = nombre_tema(T)
+    esquema = "light" if tema == "claro" else "dark"
+    fuente_cuerpo = FUENTE_MONO if tema in TEMAS_MONO else FUENTE_UI
     return f"""
 {IMPORT_FUENTES}
 html {{ color-scheme: {esquema}; }}
 html, body {{
   margin: 0; padding: 0; background: transparent;
-  font-family: {FUENTE_UI};
+  font-family: {fuente_cuerpo};
   font-variant-numeric: tabular-nums;
 }}
 svg {{ display: block; width: 100%; height: auto; overflow: visible; }}

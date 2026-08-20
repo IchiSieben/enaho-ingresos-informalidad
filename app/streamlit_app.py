@@ -87,7 +87,7 @@ def columnas_esperadas(modelo) -> list[str]:
 # Presentación
 # --------------------------------------------------------------------------
 def T() -> dict:
-    return PALETAS[st.session_state.get("tema", "oscuro")]
+    return PALETAS[st.session_state.get("tema", "claro")]
 
 
 def html(s: str) -> None:
@@ -1249,10 +1249,21 @@ def main() -> None:
                 st.session_state["seccion"] = clave
                 st.rerun()
         st.write("")
-        oscuro = st.toggle("Tema oscuro", value=st.session_state["tema"] == "oscuro",
-                           key="toggle_tema")
-        nuevo = "oscuro" if oscuro else "claro"
-        if nuevo != st.session_state["tema"]:
+        # Tres temas: un toggle ya no da. Segmented control si la versión de
+        # Streamlit lo trae; si no, radio, que hace lo mismo con más alto.
+        TEMAS = {"claro": "Claro", "oscuro": "Oscuro", "terminal": "Terminal"}
+        actual = st.session_state["tema"]
+        opciones = list(TEMAS)
+        control = getattr(st, "segmented_control", None)
+        if control is not None:
+            nuevo = control("Tema", opciones, default=actual,
+                            format_func=lambda k: TEMAS[k],
+                            key="sel_tema", label_visibility="collapsed")
+        else:
+            nuevo = st.radio("Tema", opciones, index=opciones.index(actual),
+                             format_func=lambda k: TEMAS[k], horizontal=True,
+                             key="sel_tema", label_visibility="collapsed")
+        if nuevo and nuevo != actual:
             st.session_state["tema"] = nuevo
             st.rerun()
         html(f"<div class='sutil' style='border-top:1px solid "
