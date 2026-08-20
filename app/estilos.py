@@ -461,6 +461,27 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   border: 1px dashed {T['borde']};
 }}
 
+/* ---------- Fila de veredicto (cabina) ----------
+   La cifra y el veredicto en una sola línea, para que la franja y las
+   consecuencias del umbral quepan sin scroll en un portátil de 768 px. */
+.fila-veredicto {{
+  display: flex; align-items: baseline; gap: var(--e3);
+  flex-wrap: wrap;
+  margin-bottom: var(--e1);
+}}
+.cifra-veredicto {{
+  font-family: {FUENTE_MONO};
+  font-size: {F['cifra_xl']};
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}}
+.texto-veredicto {{
+  font-size: {F['sub']};
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}}
+
 /* ---------- Referencias ----------
    Las llamadas [1] son superíndices clicables; la lista de abajo numera igual.
    Criterio de tesis: toda afirmación que no sea cálculo propio lleva una. */

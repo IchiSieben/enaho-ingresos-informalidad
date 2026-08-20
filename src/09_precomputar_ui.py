@@ -506,6 +506,11 @@ def main() -> None:
     artefactos["clasificador"] = {
         "algoritmo": "gb",
         "curva_umbral": curva_umbral(y_tr.to_numpy(), proba_oof, extra=extra),
+        # Franja de probabilidad de la app: el fondo es la distribucion OOF de
+        # los 38.105 del entrenamiento. 60 bins es el detalle que se distingue
+        # a simple vista sin engordar el JSON.
+        "histograma_oof": histograma_por_clase(y_tr.to_numpy(), proba_oof,
+                                               bins=60),
         "curva_umbral_origen": "OOF sobre train (5 pliegues); el test no decide nada.",
         "roc": {"fpr": r(fpr, 5), "tpr": r(tpr, 5),
                 "auc": r(roc_auc_score(y_te, proba_te), 4)},

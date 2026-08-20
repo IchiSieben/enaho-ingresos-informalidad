@@ -294,6 +294,11 @@ def indice_umbral(curva: dict, t: float) -> int:
     return min(range(len(umbrales)), key=lambda i: abs(umbrales[i] - t))
 
 
+def a_hist_oof() -> dict | None:
+    """Histograma OOF para la franja; el fragment no recibe los artefactos."""
+    return cargar_artefactos().get("clasificador", {}).get("histograma_oof")
+
+
 @st.fragment
 def bloque_umbral(clas: dict, curva: dict) -> None:
     """Mover el slider solo reejecuta esta función: nada se vuelve a predecir."""
@@ -342,21 +347,27 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
     proba = st.session_state.get("proba_informal")
     i = indice_umbral(curva, umbral)
 
-    st.divider()
+    # Cabina: cifra + veredicto en una fila compacta, franja debajo, y las
+    # consecuencias del umbral pegadas. Antes el medidor ocupaba 310 px para
+    # decir un solo número y empujaba lo interactivo fuera de la pantalla.
     if proba is not None:
-        grafico(graficos.medidor(proba, umbral,
-                                 st.session_state.get("hist_cohorte"), T()), 310)
-        if proba >= umbral:
-            html(f"<div class='senal senal-aviso'><div>▲</div><div>"
-                 f"<b>Perfil señalado para focalización.</b> La probabilidad "
-                 f"estimada de empleo informal ({pct(proba, 1)}) supera el umbral "
-                 f"({d(umbral, 3)}). La señal identifica una configuración laboral, "
-                 f"no un veredicto sobre la persona.</div></div>")
-        else:
-            html(f"<div class='senal senal-ok'><div>●</div><div>"
-                 f"<b>Sin señal por este criterio.</b> La probabilidad estimada "
-                 f"({pct(proba, 1)}) queda por debajo del umbral ({d(umbral, 3)})."
-                 f"</div></div>")
+        senalado = proba >= umbral
+        col = T()["senal_media"] if senalado else T()["senal_buena"]
+        veredicto = ("Señalado para focalización" if senalado
+                     else "Sin señal por este criterio")
+        html(f"<div class='fila-veredicto'>"
+             f"<span class='cifra-veredicto' style='color:{col}'>"
+             f"{pct(proba, 1)}</span>"
+             f"<span class='texto-veredicto' style='color:{col}'>"
+             f"{veredicto}</span></div>")
+        html(f"<div class='sutil' style='margin:-2px 0 10px 0'>"
+             + ("Su probabilidad estimada supera el umbral. La señal apunta a "
+                "una configuración de empleo, no es un veredicto sobre la "
+                "persona." if senalado else
+                "Su probabilidad estimada queda por debajo del umbral.")
+             + "</div>")
+        grafico(graficos.franja_probabilidad(
+            proba, umbral, a_hist_oof(), T()), 165)
 
     # ---- Consecuencias en vivo ----
     total = curva["n"]
@@ -370,8 +381,7 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
     rec = curva["recall_1"][i]
     pct_senalado = (tp + fp) / total * 100
 
-    st.divider()
-    html("<div class='eyebrow'>Qué pasa con este umbral</div>")
+    html("<div class='eyebrow' style='margin-top:4px'>Qué pasa con este umbral</div>")
     
     html(f"<div class='panel' style='margin-top:8px'>"
          f"<div style='font-size:15px;line-height:1.9;color:{T()['texto']}'>"
@@ -587,7 +597,6 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
             modelo = cargar_modelo("clasificador_gb.joblib")
             st.session_state["proba_informal"] = float(
                 modelo.predict_proba(fila[columnas_esperadas(modelo)])[:, 1][0])
-            st.session_state["hist_cohorte"] = a.get("histograma_probabilidades")
 
     with der:
         if st.session_state.get("proba_informal") is None:

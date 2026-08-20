@@ -132,6 +132,85 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
 
 
 # --------------------------------------------------------------------------
+# 1b. Franja de probabilidad — sustituye al medidor
+# --------------------------------------------------------------------------
+def franja_probabilidad(proba: float, umbral: float, hist: dict | None, T: dict,
+                        ancho: int = 720, alto: int = 150) -> str:
+    """
+    Dónde cae este caso respecto a TODOS, y qué corta el umbral.
+
+    Reemplaza al medidor semicircular: aquel ocupaba media pantalla para
+    comunicar un solo número y dejaba las consecuencias del umbral bajo el
+    pliegue. Aquí, en 150 px de alto, se ve la distribución completa, el corte
+    y la posición del caso — y mover el umbral se nota de verdad.
+    """
+    m = {"i": 14, "d": 14, "s": 34, "b": 30}
+    ix = ancho - m["i"] - m["d"]
+    iy = alto - m["s"] - m["b"]
+    x = lambda v: m["i"] + min(max(v, 0.0), 1.0) * ix
+    base = m["s"] + iy
+
+    senalado = proba >= umbral
+    color = T["senal_media"] if senalado else T["senal_buena"]
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
+              f"aria-label='El perfil tiene una probabilidad de "
+              f"{proba:.1%}; el umbral está en {umbral:.3f}'>"]
+
+    # Zonas: a la derecha del umbral se señala, a la izquierda no.
+    partes.append(f"<rect x='{m['i']}' y='{m['s']}' width='{x(umbral) - m['i']:.1f}' "
+                  f"height='{iy}' fill='{T['senal_buena']}' fill-opacity='0.07'/>")
+    partes.append(f"<rect x='{x(umbral):.1f}' y='{m['s']}' "
+                  f"width='{m['i'] + ix - x(umbral):.1f}' height='{iy}' "
+                  f"fill='{T['senal_media']}' fill-opacity='0.10'/>")
+
+    # Fondo: distribución de las probabilidades del entrenamiento.
+    if hist and hist.get("bordes"):
+        bordes = hist["bordes"]
+        totales = [a + b for a, b in zip(hist["clase_0"], hist["clase_1"])]
+        techo = max(totales) or 1
+        bw = ix / max(len(totales), 1)
+        for i, tot in enumerate(totales):
+            if tot <= 0:
+                continue
+            h = (tot / techo) * iy
+            bx = x(bordes[i])
+            partes.append(f"<rect x='{bx:.1f}' y='{base - h:.1f}' "
+                          f"width='{max(bw - 0.6, 0.6):.1f}' height='{h:.1f}' "
+                          f"fill='{T['dato_tenue']}' opacity='0.75'/>")
+
+    partes.append(f"<line x1='{m['i']}' y1='{base}' x2='{m['i'] + ix}' "
+                  f"y2='{base}' stroke='{T['borde']}'/>")
+
+    # Umbral
+    ux = x(umbral)
+    partes.append(f"<line x1='{ux:.1f}' y1='{m['s'] - 6}' x2='{ux:.1f}' "
+                  f"y2='{base + 4}' stroke='{T['texto']}' stroke-width='2'/>")
+    partes.append(f"<text x='{ux:.1f}' y='{m['s'] - 11}' class='et' "
+                  f"text-anchor='middle'>umbral {_n(umbral, 3)}</text>")
+
+    # El caso
+    px = x(proba)
+    partes.append(f"<circle cx='{px:.1f}' cy='{base - iy * 0.55:.1f}' r='9' "
+                  f"fill='{color}' stroke='{T['fondo']}' stroke-width='2.5'/>")
+    lado = "end" if px > m["i"] + ix * 0.72 else "start"
+    dx = -14 if lado == "end" else 14
+    partes.append(f"<text x='{px + dx:.1f}' y='{base - iy * 0.55 + 4:.1f}' "
+                  f"class='vl' text-anchor='{lado}' fill='{color}' "
+                  f"style='font-weight:600'>tu perfil: {_n(proba * 100, 1)} %"
+                  f"</text>")
+
+    for v, txt in ((0.0, "0 %"), (0.5, "50 %"), (1.0, "100 %")):
+        anc = "start" if v == 0 else "end" if v == 1 else "middle"
+        partes.append(f"<text x='{x(v):.1f}' y='{base + 16:.0f}' class='et' "
+                      f"text-anchor='{anc}'>{txt}</text>")
+    partes.append(f"<text x='{m['i']}' y='{alto - 3}' class='et'>"
+                  f"cada barra: trabajadores del entrenamiento con esa "
+                  f"probabilidad estimada</text>")
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+# --------------------------------------------------------------------------
 # 2. Matriz de confusión operativa
 # --------------------------------------------------------------------------
 def matriz_confusion(tp: int, fp: int, tn: int, fn: int, T: dict,
@@ -289,7 +368,8 @@ def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
         for _, px, py in grupo:
             partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='3.5' "
                           f"fill='{T['dato']}' opacity='0.85'/>")
-        nombre = " · ".join(g[0] for g in grupo)
+        nombre = (" · ".join(g[0] for g in grupo) if len(grupo) <= 2
+                  else f"{len(grupo)} preajustes casi en el mismo punto")
         px, py = grupo[0][1], sum(g[2] for g in grupo) / len(grupo)
         dy = -8 if k % 2 == 0 else 14           # alterna para no encadenar choques
         # si la etiqueta no cabe a la derecha, se ancla a la izquierda del punto
@@ -305,8 +385,10 @@ def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
                   f"stroke-dasharray='3 3' opacity='0.5'/>")
     partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='7' "
                   f"fill='{T['fondo']}' stroke='{T['texto']}' stroke-width='2.5'/>")
-    partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + 18}' class='vl'>"
-                  f"acierto {_n(punto[1] * 100, 1)} % · cobertura {_n(punto[0] * 100, 1)} %</text>")
+    partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + iy - 10:.0f}' "
+                  f"class='vl' style='font-weight:600'>"
+                  f"acierto {_n(punto[1] * 100, 1)} % · cobertura "
+                  f"{_n(punto[0] * 100, 1)} %</text>")
     partes.append("</svg>")
     return "".join(partes)
 
