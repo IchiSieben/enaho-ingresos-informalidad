@@ -46,6 +46,9 @@ N_PD = 5_000
 N_PERM = 9_000
 GRID_PD = 20
 N_PUNTOS_CURVA = 200
+# Paso de la curva de umbral. A 0,005 el slider se siente continuo: entre dos
+# posiciones consecutivas las cifras de impacto ya cambian.
+PASO_UMBRAL = 0.005
 PERCENTILES = [5, 25, 50, 75, 95]
 ETIQUETA_OTROS = "OTROS"
 COLS_CLF = ["anios_educ", "edad", "exper", "exper2", "horas_total",
@@ -74,10 +77,11 @@ def pctl_pond(valores: np.ndarray, pesos: np.ndarray, qs: list[float]) -> list[f
 # --------------------------------------------------------------------------
 # Curva de umbral (identica a la del SIS: sumas acumuladas, no 99 reevaluaciones)
 # --------------------------------------------------------------------------
-def curva_umbral(y, proba, extra=()) -> dict:
+def curva_umbral(y, proba, extra=(), paso=PASO_UMBRAL) -> dict:
     y = np.asarray(y).astype(np.int64)
-    umbrales = np.union1d(np.round(np.arange(0.01, 0.9901, 0.01), 2),
+    umbrales = np.union1d(np.round(np.arange(0.01, 0.9901 + paso / 2, paso), 4),
                           np.round(np.asarray(list(extra), dtype=float), 6))
+    umbrales = umbrales[(umbrales >= 0.01) & (umbrales <= 0.99)]
     positivos, negativos = int(y.sum()), int((1 - y).sum())
 
     orden = np.sort(proba)
@@ -176,6 +180,43 @@ def distribucion_cohorte(X: pd.DataFrame, pesos: pd.Series,
                 "participacion_pct": {str(k): r(100 * v / w_total, 2)
                                       for k, v in masa.items()},
                 "n": int(len(s)),
+            }
+    return salida
+
+
+def tasas_observadas(df: pd.DataFrame, features_schema: list[dict]) -> dict:
+    """
+    Tasa de informalidad OBSERVADA por categoria, ponderada y cruda.
+
+    No confundir con la dependencia parcial: aquella estima el efecto de mover
+    una variable con el resto promediado (ceteris paribus), esta cuenta lo que
+    hay en la muestra. Para un titulo del tipo "la informalidad es mas alta en
+    el campo" la cifra honesta es la observada; el efecto parcial responde otra
+    pregunta y da otro numero. La app las usa en sitios distintos y lo dice.
+    """
+    salida = {}
+    for feat in features_schema:
+        col = feat["nombre"]
+        if feat["tipo"] != "categorico" or col not in df.columns:
+            continue
+        opciones = set(feat.get("opciones", []))
+        s = df[col].astype(str)
+        if ETIQUETA_OTROS in opciones:
+            s = s.where(s.isin(opciones), ETIQUETA_OTROS)
+        grupos = {}
+        for val, g in df.groupby(s, observed=True):
+            w = g["FAC500A"]
+            grupos[str(val)] = {
+                "pct_ponderado": r(100 * (g["informal"] * w).sum() / w.sum(), 2),
+                "pct_crudo": r(100 * g["informal"].mean(), 2),
+                "n": int(len(g)),
+            }
+        if len(grupos) >= 2:
+            orden = sorted(grupos.items(), key=lambda kv: kv[1]["pct_ponderado"])
+            salida[col] = {
+                "grupos": grupos,
+                "min": {"categoria": orden[0][0], **orden[0][1]},
+                "max": {"categoria": orden[-1][0], **orden[-1][1]},
             }
     return salida
 
@@ -475,6 +516,7 @@ def main() -> None:
         "dependencia_parcial": pd_a,
         "importancia_permutacion": imp_a,
         "cohorte": distribucion_cohorte(X_a, dfc["FAC500A"], clas["features"]),
+        "tasas_observadas": tasas_observadas(dfc, clas["features"]),
         "comparacion": json.loads(pd.read_csv(
             DIR_REPORTS / "comparacion_clasificador.csv").to_json(orient="records")),
     }

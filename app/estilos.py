@@ -138,6 +138,13 @@ html, body, [data-testid="stAppViewContainer"] * {{
   font-family: {FUENTE_UI};
   -webkit-font-smoothing: antialiased;
 }}
+/* El selector `*` de arriba también alcanza a los iconos de Streamlit, que son
+   ligaduras tipográficas: sin su fuente, el nombre del icono se imprime literal
+   ("arrow_drop_down") al lado del texto. Hay que devolvérsela. */
+[data-testid="stIconMaterial"], [data-testid="stExpanderIcon"],
+.material-symbols-rounded, span.material-icons {{
+  font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+}}
 body {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
 [data-testid="stAppViewContainer"] p, [data-testid="stAppViewContainer"] li,
 [data-testid="stMarkdownContainer"] {{ color: {T['texto']}; }}
@@ -221,18 +228,39 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   color: {T['texto_tenue']};
   margin-bottom: var(--e2);
 }}
+/* Las cifras van en mono: el contraste con la sans del texto da el aire
+   técnico y además alinea los dígitos entre tarjetas. */
 .tarjeta-valor {{
+  font-family: {FUENTE_MONO};
   font-size: {F['cifra']};
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   color: {T['texto']};
 }}
+/* Capa 1: la frase en español llano que explica la cifra de la tarjeta. */
+.tarjeta-llano {{
+  font-size: {F['cuerpo']};
+  color: {T['texto']};
+  margin-top: var(--e2);
+  line-height: 1.55;
+}}
+/* Capa 2: la precisión técnica, un escalón por debajo en jerarquía. */
 .tarjeta-nota {{
   font-size: {F['mini']};
   color: {T['texto_medio']};
   margin-top: var(--e2);
   line-height: 1.5;
+}}
+
+/* Entradilla: el párrafo llano bajo el título-pregunta. Más grande que el
+   cuerpo porque es lo primero que se lee y decide si alguien sigue leyendo. */
+.entradilla {{
+  font-size: {F['medio']};
+  line-height: 1.65;
+  color: {T['texto']};
+  max-width: 68ch;
+  margin-bottom: var(--e3);
 }}
 .rejilla-tarjetas {{
   display: grid;
@@ -386,6 +414,70 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   white-space: pre;
   color: {T['texto']};
 }}
+
+/* ---------- Bloque «por qué»: dato / mecánica / hipótesis ----------
+   Las tres etiquetas tienen color distinto a propósito: separar lo medido de
+   lo que es consecuencia de la definición y de lo que es interpretación es el
+   método, y tiene que verse de un vistazo. */
+.porque {{
+  display: flex; flex-direction: column; gap: var(--e2);
+  margin-top: var(--e2);
+}}
+
+/* Título-oración: dice el hallazgo, no el nombre de la variable. Va sobre el
+   gráfico, donde antes solo iba la etiqueta de la variable. */
+.titulo-grafico {{
+  font-size: {F['cuerpo']};
+  font-weight: 600;
+  line-height: 1.45;
+  color: {T['texto']};
+  margin-bottom: var(--e1);
+}}
+.porque-fila {{
+  display: flex; gap: var(--e2); align-items: baseline;
+  font-size: {F['mini']};
+  line-height: 1.55;
+  color: {T['texto_medio']};
+}}
+.porque-fila > span:last-child {{ flex: 1; }}
+.etiqueta-dato, .etiqueta-mecanica, .etiqueta-hipotesis {{
+  font-family: {FUENTE_MONO};
+  font-size: {F['micro']};
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}}
+.etiqueta-dato {{
+  background: {T['acento_fondo']}; color: {T['acento_alto']};
+}}
+.etiqueta-mecanica {{
+  background: {T['senal_media_fondo']}; color: {T['senal_media_texto']};
+}}
+.etiqueta-hipotesis {{
+  background: {T['superficie_alta']}; color: {T['texto_tenue']};
+  border: 1px dashed {T['borde']};
+}}
+
+/* ---------- Expander: la capa 2 ---------- */
+[data-testid="stExpander"] {{
+  border: 1px solid {T['borde_sutil']} !important;
+  border-radius: var(--r-md) !important;
+  background: {T['superficie']} !important;
+}}
+[data-testid="stExpander"] summary {{
+  font-size: {F['mini']} !important;
+  font-weight: 500;
+  color: {T['texto_medio']} !important;
+  padding: var(--e2) var(--e3) !important;
+}}
+[data-testid="stExpander"] summary:hover {{ color: {T['acento_alto']} !important; }}
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
+  padding: 0 var(--e3) var(--e3) var(--e3) !important;
+}}
+[data-testid="stExpander"] p {{ font-size: {F['mini']} !important; }}
 
 hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 

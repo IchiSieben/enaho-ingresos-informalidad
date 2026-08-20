@@ -1,0 +1,17 @@
+# Tema claro por defecto. La app genera su propio CSS desde PALETAS
+# (app/estilos.py); estos valores son los que Streamlit usa para pintar los
+# widgets nativos ANTES de que ese CSS entre, y para el chrome que no
+# alcanzamos a estilar. Deben coincidir con PALETAS["claro"] o se ve un
+# parpadeo oscuro al cargar.
+[theme]
+base = "light"
+primaryColor = "#4353CC"
+backgroundColor = "#F7F5F0"
+secondaryBackgroundColor = "#FCFBF8"
+textColor = "#1E232B"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

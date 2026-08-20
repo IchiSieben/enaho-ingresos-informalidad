@@ -92,11 +92,26 @@ def html(s: str) -> None:
     st.markdown(s, unsafe_allow_html=True)
 
 
-def tarjeta(etiqueta: str, valor: str, nota: str = "", color: str | None = None) -> str:
+def tarjeta(etiqueta: str, valor: str, nota: str = "", color: str | None = None,
+            llano: str = "") -> str:
+    """`llano` es la capa 1: la frase que explica la cifra sin jerga."""
     estilo = f" style='color:{color}'" if color else ""
+    frase = f"<div class='tarjeta-llano'>{llano}</div>" if llano else ""
     pie = f"<div class='tarjeta-nota'>{nota}</div>" if nota else ""
     return (f"<div class='tarjeta'><div class='tarjeta-etiqueta'>{etiqueta}</div>"
-            f"<div class='tarjeta-valor'{estilo}>{valor}</div>{pie}</div>")
+            f"<div class='tarjeta-valor'{estilo}>{valor}</div>{frase}{pie}</div>")
+
+
+def cabecera(pregunta: str, llano: str, detalle: str) -> None:
+    """
+    Dos capas: el titulo es una pregunta, debajo va español llano, y el texto
+    técnico exacto se muda a un expander. La precisión no se borra, se baja de
+    capa.
+    """
+    html(f"<h1>{pregunta}</h1>")
+    html(f"<div class='entradilla'>{llano}</div>")
+    with st.expander("Detalle técnico"):
+        html(f"<div class='sutil'>{detalle}</div>")
 
 
 def grafico(svg: str, alto: int) -> None:
@@ -105,7 +120,19 @@ def grafico(svg: str, alto: int) -> None:
 
 
 def n(x: float, dec: int = 0) -> str:
-    return f"{x:,.{dec}f}"
+    """Formato español: punto para miles, coma para decimales."""
+    s = f"{x:,.{dec}f}"
+    return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
+
+def d(x: float, dec: int = 2) -> str:
+    """Decimal español, sin separador de miles (métricas: 0,9626)."""
+    return f"{x:.{dec}f}".replace(".", ",")
+
+
+def pct(x: float, dec: int = 1) -> str:
+    """Fracción a porcentaje español: 0.975 -> «97,5 %»."""
+    return f"{x * 100:.{dec}f}".replace(".", ",") + " %"
 
 
 # --------------------------------------------------------------------------
@@ -160,6 +187,86 @@ def formulario(features: list[dict], prefijo: str) -> pd.DataFrame:
     return pd.DataFrame([valores])[[c for c in orden if c in valores]]
 
 
+# Por qué cada variable se comporta como se comporta. Tres niveles, siempre
+# etiquetados: DATO es lo que mide la barra; MECÁNICA es cuando la explicación
+# es la propia regla que define el target (y entonces el resultado es en parte
+# por construcción, no un hallazgo); HIPÓTESIS es lectura económica plausible,
+# marcada como tal. Solo se escriben las que se pueden sostener.
+PORQUES: dict[str, dict[str, str]] = {
+    "tamano_empresa": {
+        "mecanica":
+            "En empresas de hasta 20 personas casi nadie aporta a pensión, y "
+            "esa es justamente una de las dos reglas que definen «informal». "
+            "La barra casi toca el techo por construcción: el modelo no está "
+            "descubriendo algo, está reflejando la definición.",
+    },
+    "categoria": {
+        "mecanica":
+            "La categoría ocupacional decide qué regla se aplica: a "
+            "independientes y empleadores se les mira el RUC; a los "
+            "dependientes, el aporte a pensión. Que pese mucho es parte del "
+            "diseño del target, no un descubrimiento del modelo.",
+    },
+    "dominio": {
+        "hipotesis":
+            "Selva y sierra concentran empleo independiente y agropecuario, y "
+            "la literatura asocia esa estructura productiva a mayor "
+            "informalidad. Es una interpretación del patrón, no una prueba: "
+            "haría falta comparar empleos equivalentes entre regiones.",
+    },
+    "rama": {
+        "hipotesis":
+            "El agro y el comercio minorista concentran unidades pequeñas y "
+            "trabajo por cuenta propia; la administración pública y la "
+            "enseñanza, empleo asalariado con planilla. Es lectura del "
+            "contexto productivo, no algo que estos datos prueben por sí solos.",
+    },
+    "anios_educ": {
+        "hipotesis":
+            "Más educación se asocia a empleos con contrato y planilla. Pero "
+            "aquí no se puede separar el efecto de la educación del de los "
+            "empleos a los que da acceso: es asociación, no causa.",
+    },
+    "area": {
+        "hipotesis":
+            "El empleo rural es mayoritariamente agropecuario e independiente, "
+            "donde el registro tributario y la planilla son excepción. Es una "
+            "interpretación de la composición del empleo, no una prueba.",
+    },
+}
+
+
+def porque(variable: str, dato: str) -> str:
+    """Bloque «por qué» con la etiqueta de honestidad que corresponda."""
+    fichas = [f"<div class='porque-fila'><span class='etiqueta-dato'>dato</span>"
+              f"<span>{dato}</span></div>"]
+    p = PORQUES.get(variable, {})
+    if p.get("mecanica"):
+        fichas.append(f"<div class='porque-fila'>"
+                      f"<span class='etiqueta-mecanica'>mecánica</span>"
+                      f"<span>{p['mecanica']}</span></div>")
+    if p.get("hipotesis"):
+        fichas.append(f"<div class='porque-fila'>"
+                      f"<span class='etiqueta-hipotesis'>hipótesis</span>"
+                      f"<span>{p['hipotesis']}</span></div>")
+    return f"<div class='porque'>{''.join(fichas)}</div>"
+
+
+def titulo_oracion(variable: str, etiqueta: str, tasas: dict) -> str:
+    """
+    Título que dice el hallazgo, no la variable: «La informalidad es más alta
+    en el campo: 88 % rural frente a 60 % urbana». Sale de las tasas
+    observadas del artefacto — nunca escrito a mano, así no se desincroniza.
+    """
+    t = tasas.get(variable)
+    if not t:
+        return etiqueta
+    alto, bajo = t["max"], t["min"]
+    return (f"{etiqueta}: {alto['pct_ponderado']:.0f} % en "
+            f"«{alto['categoria']}» frente a {bajo['pct_ponderado']:.0f} % en "
+            f"«{bajo['categoria']}»")
+
+
 def situadores(valores: dict, features: list[dict], cohorte: dict) -> None:
     numericas = [f for f in features if f["tipo"] == "numerico"
                  and f["nombre"] not in DERIVADAS
@@ -191,22 +298,34 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
         "f1": (float(refs["f1_optimo"]["umbral"]), "Máx. F1"),
     }
 
-    html("<div class='eyebrow'>Punto operativo</div>")
+    html("<div class='eyebrow'>Dónde poner la vara</div>")
+    html("<div class='sutil' style='margin:6px 0 10px 0;max-width:78ch'>"
+         "Mover el umbral no recalcula la probabilidad del perfil: mueve la "
+         "vara con la que decidimos señalar. <b>La probabilidad la pone el "
+         "modelo; el umbral lo pones tú.</b></div>")
+
     col_p, col_s = st.columns([1, 1])
     with col_p:
         preset = st.radio(
             "Preajuste", list(presets) + ["libre"], index=0,
             format_func=lambda k: ("Umbral libre" if k == "libre" else
-                                   f"{presets[k][1]} · {presets[k][0]:.3f}"),
-            label_visibility="collapsed", key="preset_umbral")
+                                   f"{presets[k][1]} · {d(presets[k][0], 3)}"),
+            label_visibility="collapsed", key="preset_umbral",
+            help="Los tres primeros son puntos de corte ya elegidos con "
+                 "criterios distintos. «Umbral libre» te deja moverlo a mano "
+                 "para ver qué se gana y qué se pierde.")
     with col_s:
         if preset == "libre":
-            umbral = st.slider("Umbral", 0.01, 0.99,
+            umbral = st.slider("Umbral", 0.05, 0.95,
                                float(st.session_state.get("umbral_libre", 0.50)),
-                               0.01, key="umbral_libre")
+                               0.005, key="umbral_libre", format="%.3f",
+                               help="Súbelo para señalar solo los casos más "
+                                    "claros; bájalo para no dejar escapar "
+                                    "informales, a costa de señalar formales.")
         else:
             umbral = presets[preset][0]
-            st.slider("Umbral", 0.01, 0.99, umbral, 0.01, disabled=True,
+            st.slider("Umbral", 0.05, 0.95, umbral, 0.005, disabled=True,
+                      format="%.3f",
                       key=f"slider_fijo_{preset}")
 
     html(f"<div class='sutil' style='margin-top:8px'>★ El punto operativo "
@@ -223,16 +342,16 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
         if proba >= umbral:
             html(f"<div class='senal senal-aviso'><div>▲</div><div>"
                  f"<b>Perfil señalado para focalización.</b> La probabilidad "
-                 f"estimada de empleo informal ({proba:.1%}) supera el umbral "
-                 f"({umbral:.3f}). La señal identifica una configuración laboral, "
+                 f"estimada de empleo informal ({pct(proba, 1)}) supera el umbral "
+                 f"({d(umbral, 3)}). La señal identifica una configuración laboral, "
                  f"no un veredicto sobre la persona.</div></div>")
         else:
             html(f"<div class='senal senal-ok'><div>●</div><div>"
                  f"<b>Sin señal por este criterio.</b> La probabilidad estimada "
-                 f"({proba:.1%}) queda por debajo del umbral ({umbral:.3f})."
+                 f"({pct(proba, 1)}) queda por debajo del umbral ({d(umbral, 3)})."
                  f"</div></div>")
 
-    # ---- Impacto operativo por 1.000 evaluados ----
+    # ---- Consecuencias en vivo ----
     total = curva["n"]
     tp, fp = curva["tp"][i], curva["fp"][i]
     tn, fn = curva["tn"][i], curva["fn"][i]
@@ -241,24 +360,38 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
                               round(tn * k), round(fn * k))
     senalados = m_tp + m_fp
     prec = curva["precision_1"][i]
+    rec = curva["recall_1"][i]
+    pct_senalado = (tp + fp) / total * 100
 
     st.divider()
-    html("<div class='eyebrow'>Impacto operativo</div>")
+    html("<div class='eyebrow'>Qué pasa con este umbral</div>")
     html(f"<div class='panel' style='margin-top:8px'>"
-         f"<div style='font-size:15px;line-height:1.75;color:{T()['texto']}'>"
-         f"Con este umbral, de cada <b>1.000</b> trabajadores evaluados se "
-         f"señalarían <b style='color:{T()['acento_alto']}'>{senalados}</b> para "
-         f"programas de formalización.<br>De cada 1.000 <i>señalados</i>, "
-         f"<b style='color:{T()['senal_buena']}'>{round(prec * 1000)}</b> serían "
-         f"efectivamente informales (precisión {prec:.1%}).<br>Quedarían sin "
-         f"señalar <b style='color:{T()['senal_mala']}'>{m_fn}</b> informales "
-         f"por cada 1.000 evaluados.</div></div>")
+         f"<div style='font-size:15px;line-height:1.9;color:{T()['texto']}'>"
+         f"Con umbral <b>{d(umbral, 3)}</b>:<br>"
+         f"se señala al <b style='color:{T()['acento_alto']}'>"
+         f"{pct_senalado:.0f} %</b> de los trabajadores · "
+         f"de cada 100 señalados, <b style='color:{T()['senal_buena']}'>"
+         f"{round(prec * 100)}</b> son informales · "
+         f"se escapan <b style='color:{T()['senal_mala']}'>"
+         f"{round((1 - rec) * 100)}</b> de cada 100 informales."
+         f"</div></div>")
 
+    if a_curva := curva.get("precision_1"):
+        grafico(graficos.curva_precision_cobertura(
+            curva["recall_1"], a_curva, (rec, prec),
+            [(presets[k_][1], indice_umbral(curva, presets[k_][0]))
+             for k_ in presets], curva, T()), 330)
+        html("<div class='sutil'>El punto blanco es el umbral que tienes "
+             "puesto. Las marcas son los tres preajustes. Cada punto de la "
+             "curva es un umbral posible: subirlo te mueve arriba y a la "
+             "izquierda (más acierto, más informales que se escapan); bajarlo, "
+             "abajo y a la derecha.</div>")
+
+    st.write("")
     grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 270)
     html(f"<div class='sutil'>Calculado sobre {n(total)} trabajadores del "
          f"entrenamiento con probabilidades out-of-fold, escalado a 1.000. "
-         f"Precisión clase informal: {prec:.4f} · recall: "
-         f"{curva['recall_1'][i]:.4f}.</div>")
+         f"Precisión clase informal: {d(prec, 4)} · recall: {d(rec, 4)}.</div>")
 
 
 # --------------------------------------------------------------------------
@@ -268,8 +401,21 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
     reg = schema["regresor"]
     b = art.get("regresor", {})
 
-    html("<h1>Estimación de ingreso laboral</h1>")
-    html(f"<div class='sutil' style='max-width:74ch'>{reg['descripcion_target']}</div>")
+    n_train = int(reg["n_entrenamiento"]) + int(reg["n_test"])
+    cabecera(
+        "¿Cuánto gana al mes una persona con este perfil?",
+        f"El modelo aprendió de {n(n_train)} trabajadores encuestados por el "
+        "INEI (ENAHO 2025). Arma un perfil a la izquierda y estima su ingreso "
+        "mensual típico. Dos avisos: es un promedio del año, no el sueldo del "
+        "mes pasado, y solo cuenta pagos en dinero.",
+        f"{reg['descripcion_target']}<br><br>"
+        "«Imputada» significa que el INEI completó los valores que la persona "
+        "no supo responder. «Deflactada» significa que los soles de todos los "
+        "meses se llevaron a un mismo poder adquisitivo, para que sean "
+        "comparables. «Anualizada ÷ 12» significa que se suma el ingreso de "
+        "todo el año y se reparte en doce meses iguales: por eso es un ingreso "
+        "estabilizado y no el del mes de la entrevista. La población son "
+        "ocupados de 14 años o más con ingreso laboral positivo.")
     st.write("")
 
     izq, der = st.columns([35, 65], gap="large")
@@ -301,12 +447,19 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
         mediana_pob = ing_art.get("mediana_ponderada", reg["ingreso_mediano_train"])
 
         tarjetas = [
-            tarjeta("ingreso típico estimado (mediana)", f"S/ {n(ingreso)}",
-                    color=T()["acento_alto"]),
-            tarjeta("ingreso esperado (media, smearing)", f"S/ {n(media)}",
-                    f"corrección de Duan × {smear:.3f}"),
-            tarjeta("mediana poblacional", f"S/ {n(float(mediana_pob))}",
-                    "ponderada con el factor de expansión"),
+            tarjeta("ingreso típico", f"S/ {n(ingreso)}",
+                    color=T()["acento_alto"],
+                    llano=f"La mitad de los perfiles como este gana menos de "
+                          f"S/ {n(ingreso)}; la otra mitad, más."),
+            tarjeta("ingreso esperado", f"S/ {n(media)}",
+                    llano="El promedio. Es más alto porque unos pocos sueldos "
+                          "muy grandes lo jalan hacia arriba.",
+                    nota=f"Incluye la corrección × {d(smear, 3)} que compensa "
+                         f"haber entrenado en logaritmo — ver «Cómo leer estas "
+                         f"tres cifras»."),
+            tarjeta("mediana del país", f"S/ {n(float(mediana_pob))}",
+                    llano=f"Para comparar: la mitad de todos los trabajadores "
+                          f"del país gana menos de S/ {n(float(mediana_pob))}."),
         ]
 
         # IQR de casos comparables
@@ -328,19 +481,39 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
 
         html("<div class='rejilla-tarjetas'>" + "".join(tarjetas) + "</div>")
         st.write("")
-        html(f"<div class='senal senal-aviso'><div>▲</div><div>"
-             f"<b>La cifra principal es un ingreso típico (mediana condicional), "
-             f"no un ingreso esperado (media).</b> El modelo se entrena en "
-             f"log y la inversión directa estima la mediana; la media exige la "
-             f"corrección de smearing de Duan (×{smear:.3f}) que se muestra en "
-             f"la segunda tarjeta. Además el target es un ingreso "
-             f"<b>suavizado</b> (anualizado ÷ 12) y <b>solo monetario</b>: el "
-             f"pago en especie y autoconsumo (24,6 % de los ocupados lo recibe) "
-             f"queda fuera.</div></div>")
         mae = reg["metricas_test"]["mae_mediana"]
-        html(f"<div class='sutil' style='margin-top:12px'>MAE en test: "
-             f"S/ {n(mae)}. La incertidumbre individual es grande y está "
-             f"declarada: el modelo ordena perfiles, no liquida sueldos.</div>")
+        html(f"<div class='senal senal-aviso'><div>▲</div><div>"
+             f"<b>Esta cifra es un ingreso típico, no una promesa de sueldo.</b> "
+             f"En promedio se equivoca en unos S/ {n(mae)} por persona. Sirve "
+             f"para comparar perfiles entre sí, no para decirle a nadie cuánto "
+             f"va a cobrar.</div></div>")
+
+        with st.expander("Cómo leer estas tres cifras"):
+            html(f"<div class='sutil'>"
+                 f"<b>Por qué la primera cifra es una mediana y no un "
+                 f"promedio.</b> El modelo aprende sobre el logaritmo del "
+                 f"ingreso, porque unos pocos sueldos altísimos deforman "
+                 f"cualquier promedio. Al deshacer ese logaritmo se obtiene la "
+                 f"<i>mediana condicional</i>: el valor que parte al grupo en "
+                 f"dos mitades iguales. Es la cifra honesta para «cuánto gana "
+                 f"alguien así».<br><br>"
+                 f"<b>De dónde sale la corrección × {d(smear, 3)}.</b> Para pasar "
+                 f"de la mediana al promedio no basta con deshacer el "
+                 f"logaritmo: hay que multiplicar por un factor que recupera la "
+                 f"masa de la cola alta. Es la corrección de <i>smearing</i> de "
+                 f"Duan (1983), estimada con los residuos de validación cruzada "
+                 f"del entrenamiento. Sin ella, el promedio saldría "
+                 f"subestimado en torno a un "
+                 f"{(1 - 1 / smear) * 100:.0f} %.<br><br>"
+                 f"<b>Qué queda fuera.</b> El target es solo dinero: el pago en "
+                 f"especie y el autoconsumo (que recibe el 24,6 % de los "
+                 f"ocupados, sobre todo en el agro) no se cuentan. Y es un "
+                 f"ingreso anualizado y repartido en doce meses, no el del mes "
+                 f"de la entrevista.<br><br>"
+                 f"<b>Error de la estimación.</b> MAE en el conjunto de prueba: "
+                 f"S/ {n(mae)}. La incertidumbre individual es grande y está "
+                 f"declarada: el modelo ordena perfiles, no liquida sueldos."
+                 f"</div>")
 
     imp = b.get("importancia_permutacion")
     if st.session_state.get("ingreso") is not None and imp:
@@ -362,9 +535,18 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
     clas = schema["clasificador"]
     a = art.get("clasificador", {})
 
-    html("<h1>Empleo informal</h1>")
-    html(f"<div class='sutil' style='max-width:74ch'>{clas['descripcion_target']} "
-         f"{clas.get('encuadre', '')}</div>")
+    cabecera(
+        "¿Qué tan probable es que un empleo como este sea informal?",
+        "Informal según la regla del INEI: independiente sin RUC, o dependiente "
+        "sin aporte a pensión. El modelo estima esa probabilidad para el perfil "
+        "que armes. Señala configuraciones de empleo, no juzga personas.",
+        f"{clas['descripcion_target']} {clas.get('encuadre', '')}<br><br>"
+        "La regla se derivó de dos preguntas de la encuesta: a los "
+        "independientes y empleadores se les pregunta si tienen RUC (registro "
+        "tributario); a los dependientes, si les aportan a un sistema de "
+        "pensiones. La derivación se validó contra la tasa oficial: "
+        "reconstruida sobre todos los ocupados da 67,3 % frente al 70,2 % que "
+        "publica el INEI para 2025.")
     st.write("")
 
     izq, der = st.columns([35, 65], gap="large")
@@ -397,26 +579,70 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
 
     if st.session_state.get("proba_informal") is not None and a.get("dependencia_parcial"):
         st.divider()
-        html("<div class='eyebrow'>Cómo pesa cada variable</div>")
-        html("<div class='sutil' style='max-width:78ch'>Efecto marginal sobre la "
-             "probabilidad de informalidad, con el resto de la población "
-             "promediada. <b>Nota de construcción:</b> la categoría ocupacional "
-             "ramifica la propia definición del target (independiente → RUC; "
-             "dependiente → pensiones), así que su peso alto no es un "
-             "hallazgo.</div>")
+        html("<h2>Qué empuja la probabilidad hacia arriba o hacia abajo</h2>")
+        html("<div class='entradilla'>Cada gráfico responde: si solo cambiara "
+             "esta característica y todo lo demás se quedara igual, ¿cómo se "
+             "movería la probabilidad? En cada uno, el color marca el valor del "
+             "perfil que armaste.</div>")
+        with st.expander("Detalle técnico"):
+            html("<div class='sutil'>Son curvas de <b>dependencia parcial</b>: "
+                 "el modelo predice sobre toda la muestra fijando esta variable "
+                 "en cada valor posible y promediando el resto, lo que aísla su "
+                 "efecto marginal. <b>No son tasas observadas:</b> la tasa real "
+                 "de informalidad en un grupo mezcla el efecto de esta variable "
+                 "con el de todas las que la acompañan. Por eso el efecto "
+                 "parcial de «Rural» y el porcentaje real de informalidad rural "
+                 "no son el mismo número, y no deberían serlo.</div>")
         st.write("")
         valores = st.session_state.get("valores_clf", {})
+        tasas = a.get("tasas_observadas", {})
         cols = st.columns(2, gap="medium")
         j = 0
         for feat in clas["features"]:
-            perfil = a["dependencia_parcial"].get(feat["nombre"])
-            if not perfil or feat["nombre"] in DERIVADAS:
+            nombre = feat["nombre"]
+            perfil = a["dependencia_parcial"].get(nombre)
+            if not perfil or nombre in DERIVADAS:
                 continue
+            etiqueta = feat.get("etiqueta", nombre)
             with cols[j % 2]:
+                html(f"<div class='titulo-grafico'>"
+                     f"{titulo_oracion(nombre, etiqueta, tasas)}</div>")
                 grafico(graficos.dependencia_parcial(
                     perfil["valores"], perfil["efecto"], perfil["tipo"],
-                    feat.get("etiqueta", feat["nombre"]), T(),
-                    marca=valores.get(feat["nombre"]), formato_y="prob"), 210)
+                    etiqueta, T(), marca=valores.get(nombre),
+                    formato_y="prob", mostrar_etiqueta=False), 210)
+                v = valores.get(nombre)
+                if v is not None:
+                    # En las numéricas «este caso» es una línea vertical, no una
+                    # barra: la frase tiene que decir lo que se ve.
+                    if perfil["tipo"] == "numerico":
+                        html(f"<div class='sutil'>La línea punteada marca "
+                             f"<b>{n(float(v))}</b>, el valor de tu perfil.</div>")
+                    else:
+                        html(f"<div class='sutil'>La barra en color es "
+                             f"«{v}», el valor de tu perfil. Pasa el cursor por "
+                             f"cualquier barra para ver su cifra.</div>")
+                t = tasas.get(nombre)
+                if t:
+                    dato = (f"en la muestra, {t['max']['pct_ponderado']:.0f} % "
+                            f"de «{t['max']['categoria']}» tiene empleo "
+                            f"informal, frente a "
+                            f"{t['min']['pct_ponderado']:.0f} % de "
+                            f"«{t['min']['categoria']}».")
+                elif perfil["tipo"] == "numerico" and len(perfil["efecto"]) > 1:
+                    # Sin categorías que contrastar, el dato es la tendencia:
+                    # de dónde a dónde se mueve la probabilidad de punta a punta.
+                    ini, fin = perfil["efecto"][0], perfil["efecto"][-1]
+                    v0, v1 = perfil["valores"][0], perfil["valores"][-1]
+                    verbo = "baja" if fin < ini else "sube"
+                    dato = (f"al pasar de {n(float(v0))} a {n(float(v1))}, la "
+                            f"probabilidad estimada {verbo} de "
+                            f"{ini * 100:.0f} % a {fin * 100:.0f} %.")
+                else:
+                    dato = ""
+                if dato:
+                    html(porque(nombre, dato))
+                st.write("")
             j += 1
 
 
@@ -443,12 +669,18 @@ def seccion_torneo(schema: dict, art: dict) -> None:
         return
     aut = t["autopsia"]
 
-    html("<h1>Torneo de modelos</h1>")
-    html("<div class='sutil' style='max-width:78ch'>Este proyecto no muestra "
-         "solo el modelo ganador: muestra el camino. Una regresión inicial con "
-         "coeficientes implausibles se convierte en el punto de partida de un "
-         "torneo de nueve especificaciones con el mismo split y la misma "
-         "validación cruzada.</div>")
+    cabecera(
+        "¿Por qué este modelo y no otro?",
+        "Este proyecto no muestra solo el modelo ganador: muestra el camino. "
+        "Se probaron nueve formas distintas de estimar el ingreso, todas sobre "
+        "los mismos datos y con la misma prueba. Aquí está la comparación "
+        "completa, incluida la primera versión que salió mal.",
+        "Las nueve especificaciones comparten muestra, partición "
+        "entrenamiento/prueba y los mismos cinco pliegues de validación "
+        "cruzada, con semilla fija. Sin eso el ranking no sería comparable. La "
+        "selección se hace por el error de validación cruzada y no por el de "
+        "prueba: elegir por prueba tras comparar nueve candidatos sería "
+        "seleccionar sobre el conjunto con el que luego se dice ser honesto.")
 
     # ---- Acto 1 y 2 ----
     html("<h2>Acto 1 · La ecuación inicial</h2>")
@@ -465,24 +697,24 @@ def seccion_torneo(schema: dict, art: dict) -> None:
                        "Misma especificación, centinela 999999 → NaN"))
         html(f"<div class='sutil' style='margin-top:8px'>Con solo convertir el "
              f"código de faltante del INEI a NaN, el R² pasa de "
-             f"<b>{aut['corrida_sucia']['r2']:.3f}</b> a "
-             f"<b>{aut['corrida_limpia']['r2']:.3f}</b> y todos los signos se "
+             f"<b>{d(aut['corrida_sucia']['r2'], 3)}</b> a "
+             f"<b>{d(aut['corrida_limpia']['r2'], 3)}</b> y todos los signos se "
              f"vuelven económicamente plausibles.</div>")
 
     html("<h2>Acto 2 · El diagnóstico</h2>")
     html(f"<div class='panel'><div style='line-height:1.8;font-size:13px;color:"
          f"{T()['texto']}'>"
-         f"<b>1 · El centinela.</b> El {aut['pct_centinelas']:.2f} % de la "
+         f"<b>1 · El centinela.</b> El {d(aut['pct_centinelas'], 2)} % de la "
          f"población tenía el código 999999 («no sabe») leído como ingreso "
          f"real de un millón de soles. R² sucio: "
-         f"{aut['corrida_sucia']['r2']:.3f}; limpio: "
-         f"{aut['corrida_limpia']['r2']:.3f}.<br>"
+         f"{d(aut['corrida_sucia']['r2'], 3)}; limpio: "
+         f"{d(aut['corrida_limpia']['r2'], 3)}.<br>"
          f"<b>2 · La colinealidad.</b> Años de educación y nivel educativo "
          f"detallado son la misma variable codificada dos veces: juntos "
          f"disparan el VIF a ~20 y voltean signos. No conviven en ninguna "
          f"especificación del torneo.<br>"
          f"<b>3 · La escala.</b> El ingreso limpio tiene asimetría "
-         f"{aut['asimetria_limpia']:.2f}: en niveles, unos pocos sueldos altos "
+         f"{d(aut['asimetria_limpia'], 2)}: en niveles, unos pocos sueldos altos "
          f"dominan la regresión. La familia principal trabaja en log "
          f"(ecuación de Mincer) y vuelve a soles con la corrección de Duan."
          f"</div></div>")
@@ -496,8 +728,8 @@ def seccion_torneo(schema: dict, art: dict) -> None:
             " · explicativa" if f["ID"] == t["explicativa"] else "")
         filas += (f"<tr{clase}><td>{f['ID']}{marca}</td>"
                   f"<td style='text-align:left'>{f['especificacion'][:58]}</td>"
-                  f"<td>{f['MAE_cv']:,.0f}</td><td>{f['MAE_test']:,.0f}</td>"
-                  f"<td>{f['R2_test_soles']:.3f}</td>"
+                  f"<td>{n(f['MAE_cv'])}</td><td>{n(f['MAE_test'])}</td>"
+                  f"<td>{d(f['R2_test_soles'], 3)}</td>"
                   f"<td>{f['interpretabilidad']}</td></tr>")
     html(f"<table class='tabla'><thead><tr><th>ID</th><th>Especificación</th>"
          f"<th>MAE cv (S/)</th><th>MAE test (S/)</th><th>R² soles</th>"
@@ -570,7 +802,7 @@ def seccion_torneo(schema: dict, art: dict) -> None:
             extras = [e for e in eliminadas if e not in drop_manual]
             partes = [
                 f"De <b>{l7['candidatas']}</b> columnas candidatas, el Lasso "
-                f"(α = {l7['alpha']:.5f}) conservó <b>{l7['conservadas']}</b> "
+                f"(α = {d(l7['alpha'], 5)}) conservó <b>{l7['conservadas']}</b> "
                 f"y eliminó {len(eliminadas)}: "
                 + ", ".join(f"<code>{e}</code>" for e in eliminadas)
                 + f" ({l7.get('fuente', '')})."]
@@ -631,8 +863,8 @@ def seccion_torneo(schema: dict, art: dict) -> None:
              f"el agro rural). Si excluirlo sesgara el premio urbano, la "
              f"narrativa entera quedaría en duda — así que se midió: con "
              f"target solo monetario el premio urbano es "
-             f"<b>{sens[0]['premio_urbano_pct']:.1f} %</b>; añadiendo especie, "
-             f"<b>{sens[1]['premio_urbano_pct']:.1f} %</b>. La exclusión queda "
+             f"<b>{d(sens[0]['premio_urbano_pct'], 1)} %</b>; añadiendo especie, "
+             f"<b>{d(sens[1]['premio_urbano_pct'], 1)} %</b>. La exclusión queda "
              f"validada como robusta y declarada.</div>")
 
 
@@ -644,29 +876,45 @@ def seccion_ficha(schema: dict, art: dict) -> None:
     a = art.get("clasificador", {})
     meta = art.get("meta", {})
 
-    html("<h1>Ficha técnica</h1>")
-    html("<div class='sutil' style='max-width:78ch'>Qué miden los modelos, "
-         "dónde fallan y qué no se puede concluir con ellos.</div>")
+    cabecera(
+        "¿Qué tan fiables son estos dos modelos?",
+        "Qué miden, dónde fallan y qué no se puede concluir con ellos. Son dos "
+        "modelos distintos y cada uno se juzga con las métricas de su familia: "
+        "no se pueden comparar entre sí.",
+        "Un regresor estima una cantidad y se mide por el error en soles; un "
+        "clasificador estima una probabilidad y se mide por cómo ordena los "
+        "casos. Un regresor no tiene umbral, así que no puede tener curva ROC; "
+        "un clasificador no tiene error en soles. Poner las métricas de uno en "
+        "el otro no es más rigor, es una confusión de categorías.")
 
-    html("<h2>Clasificador de informalidad</h2>")
+    html("<h2>¿Es demasiado bueno el clasificador de informalidad?</h2>")
     filas = ""
     for f in a.get("comparacion", []):
         es_gb = "Gradient" in f["algoritmo"]
         clase = " class='destacada'" if es_gb else " class='atenuada'"
         filas += (f"<tr{clase}><td>{f['algoritmo']}"
                   f"{' · desplegado' if es_gb else ''}</td>"
-                  f"<td>{f['PRAUC_cv']:.4f}</td><td>{f['PRAUC_test']:.4f}</td>"
-                  f"<td>{f['ROCAUC_test']:.4f}</td><td>{f['Brier_test']:.4f}</td></tr>")
+                  f"<td>{d(f['PRAUC_cv'], 4)}</td><td>{d(f['PRAUC_test'], 4)}</td>"
+                  f"<td>{d(f['ROCAUC_test'], 4)}</td><td>{d(f['Brier_test'], 4)}</td></tr>")
     html(f"<table class='tabla'><thead><tr><th>Algoritmo</th><th>PR-AUC cv</th>"
          f"<th>PR-AUC test</th><th>ROC-AUC test</th><th>Brier</th></tr></thead>"
          f"<tbody>{filas}</tbody></table>")
+    # El gradiente por tamaño sale de tasas_observadas, no escrito a mano: la
+    # versión anterior citaba un 88,6 % que no reproducía ninguna fuente del
+    # repo (auditoría 20/08/2026).
+    tam = a.get("tasas_observadas", {}).get("tamano_empresa")
+    gradiente = ""
+    if tam:
+        gradiente = (f", y el gradiente por tamaño de empresa replica el patrón "
+                     f"oficial ({d(tam['max']['pct_ponderado'], 1)} % de "
+                     f"informalidad en «{tam['max']['categoria']}» frente a "
+                     f"{d(tam['min']['pct_ponderado'], 1)} % en "
+                     f"«{tam['min']['categoria']}», ponderado)")
     html(f"<div class='sutil' style='margin-top:10px;max-width:78ch'>Baseline "
-         f"de PR-AUC = prevalencia ({clas['prevalencia_train']:.3f} muestral; "
-         f"{clas['prevalencia_ponderada']:.3f} ponderada). La regla del target "
+         f"de PR-AUC = prevalencia ({d(clas['prevalencia_train'], 3)} muestral; "
+         f"{d(clas['prevalencia_ponderada'], 3)} ponderada). La regla del target "
          f"se validó contra la tasa oficial: reconstruida sobre todos los "
-         f"ocupados da 67,3 % frente al 70,2 % del INEI 2025, y el gradiente "
-         f"por tamaño de empresa replica el patrón oficial (88,6 % de "
-         f"informalidad en microempresas vs 15,6 % en grandes).</div>")
+         f"ocupados da 67,3 % frente al 70,2 % del INEI 2025{gradiente}.</div>")
 
     abl = clas.get("ablacion", [])
     if abl:
@@ -675,9 +923,9 @@ def seccion_ficha(schema: dict, art: dict) -> None:
         for i, f in enumerate(abl):
             clase = " class='destacada'" if i == 0 else " class='atenuada'"
             filas += (f"<tr{clase}><td>{f['variante']}</td>"
-                      f"<td>{f['n_predictores']}</td><td>{f['PRAUC_cv']:.4f}</td>"
-                      f"<td>{f['ROCAUC_cv']:.4f}</td>"
-                      f"<td>{f.get('caida_PRAUC_cv', 0):.4f}</td></tr>")
+                      f"<td>{f['n_predictores']}</td><td>{d(f['PRAUC_cv'], 4)}</td>"
+                      f"<td>{d(f['ROCAUC_cv'], 4)}</td>"
+                      f"<td>{d(f.get('caida_PRAUC_cv', 0), 4)}</td></tr>")
         html(f"<table class='tabla'><thead><tr><th>Variante</th><th>vars</th>"
              f"<th>PR-AUC cv</th><th>ROC-AUC cv</th><th>caída</th></tr></thead>"
              f"<tbody>{filas}</tbody></table>")
@@ -707,12 +955,47 @@ def seccion_ficha(schema: dict, art: dict) -> None:
                                           a["pr"]["auc"], a["pr"]["baseline"],
                                           None, T()), 330)
 
-    html("<h2>Regresor de ingreso</h2>")
+    pr_auc = a.get("pr", {}).get("auc")
+    base = a.get("pr", {}).get("baseline")
+    if pr_auc and base:
+        abl0 = abl[0]["PRAUC_cv"] if abl else None
+        abl2 = abl[-1]["PRAUC_cv"] if abl and len(abl) > 1 else None
+        html("<div class='panel' style='margin-top:12px'>"
+             f"<div class='panel-titulo'>Un {d(pr_auc, 2)} de PR-AUC suele ser "
+             f"señal de fuga. Aquí no lo es, y esta es la razón</div>"
+             f"<div class='sutil' style='margin-top:8px'>"
+             f"<b>Primero, el punto de partida no es cero.</b> Como el "
+             f"{pct(base, 1)} de los trabajadores de la muestra es informal, "
+             f"señalar a todo el mundo al azar ya acertaría {pct(base, 1)} de las "
+             f"veces. Ese es el suelo contra el que hay que leer el "
+             f"{d(pr_auc, 4)}, no el 0,5 de una moneda.<br><br>"
+             f"<b>Segundo, la relación es casi definicional y está declarada.</b> "
+             f"Tamaño de empresa y categoría ocupacional están muy pegadas a la "
+             f"regla que define el target. Por eso se midió qué pasa sin ellas: "
+             + (f"el PR-AUC baja de {d(abl0, 4)} a {d(abl2, 4)}, se sostiene, y la "
+                f"señal restante la cargan educación, área, rama y horas. "
+                if abl0 and abl2 else "")
+             + "<br><br>"
+             f"<b>Tercero, no predice el futuro.</b> Estima la probabilidad de "
+             f"que un empleo <i>ya existente</i> sea informal a partir de sus "
+             f"características. Es una herramienta de focalización, no un "
+             f"pronóstico, y en ese planteamiento un acierto alto es lo "
+             f"esperable.<br><br>"
+             f"<b>Por contraste: un R² de 0,9 en el regresor de ingreso sí "
+             f"sería sospechoso.</b> El ingreso individual tiene una parte "
+             f"grande e irreducible que ninguna encuesta observa —habilidad, "
+             f"suerte, redes, negociación—. Un ajuste casi perfecto ahí "
+             f"significaría que se coló una variable que contiene al propio "
+             f"ingreso. De hecho pasó una vez en este proyecto, con el "
+             f"«índice de bienestar», y por eso se excluyó."
+             f"</div></div>")
+
+    html("<h2>¿Cuánto se equivoca el estimador de ingreso?</h2>")
     m = reg["metricas_test"]
     html("<div class='rejilla-tarjetas'>"
          + tarjeta("MAE test (mediana)", f"S/ {n(m['mae_mediana'])}")
          + tarjeta("MAE test (media smearing)", f"S/ {n(m['mae_media_smear'])}")
-         + tarjeta("R² en soles", f"{m['r2_soles']:.3f}",
+         + tarjeta("R² en soles", f"{d(m['r2_soles'], 3)}",
                    "esperable en ingresos individuales: 0,4–0,5 es techo "
                    "habitual con encuestas de hogares")
          + "</div>")
@@ -769,7 +1052,7 @@ def main() -> None:
     st.set_page_config(page_title="ENAHO — ingreso e informalidad",
                        page_icon="◈", layout="wide",
                        initial_sidebar_state="expanded")
-    st.session_state.setdefault("tema", "oscuro")
+    st.session_state.setdefault("tema", "claro")
     st.session_state.setdefault("seccion", "ingreso")
     html(estilos.css(T()))
 
@@ -795,9 +1078,9 @@ def main() -> None:
                 st.session_state["seccion"] = clave
                 st.rerun()
         st.write("")
-        claro = st.toggle("Tema claro", value=st.session_state["tema"] == "claro",
-                          key="toggle_tema")
-        nuevo = "claro" if claro else "oscuro"
+        oscuro = st.toggle("Tema oscuro", value=st.session_state["tema"] == "oscuro",
+                           key="toggle_tema")
+        nuevo = "oscuro" if oscuro else "claro"
         if nuevo != st.session_state["tema"]:
             st.session_state["tema"] = nuevo
             st.rerun()

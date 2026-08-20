@@ -26,7 +26,9 @@ def envolver(svg: str, css_iframe: str) -> str:
 
 
 def _n(x: float, dec: int = 2) -> str:
-    return f"{x:,.{dec}f}"
+    """Formato español: punto para miles, coma para decimales."""
+    s = f"{x:,.{dec}f}"
+    return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
 
 
 def _pt(cx: float, cy: float, radio: float, frac: float) -> tuple[float, float]:
@@ -86,11 +88,14 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
                 f"<path d='M {x0:.1f} {y0:.1f} L {x1:.1f} {y1:.1f} "
                 f"L {x2:.1f} {y2:.1f} L {x3:.1f} {y3:.1f} Z' "
                 f"fill='{T['dato_tenue']}' opacity='0.55'/>")
-        # a la izquierda: la masa de la cohorte se concentra en probabilidades
-        # altas (derecha) y alli la etiqueta chocaria con las barras
-        partes.append(
-            f"<text x='{cx - radio - 26:.0f}' y='{cy - 34:.0f}' class='et' "
-            f"text-anchor='start'>cohorte</text>")
+        # Leyenda al pie, FUERA del anillo. Antes iba junto al arco y quedaba
+        # dentro de la banda de las barras (radio 204-230 desde el centro), que
+        # la tapaban: el texto se leia recortado.
+        ly = alto - 6
+        partes.append(f"<rect x='6' y='{ly - 8}' width='9' height='9' rx='2' "
+                      f"fill='{T['dato_tenue']}' opacity='0.55'/>")
+        partes.append(f"<text x='20' y='{ly}' class='et' text-anchor='start'>"
+                      f"distribución de la cohorte</text>")
 
     partes.append(f"<path d='{_arco(cx, cy, radio, 0, 1)}' fill='none' "
                   f"stroke='{T['dato_tenue']}' stroke-width='{grosor}' "
@@ -107,12 +112,12 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
                   f"stroke='{T['texto']}' stroke-width='2.5' stroke-linecap='round'/>")
     tx, ty = _pt(cx, cy, radio + grosor / 2 + 22, umbral)
     partes.append(f"<text x='{tx:.1f}' y='{ty:.1f}' class='et' "
-                  f"text-anchor='middle'>umbral {umbral:.3f}</text>")
+                  f"text-anchor='middle'>umbral {_n(umbral, 3)}</text>")
 
     partes.append(
         f"<text x='{cx}' y='{cy - 34}' text-anchor='middle' fill='{T['texto']}' "
         f"style='font-size:52px;font-weight:600;letter-spacing:-0.03em;"
-        f"font-variant-numeric:tabular-nums'>{proba * 100:.1f}<tspan "
+        f"font-variant-numeric:tabular-nums'>{_n(proba * 100, 1)}<tspan "
         f"style='font-size:24px;fill:{T['texto_medio']}'>%</tspan></text>")
     partes.append(
         f"<text x='{cx}' y='{cy - 12}' text-anchor='middle' class='vs'>"
@@ -157,7 +162,7 @@ def matriz_confusion(tp: int, fp: int, tn: int, fn: int, T: dict,
         partes.append(
             f"<text x='{x + 16}' y='{y + 42}' fill='{T['texto']}' "
             f"style='font-size:28px;font-weight:600;letter-spacing:-0.02em;"
-            f"font-variant-numeric:tabular-nums'>{valor:,}</text>")
+            f"font-variant-numeric:tabular-nums'>{_n(valor, 0)}</text>")
         partes.append(f"<text x='{x + 16}' y='{y + 64}' class='vl'>{escape(titulo)}</text>")
         partes.append(f"<text x='{x + 16}' y='{y + 84}' class='vs'>{escape(sub)}</text>")
     partes.append("</svg>")
@@ -201,7 +206,7 @@ def curva_roc(fpr, tpr, auc: float, punto: tuple | None, T: dict,
         partes.append(f"<circle cx='{x(punto[0]):.1f}' cy='{y(punto[1]):.1f}' r='5' "
                       f"fill='{T['fondo']}' stroke='{T['texto']}' stroke-width='2'/>")
     partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + 18}' class='vl'>"
-                  f"AUC {auc:.4f}</text>")
+                  f"AUC {_n(auc, 4)}</text>")
     partes.append(f"<text x='{ancho - m['d']}' y='16' class='et' text-anchor='end'>"
                   f"azar = diagonal</text>")
     partes.append("</svg>")
@@ -220,14 +225,59 @@ def curva_pr(recall, precision, auc: float, base: float, punto: tuple | None,
     partes.append(f"<line x1='{x(0)}' y1='{y(base)}' x2='{x(1)}' y2='{y(base)}' "
                   f"stroke='{T['dato_tenue']}' stroke-dasharray='4 4'/>")
     partes.append(f"<text x='{x(1) - 4:.0f}' y='{y(base) - 6:.0f}' class='et' "
-                  f"text-anchor='end'>base {base:.4f}</text>")
+                  f"text-anchor='end'>base {_n(base, 4)}</text>")
     partes.append(f"<path d='{_ruta(list(zip(recall, precision)), x, y)}' fill='none' "
                   f"stroke='{T['acento']}' stroke-width='2'/>")
     if punto:
         partes.append(f"<circle cx='{x(punto[0]):.1f}' cy='{y(punto[1]):.1f}' r='5' "
                       f"fill='{T['fondo']}' stroke='{T['texto']}' stroke-width='2'/>")
     partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + 18}' class='vl'>"
-                  f"AUC {auc:.4f}</text>")
+                  f"AUC {_n(auc, 4)}</text>")
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+# --------------------------------------------------------------------------
+# 4b. Curva precisión–cobertura con el umbral activo marcado
+# --------------------------------------------------------------------------
+def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
+                              ancho: int = 520, alto: int = 320) -> str:
+    """
+    El trade-off del umbral, VISTO. `punto` es (recall, precisión) del umbral
+    activo; `presets` es [(nombre, índice en la curva)] para marcar los cortes
+    ya elegidos. Se dibuja aquí y no se reusa `curva_pr` porque esta curva sale
+    de las probabilidades out-of-fold del umbral, no del conjunto de prueba.
+    """
+    m = {"i": 52, "d": 96, "s": 30, "b": 38}
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
+              f"aria-label='Curva precisión contra cobertura; el umbral activo "
+              f"señala una precisión de {punto[1]:.2f} y una cobertura de "
+              f"{punto[0]:.2f}'>"]
+    ix, iy = _marco(ancho, alto, m, T, "cobertura: informales que sí se señalan",
+                    "acierto de lo señalado", partes)
+    x = lambda v: m["i"] + v * ix
+    y = lambda v: m["s"] + (1 - v) * iy
+
+    partes.append(f"<path d='{_ruta(list(zip(recall, precision)), x, y)}' "
+                  f"fill='none' stroke='{T['acento']}' stroke-width='2'/>")
+
+    for nombre, idx in presets:
+        if not 0 <= idx < len(recall):
+            continue
+        px, py = x(recall[idx]), y(precision[idx])
+        partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='3.5' "
+                      f"fill='{T['dato']}' opacity='0.85'/>")
+        partes.append(f"<text x='{px + 7:.1f}' y='{py + 4:.1f}' class='et' "
+                      f"text-anchor='start'>{escape(nombre)}</text>")
+
+    px, py = x(punto[0]), y(punto[1])
+    partes.append(f"<line x1='{px:.1f}' y1='{m['s']}' x2='{px:.1f}' "
+                  f"y2='{m['s'] + iy}' stroke='{T['texto']}' stroke-width='1' "
+                  f"stroke-dasharray='3 3' opacity='0.5'/>")
+    partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='7' "
+                  f"fill='{T['fondo']}' stroke='{T['texto']}' stroke-width='2.5'/>")
+    partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + 18}' class='vl'>"
+                  f"acierto {_n(punto[1] * 100, 1)} % · cobertura {_n(punto[0] * 100, 1)} %</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -301,7 +351,7 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
         etiqueta = etiquetas.get(v, v)
         partes.append(f"<text x='{izq - 12}' y='{y + 12:.1f}' class='vs' "
                       f"text-anchor='end'>{escape(str(etiqueta))}</text>")
-        txt = f"{mu:,.3f}" if abs(mu) < 100 else f"{mu:,.1f}"
+        txt = _n(mu, 3) if abs(mu) < 100 else _n(mu, 1)
         anclaje_x = max(e1, cero + abs(largo)) + 8
         partes.append(f"<text x='{anclaje_x:.1f}' y='{y + 12:.1f}' class='vs' "
                       f"fill='{T['texto_tenue'] if despreciable else T['texto']}'>"
@@ -349,7 +399,8 @@ def situador(valor: float, percentiles: dict, etiqueta: str, T: dict,
 # --------------------------------------------------------------------------
 def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
                         marca=None, ancho: int = 520, alto: int = 200,
-                        formato_y: str = "prob") -> str:
+                        formato_y: str = "prob",
+                        mostrar_etiqueta: bool = True) -> str:
     m = {"i": 52, "d": 16, "s": 26, "b": 44}
     ix, iy = ancho - m["i"] - m["d"], alto - m["s"] - m["b"]
     lo, hi = min(efecto), max(efecto)
@@ -361,13 +412,17 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
               f"aria-label='Dependencia parcial de {escape(etiqueta)}'>"]
-    partes.append(f"<text x='{m['i']}' y='14' class='et'>{escape(etiqueta)}</text>")
+    # Cuando la app ya puso un título-oración encima, repetir aquí la etiqueta
+    # de la variable es ruido: dos títulos para un solo gráfico.
+    if mostrar_etiqueta:
+        partes.append(f"<text x='{m['i']}' y='14' class='et'>"
+                      f"{escape(etiqueta)}</text>")
     for f in (0, 0.5, 1.0):
         vy = m["s"] + f * iy
         partes.append(f"<line x1='{m['i']}' y1='{vy:.1f}' x2='{m['i'] + ix}' "
                       f"y2='{vy:.1f}' stroke='{T['rejilla']}' stroke-dasharray='2 4'/>")
         val = hi - f * (hi - lo)
-        txt = f"{val * 100:.1f}%" if formato_y == "prob" else f"{val:,.0f}"
+        txt = f"{_n(val * 100, 1)} %" if formato_y == "prob" else _n(val, 0)
         partes.append(f"<text x='{m['i'] - 8}' y='{vy + 4:.1f}' class='vs' "
                       f"text-anchor='end'>{txt}</text>")
 
@@ -397,9 +452,19 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
             bx = m["i"] + i * bw
             es_marca = marca is not None and str(v) == str(marca)
             color = T["acento"] if es_marca else T["dato_tenue"]
+            # <title> = tooltip nativo del navegador, dos renglones: el dato
+            # leido en palabras y que significa estar por encima o por debajo.
+            pico = max(efecto)
+            relacion = ("es el valor más alto del gráfico"
+                        if e >= pico - 1e-9 else
+                        f"queda {_n((pico - e) * 100, 0)} puntos por debajo del "
+                        f"valor más alto")
+            tip = (f"{escape(str(v))}: {_n(e * 100, 1)} % de probabilidad estimada\n"
+                   f"{relacion}"
+                   + (" · es el valor de tu perfil" if es_marca else ""))
             partes.append(f"<rect x='{bx + bw * 0.15:.1f}' y='{y(e):.1f}' "
                           f"width='{bw * 0.7:.1f}' height='{m['s'] + iy - y(e):.1f}' "
-                          f"rx='2' fill='{color}'/>")
+                          f"rx='2' fill='{color}'><title>{tip}</title></rect>")
             if n <= 12 or es_marca:
                 corta = str(v)[:14]
                 partes.append(f"<text x='{bx + bw / 2:.1f}' y='{alto - 24}' class='et' "
@@ -436,7 +501,7 @@ def barras_mae(ids: list[str], maes: list[float], destacado: str, T: dict,
                       f">{escape(id_)}</text>")
         partes.append(f"<rect x='{izq}' y='{y}' width='{largo:.1f}' height='18' "
                       f"rx='3' fill='{color}'/>")
-        etiqueta = f"{mae:,.0f}" + (" · desplegada" if es else "")
+        etiqueta = _n(mae, 0) + (" · desplegada" if es else "")
         partes.append(f"<text x='{izq + largo + 8:.1f}' y='{y + 14}' class='vs' "
                       f"fill='{T['acento_alto'] if es else T['texto_medio']}'>"
                       f"{etiqueta}</text>")
