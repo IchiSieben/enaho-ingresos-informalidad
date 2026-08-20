@@ -43,6 +43,70 @@ from referencias import ref
 RAIZ = Path(__file__).resolve().parents[1]
 DIR_MODELS = RAIZ / "models"
 
+# --------------------------------------------------------------------------
+# Contratos con los módulos y con el artefacto
+# --------------------------------------------------------------------------
+# Los tres fallos del despliegue del 20/08/2026 fueron el mismo tipo de cosa:
+# este archivo pedía algo que su proveedor no tenía, y el error saltaba a
+# mitad del render —cuando el usuario ya estaba mirando la pantalla— en vez de
+# al arrancar. Lo que sigue lo convierte en un fallo temprano y explícito.
+GRAFICOS_REQUERIDOS = [
+    "envolver", "franja_probabilidad", "matriz_confusion",
+    "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
+    "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
+]
+
+# Claves del artefacto sin las que una sección no puede dibujarse. Se listan
+# como rutas para poder decir exactamente cuál falta.
+CLAVES_ARTEFACTO = [
+    ("clasificador", "curva_umbral"),
+    ("clasificador", "histograma_oof"),
+    ("clasificador", "tasas_observadas"),
+    ("clasificador", "dependencia_parcial"),
+    ("regresor", "importancia_permutacion"),
+    ("torneo", "tabla"),
+    ("torneo", "autopsia", "ecuacion_inicial"),
+    ("torneo", "autopsia", "corrida_limpia"),
+]
+
+
+def _verificar_graficos() -> None:
+    faltan = [f for f in GRAFICOS_REQUERIDOS if not hasattr(graficos, f)]
+    if faltan:
+        raise ImportError(
+            "app/graficos.py no expone " + ", ".join(faltan) + ". "
+            "Si el despliegue acaba de actualizarse, el proceso puede estar "
+            "sirviendo una versión anterior del módulo: reinicia la app "
+            "(Manage app › Reboot) en lugar de esperar a que se recargue sola."
+        )
+
+
+_verificar_graficos()
+
+
+def validar_artefactos(art: dict) -> dict:
+    """
+    Comprueba que el artefacto trae las claves que la interfaz da por hechas.
+
+    Devuelve el mismo dict para poder encadenarlo. Levanta `KeyError` con la
+    ruta exacta que falta: es preferible una pantalla de error que diga qué
+    regenerar, a un `KeyError` suelto en medio de una sección.
+    """
+    if not art:
+        return art          # la app ya avisa aparte de que falta el archivo
+    for ruta in CLAVES_ARTEFACTO:
+        nodo = art
+        for i, clave in enumerate(ruta):
+            if not isinstance(nodo, dict) or clave not in nodo:
+                falta = " → ".join(ruta[:i + 1])
+                raise KeyError(
+                    f"models/ui_artifacts.json no tiene «{falta}». "
+                    f"Regenéralo con «python src/09_precomputar_ui.py». Si "
+                    f"acabas de desplegar, puede que el proceso siga con el "
+                    f"artefacto anterior en caché: reinicia la app.")
+            nodo = nodo[clave]
+    return art
+
 SECCIONES = [
     ("ingreso", "Estimación de ingreso"),
     ("informalidad", "Empleo informal"),
@@ -60,10 +124,33 @@ def cargar_schema() -> dict:
     return json.loads((DIR_MODELS / "feature_schema.json").read_text(encoding="utf-8"))
 
 
-@st.cache_data(show_spinner=False)
-def cargar_artefactos() -> dict:
+def firma_artefactos() -> tuple:
+    """
+    Identidad de la versión del artefacto en disco: (tamaño, mtime).
+
+    `st.cache_data` indexa por los argumentos de la función, no por lo que hay
+    en el archivo. Sin esta firma, un artefacto ya actualizado en disco seguía
+    sirviéndose desde la caché del proceso tras un redespliegue en caliente
+    —fue lo que mantuvo vivo el `KeyError: 'ecuacion_inicial'` a través de
+    varios deploys seguidos.
+    """
     ruta = DIR_MODELS / "ui_artifacts.json"
-    return json.loads(ruta.read_text(encoding="utf-8")) if ruta.exists() else {}
+    if not ruta.exists():
+        return ()
+    s = ruta.stat()
+    return (s.st_size, int(s.st_mtime))
+
+
+@st.cache_data(show_spinner=False)
+def _leer_artefactos(_firma: tuple) -> dict:
+    ruta = DIR_MODELS / "ui_artifacts.json"
+    if not ruta.exists():
+        return {}
+    return validar_artefactos(json.loads(ruta.read_text(encoding="utf-8")))
+
+
+def cargar_artefactos() -> dict:
+    return _leer_artefactos(firma_artefactos())
 
 
 @st.cache_resource(show_spinner=False)
@@ -86,8 +173,40 @@ def columnas_esperadas(modelo) -> list[str]:
 # --------------------------------------------------------------------------
 # Presentación
 # --------------------------------------------------------------------------
+# El selector de tema deriva sus opciones de PALETAS, no de una lista escrita
+# aparte: así no pueden desincronizarse. Las etiquetas son solo presentación;
+# si un tema no la tiene, se usa su clave capitalizada en vez de romper.
+TEMA_POR_DEFECTO = "claro"
+ETIQUETAS_TEMA = {"claro": "Claro", "oscuro": "Oscuro", "terminal": "Terminal"}
+
+
+def opciones_tema() -> list[str]:
+    """Los temas que existen de verdad, en orden estable."""
+    return list(PALETAS)
+
+
+def etiqueta_tema(clave: str) -> str:
+    return ETIQUETAS_TEMA.get(clave, clave.capitalize())
+
+
+def tema_activo() -> str:
+    """
+    El tema de la sesión, siempre uno que exista.
+
+    Sin `.get()` con valor por defecto a ciegas: si en la sesión quedó un tema
+    que ya no existe (porque se renombró o se quitó), se corrige el estado y se
+    sigue. Antes eso dejaba la app inaccesible —T() reventaba en cada
+    ejecución, incluso antes de dibujar el selector con el que revertirlo.
+    """
+    tema = st.session_state.get("tema", TEMA_POR_DEFECTO)
+    if tema not in PALETAS:
+        tema = TEMA_POR_DEFECTO
+        st.session_state["tema"] = tema
+    return tema
+
+
 def T() -> dict:
-    return PALETAS[st.session_state.get("tema", "claro")]
+    return PALETAS[tema_activo()]
 
 
 def html(s: str) -> None:
@@ -1249,19 +1368,18 @@ def main() -> None:
                 st.session_state["seccion"] = clave
                 st.rerun()
         st.write("")
-        # Tres temas: un toggle ya no da. Segmented control si la versión de
-        # Streamlit lo trae; si no, radio, que hace lo mismo con más alto.
-        TEMAS = {"claro": "Claro", "oscuro": "Oscuro", "terminal": "Terminal"}
-        actual = st.session_state["tema"]
-        opciones = list(TEMAS)
+        # Las opciones salen de PALETAS: añadir un tema allí lo hace aparecer
+        # aquí, y quitarlo lo hace desaparecer. No hay lista que mantener.
+        opciones = opciones_tema()
+        actual = tema_activo()
         control = getattr(st, "segmented_control", None)
         if control is not None:
             nuevo = control("Tema", opciones, default=actual,
-                            format_func=lambda k: TEMAS[k],
+                            format_func=etiqueta_tema,
                             key="sel_tema", label_visibility="collapsed")
         else:
             nuevo = st.radio("Tema", opciones, index=opciones.index(actual),
-                             format_func=lambda k: TEMAS[k], horizontal=True,
+                             format_func=etiqueta_tema, horizontal=True,
                              key="sel_tema", label_visibility="collapsed")
         if nuevo and nuevo != actual:
             st.session_state["tema"] = nuevo
