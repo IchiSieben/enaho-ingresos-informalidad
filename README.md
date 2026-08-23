@@ -254,7 +254,16 @@ módulos 02, 03 y 05).
 Para citar el proyecto, GitHub genera la cita desde [`CITATION.cff`](CITATION.cff)
 (botón «Cite this repository»).
 
-## 8. Marco bibliográfico
+## 8. Créditos
+
+Proyecto elaborado en el marco del curso de **Machine Learning** de la
+**ENEI** (Escuela Nacional de Estadística e Informática, INEI), con el
+docente **Orlando Advíncula Zeballos**. Grupo: **Alan Nestor Cañazaca
+Mamani**, **Magdalena Quico de la Cruz**, **Yoichiro Palacios Tanaka** y
+**Edgar Delgado Ortega**. Autoría detallada y roles CRediT en
+[`AUTHORS.md`](AUTHORS.md).
+
+## 9. Marco bibliográfico
 
 - Mincer, J. (1974). *Schooling, Experience, and Earnings*. NBER. — E3 es
   literalmente esta ecuación.

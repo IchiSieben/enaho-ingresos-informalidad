@@ -425,6 +425,31 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
 /* Radio */
 [data-testid="stRadio"] label p {{ color: {T['texto']} !important; }}
 
+/* Selector segmentado (tema de la barra lateral). Sin esto hereda los
+   colores por defecto de Streamlit, que no conocen la paleta activa: en
+   Terminal las etiquetas quedaban ilegibles. En esta version el control
+   se rinde como stButtonGroup con role="radio"; se cubre tambien el
+   testid stSegmentedControl de otras versiones. */
+[data-testid="stButtonGroup"] button,
+[data-testid="stSegmentedControl"] button {{
+  background: {T['superficie_alta']} !important;
+  border: 1px solid {T['borde']} !important;
+  color: {T['texto']} !important;
+}}
+[data-testid="stButtonGroup"] button p,
+[data-testid="stSegmentedControl"] button p {{
+  color: {T['texto']} !important;
+}}
+[data-testid="stButtonGroup"] button[aria-checked="true"],
+[data-testid="stSegmentedControl"] button[aria-checked="true"] {{
+  background: {T['acento']} !important;
+  border-color: {T['acento']} !important;
+}}
+[data-testid="stButtonGroup"] button[aria-checked="true"] p,
+[data-testid="stSegmentedControl"] button[aria-checked="true"] p {{
+  color: {T['boton_texto']} !important;
+}}
+
 /* ---------- Tablas ---------- */
 .tabla {{ width: 100%; border-collapse: collapse; font-size: {F['mini']}; }}
 .tabla th {{
