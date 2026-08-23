@@ -1,5 +1,5 @@
 # 03_fase1_preparacion.py — construcción del dataset de modelado
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # Fase 1 — Construccion del dataset de modelado.
 # Poblacion: ocupados (OCU500=1), 14+, ingreso laboral mensual > 0.

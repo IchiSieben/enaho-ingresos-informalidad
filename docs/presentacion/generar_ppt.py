@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # generar_ppt.py — la exposición, generada desde los artefactos
 # ---------------------------------------------------------------------------
-# Autor: Yoichi Palacios (IchiSieben) — proyecto ENAHO 2025
+# Autor: Yoichi Palacios Tanaka (IchiSieben) — proyecto ENAHO 2025
 # Licencia: Apache-2.0 (ver LICENSE)
 # ---------------------------------------------------------------------------
 """
@@ -368,9 +368,9 @@ _, tf = panel(s, 0.55, 5.35, 12.2, 1.45, relleno="acento_fondo",
 parrafo(tf, "INTEGRANTES", tam=11, color="acento_alto", fuente=MONO,
         primero=True, esp_despues=4)
 parrafo(tf, "Alan Nestor Cañazaca Mamani   ·   Magdalena Quico de la Cruz   ·   "
-        "Yoichiro Palacios Tanaka   ·   Edgar Delgado Ortega", tam=16,
+        "Yoichi Palacios Tanaka   ·   Edgar Delgado Ortega", tam=16,
         negrita=True, esp_despues=0)
-notas(s, "Buenos días. Somos el grupo de Alan, Magdalena, Yoichiro y Edgar. "
+notas(s, "Buenos días. Somos el grupo de Alan, Magdalena, Yoichi y Edgar. "
       "Vamos a presentar dos modelos entrenados sobre los microdatos públicos "
       "de la ENAHO 2025 del INEI: uno que estima el ingreso laboral mensual y "
       "otro que clasifica el empleo informal. Los dos están desplegados en una "
@@ -957,8 +957,8 @@ parrafo(tf, "app: enaho-ingresos-informalidad.streamlit.app  ·  "
         "repo: github.com/IchiSieben/enaho-ingresos-informalidad", tam=12.5,
         fuente=MONO, color="acento", primero=True, esp_despues=5)
 parrafo(tf, "Créditos (CRediT en AUTHORS.md): grupo — Alan Nestor Cañazaca "
-        "Mamani, Magdalena Quico de la Cruz, Yoichiro Palacios Tanaka, Edgar "
-        "Delgado Ortega. Software y análisis: Yoichi Palacios (IchiSieben). "
+        "Mamani, Magdalena Quico de la Cruz, Yoichi Palacios Tanaka, Edgar "
+        "Delgado Ortega. Software y análisis: Yoichi Palacios Tanaka (IchiSieben). "
         "Datos: INEI — ENAHO 2025. Docente: Orlando Advíncula Zeballos.",
         tam=12, color="texto_medio", esp_despues=0)
 pie_fuente(s, f"generado desde artefactos el {META['fecha_generacion']} "

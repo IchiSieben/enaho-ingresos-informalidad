@@ -1,5 +1,5 @@
 # referencias.py — bibliografía verificada y afirmaciones canónicas
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 """
 Fuente ÚNICA de la bibliografía y de las afirmaciones que dependen de ella.

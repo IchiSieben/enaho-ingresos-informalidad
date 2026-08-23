@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # verificacion_local.py — comprobar en VS Code lo mismo que muestra la app
 # ---------------------------------------------------------------------------
-# Autor: Yoichi Palacios (IchiSieben) — proyecto ENAHO 2025
+# Autor: Yoichi Palacios Tanaka (IchiSieben) — proyecto ENAHO 2025
 # Licencia: Apache-2.0 (ver LICENSE)
 # ---------------------------------------------------------------------------
 """

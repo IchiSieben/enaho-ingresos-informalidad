@@ -1,5 +1,5 @@
 # 09_precomputar_ui.py — precómputo de los artefactos de la UI
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # FASE 3 (parte 1) — Precomputo de los artefactos que consume la interfaz.
 # Produce models/ui_artifacts.json. Mover el slider de umbral en la app no

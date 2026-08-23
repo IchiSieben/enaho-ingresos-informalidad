@@ -8,7 +8,7 @@ abstract: >-
   de nueve especificaciones (E1-E9), corrección de smearing de Duan y app
   Streamlit desplegada.
 authors:
-  - family-names: Palacios
+  - family-names: Palacios Tanaka
     given-names: Yoichi
     alias: IchiSieben
     email: yoichi.palacios@gmail.com

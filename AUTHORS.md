@@ -2,7 +2,7 @@
 
 ## Autor del software (citable)
 
-- **Yoichi Palacios** (alias GitHub: [IchiSieben](https://github.com/IchiSieben)) —
+- **Yoichi Palacios Tanaka** (alias GitHub: [IchiSieben](https://github.com/IchiSieben)) —
   yoichi.palacios@gmail.com.
   Roles [CRediT](https://credit.niso.org/): conceptualización, metodología,
   software, validación, análisis formal, curación de datos, redacción,
@@ -19,7 +19,7 @@ proyecto:
 
 - **Alan Nestor Cañazaca Mamani** — [github.com/alan1485](https://github.com/alan1485)
 - **Magdalena Quico de la Cruz** — [github.com/mquicodelacruz-lang](https://github.com/mquicodelacruz-lang)
-- **Yoichiro Palacios Tanaka** — [github.com/IchiSieben](https://github.com/IchiSieben)
+- **Yoichi Palacios Tanaka** — [github.com/IchiSieben](https://github.com/IchiSieben)
 - **Edgar Delgado Ortega** — alias GitHub: Edo936
 
 La regresión inicial del grupo sobre estos datos (la «autopsia» de la

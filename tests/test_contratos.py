@@ -1,5 +1,5 @@
 # test_contratos.py — los tres contratos que se rompieron en producción
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 """
 Reproduce sin navegador los tres fallos del despliegue del 20/08/2026.

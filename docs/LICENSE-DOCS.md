@@ -26,7 +26,7 @@ Resumen legible: https://creativecommons.org/licenses/by-nc/4.0/deed.es
 ## Qué significa en la práctica
 
 Puedes copiar, redistribuir y adaptar la metodología escrita, los reportes y
-las figuras **citando al autor** (Yoichi Palacios, enlace al repositorio) e
+las figuras **citando al autor** (Yoichi Palacios Tanaka, enlace al repositorio) e
 indicando si hiciste cambios, siempre que el uso **no sea comercial**. Para
 usos comerciales de la documentación, contactar a yoichi.palacios@gmail.com.
 

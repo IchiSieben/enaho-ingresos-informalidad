@@ -1,5 +1,5 @@
 # 01_fase0_poblacion.py — verificación empírica de población y centinelas
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # Fase 0.1 (continuacion) — Verificacion empirica sobre archivos completos:
 # codigos de OCU500, magnitud del centinela 999999 en las variables monetarias,

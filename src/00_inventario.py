@@ -1,5 +1,5 @@
 # 00_inventario.py — inventario de columnas y centinelas por módulo
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # Fase 0.1 — Inventario de los modulos ENAHO 2025 (codigo de encuesta 1031).
 # Por columna: dtype, nunique, %nulos ANTES y DESPUES de convertir el centinela

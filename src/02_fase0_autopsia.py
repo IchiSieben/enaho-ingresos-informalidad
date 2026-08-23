@@ -1,5 +1,5 @@
 # 02_fase0_autopsia.py — autopsia de la regresión baseline
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # Fase 0.2 — Autopsia: reproducir la especificacion inicial del curso sobre los
 # microdatos reales de la ENAHO 2025.

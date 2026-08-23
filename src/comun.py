@@ -1,5 +1,5 @@
 # comun.py — utilidades compartidas (rutas, carga, caché de grillas)
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 """
 Utilidades compartidas del proyecto ENAHO: ingreso laboral e informalidad.

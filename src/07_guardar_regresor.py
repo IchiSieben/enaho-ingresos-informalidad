@@ -1,5 +1,5 @@
 # 07_guardar_regresor.py — refit y guardado del regresor E9
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # FASE 2 (cierre) — Refit y guardado del regresor desplegado: E9 (GB, log
 # target) con los hiperparametros cacheados del torneo. Guarda el artefacto,

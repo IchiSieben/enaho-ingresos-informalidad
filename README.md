@@ -259,7 +259,7 @@ Para citar el proyecto, GitHub genera la cita desde [`CITATION.cff`](CITATION.cf
 Proyecto elaborado en el marco del curso de **Machine Learning** de la
 **ENEI** (Escuela Nacional de Estadística e Informática, INEI), con el
 docente **Orlando Advíncula Zeballos**. Grupo: **Alan Nestor Cañazaca
-Mamani**, **Magdalena Quico de la Cruz**, **Yoichiro Palacios Tanaka** y
+Mamani**, **Magdalena Quico de la Cruz**, **Yoichi Palacios Tanaka** y
 **Edgar Delgado Ortega**. Autoría detallada y roles CRediT en
 [`AUTHORS.md`](AUTHORS.md).
 

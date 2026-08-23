@@ -1,5 +1,5 @@
 # 04_torneo_regresion.py — torneo de especificaciones E1-E9
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 # FASE 2 — Torneo de especificaciones E1-E9 para el ingreso laboral mensual.
 #

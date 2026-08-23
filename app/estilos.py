@@ -1,5 +1,5 @@
 # estilos.py — sistema de diseño: tokens y CSS generado
-# Proyecto ENAHO 2025 · Yoichi Palacios · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 """
 FASE 3 — Sistema de diseño (adaptado del proyecto SIS-diabetes).
