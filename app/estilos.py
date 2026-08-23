@@ -421,6 +421,20 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   border: 1px solid {T['borde']};
   color: {T['texto']};
 }}
+/* Terciario: es un enlace de navegación interna, no un botón. Sin esto hereda
+   el color de texto normal y no se lee como algo pulsable. */
+.stButton > button[kind="tertiary"] {{
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: {T['acento_alto']};
+}}
+.stButton > button[kind="tertiary"] p {{
+  color: {T['acento_alto']} !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}}
+.stButton > button[kind="tertiary"]:hover p {{ color: {T['acento']} !important; }}
 
 /* Radio */
 [data-testid="stRadio"] label p {{ color: {T['texto']} !important; }}
@@ -546,6 +560,54 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
   margin-bottom: var(--e1);
   color: {T['texto']};
   font-size: {F['cuerpo']};
+}}
+/* Etiqueta de ORIGEN: dónde nació el problema. Va junto a la de estado, y se
+   distingue de ella por el borde: el estado es macizo, el origen perfilado. */
+.origen {{
+  font-family: {FUENTE_MONO};
+  font-size: {F['micro']};
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  background: transparent;
+}}
+.origen-datos {{ color: {T['senal_media_texto']}; border: 1px solid {T['senal_media']}; }}
+.origen-propia {{ color: {T['acento_alto']}; border: 1px solid {T['acento']}; }}
+.origen-doc {{ color: {T['texto_tenue']}; border: 1px solid {T['borde']}; }}
+.leyenda-origen {{
+  display: flex; flex-direction: column; gap: var(--e1);
+  font-size: {F['mini']};
+  line-height: 1.55;
+  color: {T['texto_medio']};
+  margin: var(--e3) 0 var(--e4) 0;
+  padding-left: var(--e3);
+  border-left: 2px solid {T['borde_sutil']};
+}}
+.leyenda-origen > div {{ display: flex; gap: var(--e2); align-items: baseline; }}
+
+/* Enlace a la evidencia en GitHub: el archivo se abre, el §n queda como texto
+   porque GitHub no ancla por número de sección. */
+a.chip-evidencia {{
+  font-family: {FUENTE_MONO};
+  font-size: {F['micro']};
+  color: {T['acento_alto']};
+  text-decoration: none;
+  border-bottom: 1px solid {T['borde']};
+  white-space: nowrap;
+}}
+a.chip-evidencia:hover {{ border-bottom-color: {T['acento_alto']}; }}
+
+/* Pista: término con explicación al pasar el cursor. */
+.pista {{ border-bottom: 1px dotted {T['texto_tenue']}; cursor: help; }}
+
+/* Destino del enlace «¿Por qué tan alto?»: marca el bloque al que se saltó. */
+h2.resaltado {{
+  background: {T['acento_fondo']};
+  border-left: 3px solid {T['acento']};
+  padding: var(--e2) var(--e3);
+  border-radius: var(--r-sm);
 }}
 
 /* ---------- Fila de veredicto (cabina) ----------
@@ -682,10 +744,17 @@ def css_iframe(T: dict[str, str]) -> str:
 html {{ color-scheme: {esquema}; }}
 html, body {{
   margin: 0; padding: 0; background: transparent;
+  height: 100%;
   font-family: {fuente_cuerpo};
   font-variant-numeric: tabular-nums;
 }}
-svg {{ display: block; width: 100%; height: auto; overflow: visible; }}
+/* El iframe de components.html lleva alto FIJO y scrolling=False. Con
+   `width:100%; height:auto` el SVG se escalaba solo por el ancho: en una
+   ventana ancha crecía por debajo del borde del iframe y la fila inferior de
+   la matriz de confusión quedaba cortada. Con `height:100%` y el
+   preserveAspectRatio por defecto (meet) el dibujo se ajusta DENTRO de la
+   caja: se encoge si hace falta, pero nunca se sale. */
+svg {{ display: block; width: 100%; height: 100%; overflow: visible; }}
 .et {{ font-family: {FUENTE_MONO}; font-size: 10px; letter-spacing: 0.08em;
        text-transform: uppercase; fill: {T['texto_tenue']}; }}
 .vl {{ font-size: 12px; fill: {T['texto']}; font-variant-numeric: tabular-nums; }}

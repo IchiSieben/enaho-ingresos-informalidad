@@ -15,3 +15,6 @@ logs/
 
 # Cache de OOF (derivable; pesa y no aporta al repo)
 models/_oof_clasificador.npy
+
+# Archivos de bloqueo de Office (~$archivo.pptx): temporales, nunca se versionan.
+~$*

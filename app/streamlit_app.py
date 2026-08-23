@@ -25,8 +25,11 @@ Uso:
 from __future__ import annotations
 
 import json
+import re
 import sys
+from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
 import joblib
 import pandas as pd
@@ -114,6 +117,28 @@ SECCIONES = [
     ("ficha", "Ficha técnica"),
 ]
 DERIVADAS = {"exper", "exper2"}   # las calcula la app, no el usuario
+
+REPO = "https://github.com/IchiSieben/enaho-ingresos-informalidad"
+BLOB = f"{REPO}/blob/main"
+RUTA_REPO = re.compile(r"[\w./-]+\.(md|csv|py|json|log|toml|txt)")
+
+
+def enlace_evidencia(evidencia: str) -> str:
+    """
+    «reports/00_autopsia_baseline.md §5» → enlace al archivo en GitHub.
+
+    El «§n» queda fuera del href a propósito: GitHub ancla por el texto del
+    encabezado (`#5-titulo`), no por su número, así que un fragmento `#§5` no
+    llevaría a ninguna parte y GitHub no devuelve error por un ancla que no
+    existe — el lector aterrizaría arriba del archivo sin saber por qué.
+    """
+    ruta, _, seccion = evidencia.partition(" §")
+    ruta = ruta.strip()
+    if " " in ruta or not RUTA_REPO.fullmatch(ruta):
+        return f"<code>{escape(evidencia)}</code>"
+    cola = f" §{escape(seccion)}" if seccion else ""
+    return (f"<a class='chip-evidencia' target='_blank' rel='noopener' "
+            f"href='{BLOB}/{quote(ruta)}'>{escape(ruta)}{cola} ↗</a>")
 
 
 # --------------------------------------------------------------------------
@@ -466,6 +491,21 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
     proba = st.session_state.get("proba_informal")
     i = indice_umbral(curva, umbral)
 
+    # ---- Consecuencias en vivo ----
+    # Se calculan ANTES del veredicto porque la línea de «tres números» que va
+    # pegada a la cifra grande necesita la cobertura y la precisión de este
+    # mismo umbral. Los tres son números vivos: ninguno está escrito a mano.
+    total = curva["n"]
+    tp, fp = curva["tp"][i], curva["fp"][i]
+    tn, fn = curva["tn"][i], curva["fn"][i]
+    k = 1000 / total
+    m_tp, m_fp, m_tn, m_fn = (round(tp * k), round(fp * k),
+                              round(tn * k), round(fn * k))
+    senalados = m_tp + m_fp
+    prec = curva["precision_1"][i]
+    rec = curva["recall_1"][i]
+    pct_senalado = (tp + fp) / total * 100
+
     # Cabina: cifra + veredicto en una fila compacta, franja debajo, y las
     # consecuencias del umbral pegadas. Antes el medidor ocupaba 310 px para
     # decir un solo número y empujaba lo interactivo fuera de la pantalla.
@@ -485,20 +525,30 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
                 "persona." if senalado else
                 "Su probabilidad estimada queda por debajo del umbral.")
              + "</div>")
+        # Los tres porcentajes de esta pantalla miden cosas distintas y se
+        # confunden con facilidad. Se nombran juntos, una sola vez, con los
+        # valores del umbral que el usuario tiene puesto ahora mismo.
+        html(f"<div class='sutil' style='margin:-4px 0 10px 0;max-width:88ch'>"
+             f"<b>Tres números distintos:</b> "
+             f"<b style='color:{col}'>{pct(proba, 1)}</b> es <b>DE ESTE "
+             f"PERFIL</b> (así de informal es esta configuración) · "
+             f"<b style='color:{T()['acento_alto']}'>{pct_senalado:.0f} %</b> "
+             f"es <b>CUÁNTA POBLACIÓN</b> queda sobre el umbral · "
+             f"<b style='color:{T()['senal_buena']}'>{round(prec * 100)} %</b> "
+             f"es <b>LA PRECISIÓN</b> (de cada 100 señalados, cuántos "
+             f"aciertas).</div>")
+        # No hay anclas de URL: la navegación es por session_state. El botón
+        # cambia de sección y marca el destino para que se vea al llegar.
+        if st.button("¿Por qué tan alto? →", key="ir_demasiado_bueno",
+                     type="tertiary",
+                     help="Abre «¿Es demasiado bueno el clasificador?» en la "
+                          "Ficha técnica: por qué un PR-AUC de 0,96 aquí es "
+                          "coherente y no señal de fuga de información."):
+            st.session_state["seccion"] = "ficha"
+            st.session_state["resaltar_demasiado_bueno"] = True
+            st.rerun(scope="app")
         grafico(graficos.franja_probabilidad(
             proba, umbral, a_hist_oof(), T()), 165)
-
-    # ---- Consecuencias en vivo ----
-    total = curva["n"]
-    tp, fp = curva["tp"][i], curva["fp"][i]
-    tn, fn = curva["tn"][i], curva["fn"][i]
-    k = 1000 / total
-    m_tp, m_fp, m_tn, m_fn = (round(tp * k), round(fp * k),
-                              round(tn * k), round(fn * k))
-    senalados = m_tp + m_fp
-    prec = curva["precision_1"][i]
-    rec = curva["recall_1"][i]
-    pct_senalado = (tp + fp) / total * 100
 
     html("<div class='eyebrow' style='margin-top:4px'>Qué pasa con este umbral</div>")
     
@@ -514,11 +564,20 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
          f"(<i>falsos negativos</i>: el modelo no los señaló y sí lo eran)."
          f"</div></div>")
 
+    # La pregunta que sigue a «se escapan N» siempre es la misma: ¿por qué no
+    # cero? Se responde aquí, con la prevalencia leída del schema.
+    with st.popover("¿Puede ser cero?", use_container_width=False):
+        html(f"<div class='sutil' style='max-width:60ch'>Sí: con umbral 0 "
+             f"señalas a todos y no se escapa nadie — pero la precisión cae a "
+             f"<b>{pct(clas['prevalencia_train'], 0)}</b> (la prevalencia), "
+             f"igual que señalar al azar. Por eso el umbral es una elección de "
+             f"costos, no un defecto.</div>")
+
     if a_curva := curva.get("precision_1"):
         grafico(graficos.curva_precision_cobertura(
             curva["recall_1"], a_curva, (rec, prec),
             [(presets[k_][1], indice_umbral(curva, presets[k_][0]))
-             for k_ in presets], curva, T()), 330)
+             for k_ in presets], curva, T()), 350)
         html("<div class='sutil'>El punto blanco es el umbral que tienes "
              "puesto. Las marcas son los tres preajustes. Cada punto de la "
              "curva es un umbral posible: subirlo te mueve arriba y a la "
@@ -535,7 +594,9 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
          "informales. <b>Bajarlo</b> hace exactamente lo contrario. No hay "
          "un punto que mejore las dos cosas a la vez; por eso hay que "
          "elegir.</div>")
-    grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 290)
+    # 330, no 290: con 290 el SVG (520x286) escalado al ancho de la columna
+    # salía por debajo del iframe y cortaba la fila inferior por la mitad.
+    grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 330)
     html(f"<div class='sutil'>Calculado sobre {n(total)} trabajadores del "
          f"entrenamiento con probabilidades <i>out-of-fold</i> —es decir, "
          f"estimadas para cada persona por un modelo que no la usó al "
@@ -623,11 +684,20 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
             comp = ing_art["comparables"].get(clave_comp)
             if comp:
                 tarjetas.append(tarjeta(
-                    "casos comparables (p25–p75)",
+                    "casos comparables (<span class='pista' title='Un "
+                    "percentil marca el punto por debajo del cual queda ese "
+                    "porcentaje de los casos: el P25 deja debajo al 25 % y el "
+                    "P75, al 75 %. Entre los dos vive la mitad central.'>"
+                    "P25–P75</span>)",
                     f"S/ {n(comp['p25'])} – {n(comp['p75'])}",
                     f"{v['sexo'].lower()}, área {v['area'].lower()}, "
                     f"{banda} años de educación · mediana S/ {n(comp['p50'])} · "
-                    f"n={n(comp['n'])}"))
+                    f"n={n(comp['n'])}",
+                    llano=f"De los {n(comp['n'])} encuestados parecidos a este "
+                          f"perfil, la mitad del medio gana entre "
+                          f"S/ {n(comp['p25'])} y S/ {n(comp['p75'])}: un 25 % "
+                          f"gana menos que S/ {n(comp['p25'])} y un 25 % más "
+                          f"que S/ {n(comp['p75'])}."))
 
         html("<div class='rejilla-tarjetas'>" + "".join(tarjetas) + "</div>")
         st.write("")
@@ -1008,8 +1078,8 @@ def seccion_torneo(schema: dict, art: dict) -> None:
             filas = "".join(
                 f"<tr><td style='text-align:left'>{d['nombre']}</td>"
                 f"<td style='text-align:left'>{d['motivo']}</td>"
-                f"<td style='text-align:left'><code>{d['evidencia']}</code>"
-                f"</td></tr>" for d in desc)
+                f"<td style='text-align:left'>"
+                f"{enlace_evidencia(d['evidencia'])}</td></tr>" for d in desc)
             html(f"<table class='tabla'><thead><tr><th>Variable</th>"
                  f"<th>Motivo</th><th>Evidencia</th></tr></thead>"
                  f"<tbody>{filas}</tbody></table>")
@@ -1050,14 +1120,35 @@ def seccion_torneo(schema: dict, art: dict) -> None:
 # Hallazgos de la auditoría interna. Resumen de INFORME_AUDITORIA.md: se
 # escriben aquí a mano y a propósito, porque son juicios sobre el proyecto, no
 # métricas que se puedan recalcular. La cifra de cada uno sí sale del informe.
+#
+# `origen` dice DÓNDE NACIÓ el problema, que es distinto de en qué estado
+# está. Un fallo de la fuente y uno propio se corrigen igual pero no enseñan
+# lo mismo. Un hallazgo puede tener dos orígenes: el del R² es a la vez
+# decisión propia (tres versiones circulando) y documentación (dos citas que
+# no sostenían lo que se les atribuía).
+ORIGENES = {
+    "datos": ("origen-datos", "datos de origen",
+              "el problema venía en la fuente (INEI) y afectaría a cualquiera "
+              "que use estos datos. Ej.: el centinela 999999."),
+    "propia": ("origen-propia", "decisión propia",
+               "lo introdujimos nosotros al elegir o resumir. Ej.: la rejilla "
+               "acotada, el 88,6 % mal etiquetado, las tres afirmaciones "
+               "contradictorias del R²."),
+    "doc": ("origen-doc", "documentación",
+            "citas que no decían lo que se les atribuía. Ej.: Lemieux y "
+            "Heckman sin R² reportado."),
+}
+
 AUDITORIA = [
-    {"sev": "corregido", "titulo": "El código de faltante leído como un ingreso",
+    {"sev": "corregido", "origen": ["datos"],
+     "titulo": "El código de faltante leído como un ingreso",
      "texto": "El INEI codifica «no sabe» como 999999. Ese valor se estaba "
               "leyendo como un ingreso real de 999.999 soles, y con él la "
               "regresión daba +11 soles por vivir en zona urbana. Convertirlo "
               "a dato faltante subió el R² de 0,023 a 0,248 y devolvió el "
               "sentido económico a todos los coeficientes."},
-    {"sev": "a corregir", "titulo": "La rejilla de hiperparámetros estaba acotada",
+    {"sev": "a corregir", "origen": ["propia"],
+     "titulo": "La rejilla de hiperparámetros estaba acotada",
      "texto": "Los tres hiperparámetros del modelo desplegado quedaron en el "
               "borde de los valores que se probaron: señal de que el óptimo "
               "estaba fuera. Se amplió y se volvió a buscar: el error baja de "
@@ -1065,21 +1156,24 @@ AUDITORIA = [
               "mejora es sistemática (gana en los 5 pliegues) pero de 0,59 %, "
               "así que NO se promovió: no justifica regenerar el modelo en "
               "producción. Las rejillas del clasificador siguen sin revisar."},
-    {"sev": "corregido", "titulo": "Una cifra del INEI con la etiqueta equivocada",
+    {"sev": "corregido", "origen": ["propia"],
+     "titulo": "Una cifra del INEI con la etiqueta equivocada",
      "texto": "Se publicaba que el gradiente por tamaño de empresa «replica el "
               "patrón oficial (88,6 % en microempresas)». Ese 88,6 % es del "
               "INEI y corresponde al tramo de 1 a 10 trabajadores, que no es "
               "la categoría «Hasta 20» de este proyecto — cuyo valor propio es "
               "81,1 %. No era un dato inventado, era una comparación mal "
               "etiquetada."},
-    {"sev": "corregido", "titulo": "Tres afirmaciones distintas sobre el mismo dato",
+    {"sev": "corregido", "origen": ["propia", "doc"],
+     "titulo": "Tres afirmaciones distintas sobre el mismo dato",
      "texto": "Sobre el R² esperable circulaban «0,4–0,5», «rara vez supera "
               "0,4» y «ningún R² supera 0,5», en cuatro sitios a la vez. Al ir "
               "a las fuentes resultó que ni Lemieux (2006) ni Heckman et al. "
               "(2006) reportan un R², así que no se les podía citar para eso. "
               "Ahora la afirmación se define una sola vez, sobre los cuadros "
               "de Mincer y Card, y se dice cuál es lectura propia."},
-    {"sev": "estructural", "titulo": "La solución, para que no vuelva a pasar",
+    {"sev": "estructural", "origen": [],
+     "titulo": "La solución, para que no vuelva a pasar",
      "texto": "Los dos primeros problemas tenían la misma raíz: cifras "
               "escritas a mano que nadie vuelve a comprobar. Ahora las tasas "
               "por grupo se calculan en el precómputo (`tasas_observadas`) y "
@@ -1092,27 +1186,44 @@ AUDITORIA = [
 def seccion_auditoria() -> None:
     """Los hallazgos de auditoría del propio proyecto, publicados."""
     html("<h2>Qué encontró la auditoría de este proyecto</h2>")
-    html("<div class='entradilla'>Este proyecto se auditó a sí mismo y "
-         "publica lo que encontró, incluido lo que estaba mal. Cualquiera "
-         "puede clonar un repositorio; lo que no se copia es haber buscado "
-         "los errores propios y haberlos dejado por escrito.</div>")
+    html("<div class='entradilla'>Antes de publicar, este proyecto pasó por "
+         "una revisión de consistencia: cada cifra se cruzó contra el archivo "
+         "que la genera, cada cita contra su fuente original, y cada decisión "
+         "de modelado contra su evidencia. Verificar el propio trabajo es "
+         "parte del método — lo que no siempre se hace es publicar el "
+         "resultado. Esto fue lo que apareció, clasificado según dónde nació "
+         "cada problema.</div>")
+    html("<div class='leyenda-origen'>" + "".join(
+        f"<div><span class='origen {clase}'>{etiqueta}</span>"
+        f"<span>{glosa}</span></div>"
+        for clase, etiqueta, glosa in ORIGENES.values()) + "</div>")
     colores = {"corregido": ("ref-abierto", "corregido"),
                "a corregir": ("ref-pago", "pendiente"),
                "estructural": ("etiqueta-dato", "solución de fondo")}
     filas = []
     for h in AUDITORIA:
         clase, etiqueta = colores[h["sev"]]
+        origenes = "".join(
+            f"<span class='origen {ORIGENES[o][0]}'>{ORIGENES[o][1]}</span>"
+            for o in h["origen"])
         filas.append(
             f"<div class='hallazgo'>"
             f"<div class='hallazgo-cab'>"
-            f"<span class='ref-acceso {clase}'>{etiqueta}</span>"
+            f"<span class='ref-acceso {clase}'>{etiqueta}</span>{origenes}"
             f"<b>{h['titulo']}</b></div>"
             f"<div class='sutil'>{h['texto']}</div></div>")
     html(f"<div class='ref-lista'>{''.join(filas)}</div>")
-    html("<div class='sutil' style='margin-top:12px'>El informe completo, con "
+    html("<div class='sutil' style='margin-top:16px'>El informe completo, con "
          "los hallazgos clasificados por severidad y la lista de lo que quedó "
          "sin verificar, está en "
-         "<code>INFORME_AUDITORIA.md</code> del repositorio.</div>")
+         f"{enlace_evidencia('INFORME_AUDITORIA.md')} del repositorio.</div>")
+    # La sección cierra con el método, no con el enlace: es la frase que dice
+    # por qué los hallazgos siguen publicados en vez de haberse borrado.
+    html("<div class='sutil' style='margin-top:12px;max-width:78ch'>Los "
+         "problemas de origen se corrigen y se documentan; los propios se "
+         "corrigen y se aprende de ellos; los de cita se verifican yendo al "
+         "texto completo. Ninguno se borra: un hallazgo corregido en silencio "
+         "es un hallazgo desperdiciado.</div>")
 
 
 def seccion_ficha(schema: dict, art: dict) -> None:
@@ -1132,7 +1243,14 @@ def seccion_ficha(schema: dict, art: dict) -> None:
         "el otro no es más rigor, es una confusión de categorías.",
         seccion="ficha técnica")
 
-    html("<h2>¿Es demasiado bueno el clasificador de informalidad?</h2>")
+    # Al llegar desde «¿Por qué tan alto? →» se marca el bloque de destino. No
+    # se usa un id: Streamlit sanea el HTML de st.markdown y borra el atributo,
+    # y de todos modos la navegación es por session_state, no por URL — no hay
+    # ancla que haga scroll. Este h2 es lo primero tras la cabecera, así que al
+    # cambiar de sección ya se ve; el resalte solo dice «es este».
+    resaltar = st.session_state.pop("resaltar_demasiado_bueno", False)
+    html(f"<h2{' class=\"resaltado\"' if resaltar else ''}>"
+         f"¿Es demasiado bueno el clasificador de informalidad?</h2>")
     filas = ""
     for f in a.get("comparacion", []):
         es_gb = "Gradient" in f["algoritmo"]
@@ -1358,7 +1476,7 @@ def main() -> None:
         html("<div class='marca'>INEI · ENAHO 2025</div>"
              "<div class='marca-titulo'>Ingreso laboral<br>e informalidad</div>")
         html(f"<div class='sutil' style='margin:-12px 0 16px 0'>"
-             f"<a href='https://github.com/IchiSieben/enaho-ingresos-informalidad' "
+             f"<a href='{REPO}' "
              f"target='_blank' style='color:{T()['acento_alto']};"
              f"text-decoration:none'>Código y metodología en GitHub ↗</a></div>")
         for clave, titulo in SECCIONES:
