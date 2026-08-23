@@ -1,0 +1,23 @@
+=== Verificación VS Code = Streamlit — ENAHO 2025 ===
+
+Perfil (defaults del formulario):
+  anios_educ       = 11.0
+  edad             = 44.0
+  exper            = 27.0
+  exper2           = 729.0
+  horas_total      = 45.0
+  sexo             = Hombre
+  area             = Urbana
+  dominio          = Selva
+  rama             = Agropecuario y pesca
+  tamano_empresa   = Hasta 20
+  categoria        = Independiente
+
+[REGRESOR E9 — Gradient Boosting]
+  ingreso típico  (mediana): S/ 849
+  ingreso esperado (media aplicando smearing 1.4009): S/ 1.189
+
+[CLASIFICADOR GB — empleo informal]
+  probabilidad de informalidad: 97,5%
+  umbral operativo (precisión >= 0,90): 0.6054
+  veredicto: INFORMAL
