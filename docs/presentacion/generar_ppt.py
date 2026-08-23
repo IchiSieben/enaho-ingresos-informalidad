@@ -998,7 +998,9 @@ notas(s, f"El curso pedía comparar Random Forest y Gradient Boosting, así que 
          f"seiscientos, es decir, empate práctico. La línea punteada es la "
          f"mejor especificación lineal del torneo, E7, en "
          f"S/ {d(TAB_TORNEO['E7']['MAE_cv'], 1)}: ahí sí hay una diferencia "
-         f"real, unos setenta y cinco soles. Detrás de esto hay un torneo de "
+         f"real, de "
+         f"S/ {d(TAB_TORNEO['E7']['MAE_cv'] - TAB_TORNEO['E9']['MAE_cv'], 1)}. "
+         f"Detrás de esto hay un torneo de "
          f"nueve especificaciones, de E1 a E9, que está documentado en "
          f"docs/METODOLOGIA_TORNEO.md y en la propia app. Elegimos E9 por el "
          f"error en validación cruzada, nunca por el de test.")

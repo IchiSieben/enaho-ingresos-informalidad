@@ -1,5 +1,13 @@
 # Guion de exposición (10–15 minutos)
 
+> **Qué es este documento y qué no.** El guion lámina a lámina son las **notas
+> del orador de `docs/presentacion/ENAHO_exposicion.pptx`**: 18 láminas en las
+> que el despliegue es el bloque protagonista, y cada nota prepara la lámina
+> siguiente. Esto de aquí es lo otro: la **narrativa de fondo** —de dónde salió
+> el proyecto y qué encontró—, la tabla de cifras para tener a mano y las
+> preguntas anticipadas con su respuesta. Sirve para preparar y para el turno
+> de preguntas, no para leer mientras se pasan las diapositivas.
+
 Estructura: tres actos (~3 minutos cada uno) + las dos lecturas y el cierre.
 Cada acto lleva sus números clave y UNA frase sugerida para decirlo. Después:
 la tabla de números para tener a mano y las preguntas anticipadas.

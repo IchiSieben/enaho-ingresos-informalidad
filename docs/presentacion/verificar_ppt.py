@@ -372,22 +372,32 @@ if _bajo:
 
 # --- cifras ---
 print("\n=== 3. Cifras: lámina → cifra → fuente ===")
-NUMERO = re.compile(r"\d[\d.,]*")
+# Los dígitos pegados a letras no son cifras: son hashes de commit (`0c7a001`),
+# nombres de script (`04_torneo`) o identificadores de especificación (`E9`).
+# Sin los límites, el «001» de un hash entraba como cifra sin fuente.
+NUMERO = re.compile(r"(?<![\w/])\d[\d.,]*(?![\w])")
 filas, sin_fuente = [], []
 for i, s in enumerate(prs.slides, 1):
     vistos = set()
-    for sh in s.shapes:
-        for r, _ in corridas(sh):
-            for m in NUMERO.finditer(r.text or ""):
-                tok = m.group(0).rstrip(".,")
-                if not tok or tok in vistos:
-                    continue
-                vistos.add(tok)
-                fuente = PERMITIDAS.get(tok)
-                if fuente:
-                    filas.append((i, tok, fuente))
-                else:
-                    sin_fuente.append((i, tok, (r.text or "").strip()[:70]))
+    # Las notas del orador son lo que se DICE en voz alta: una cifra de ahí sin
+    # artefacto detrás se afirma de memoria delante del público. Se auditan
+    # igual que las cajas de texto — antes quedaban fuera del recorrido.
+    trozos = [(r.text or "", "lámina") for sh in s.shapes
+              for r, _ in corridas(sh)]
+    trozos.append((s.notes_slide.notes_text_frame.text or "", "notas"))
+    for texto, donde in trozos:
+        for m in NUMERO.finditer(texto):
+            tok = m.group(0).rstrip(".,")
+            if not tok or (tok, donde) in vistos:
+                continue
+            vistos.add((tok, donde))
+            fuente = PERMITIDAS.get(tok)
+            if fuente:
+                filas.append((i, tok if donde == "lámina" else tok + " ·notas",
+                              fuente))
+            else:
+                ctx = texto[max(0, m.start() - 32):m.end() + 32].strip()
+                sin_fuente.append((i, f"{tok} [{donde}]", ctx[:84]))
 
 print(f"{'lám':>4}  {'cifra':<12} fuente")
 for i, tok, f in filas:
