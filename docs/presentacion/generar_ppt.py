@@ -110,6 +110,11 @@ EXTERNA = {
     "inei_1_10": buscar(r"\| \*\*(88,6) %\*\* \| INEI, tramo \*\*1-10\*\*"),
 }
 N_REFERENCIAS = len(REFS.REFERENCIAS)
+# La tasa propia de la categoría «Hasta 20», que es lo que el 88,6 % del INEI
+# NO era. Sale del precómputo, que es exactamente el arreglo que se hizo:
+# la cifra se calcula, no se escribe a mano (INFORME §2.2.1).
+TASA_HASTA20 = (UA["clasificador"]["tasas_observadas"]["tamano_empresa"]
+                ["grupos"]["Hasta 20"]["pct_ponderado"])
 
 TAB_TORNEO = {f["ID"]: f for f in UA["torneo"]["tabla"]}
 CLF_COMP = UA["clasificador"]["comparacion"]      # GB / RF / logística
@@ -274,17 +279,20 @@ def fig_arquitectura():
     flecha(25.4, 37.5, 31.1, 37.5, "lee")
     flecha(55.9, 37.5, 61.6, 37.5, "escribe")
     flecha(74, 27.6, 74, 20.4, "git push", dx=5.6, dy=0, ha="left")
-    caja(62, 3, 24, 16, "4 · GitHub",
+    # Fila inferior a 17,5 de alto, no 16: con el cuerpo a 13 pt la tercera
+    # línea se salía por debajo del borde de la caja («.streamlit.app»
+    # cortado). El alto se calcula para el texto, no al revés.
+    caja(62, 3, 24, 17.5, "4 · GitHub",
          ["IchiSieben /", "enaho-ingresos-informalidad", "rama main"],
          mpl("superficie"), mpl("borde"))
-    caja(31.5, 3, 24, 16, "5 · Streamlit Cloud",
+    caja(31.5, 3, 24, 17.5, "5 · Streamlit Cloud",
          ["app/streamlit_app.py", "redeploy automático", "en cada push"],
          mpl("superficie"), mpl("borde"))
-    caja(1, 3, 24, 16, "6 · Navegador",
-         ["enaho-ingresos-", "informalidad", ".streamlit.app"],
+    caja(1, 3, 24, 17.5, "6 · Navegador",
+         ["enaho-ingresos-informalidad", ".streamlit.app"],
          mpl("buena_fondo"), mpl("buena"), tc=mpl("buena"))
-    flecha(61.6, 11, 55.9, 11, "webhook")
-    flecha(31.1, 11, 25.4, 11, "HTTPS")
+    flecha(61.6, 11.75, 55.9, 11.75, "webhook")
+    flecha(31.1, 11.75, 25.4, 11.75, "HTTPS")
     ax.add_patch(FancyBboxPatch((29.6, 26.4), 58, 22.2, boxstyle="round,pad=0.5",
                                 fc="none", ec=mpl("acento"), lw=1.4,
                                 ls=(0, (6, 4)), zorder=2))
@@ -293,21 +301,10 @@ def fig_arquitectura():
             f"{REPO['n_archivos']} archivos",
             ha="center", va="bottom", fontsize=14.5, color=mpl("acento_alto"),
             fontweight="bold")
-    if DATOS_MB:
-        # En positivo: los microdatos QUEDÁNDOSE en la máquina es una
-        # garantía de diseño, no una advertencia de error. Texto sin caja
-        # propia: tanto el bbox automático de ax.text (pad en unidades de
-        # fuente ya renderizada) como un FancyBboxPatch de tamaño explícito
-        # (su "pad" crece HACIA AFUERA del rectángulo dado, no lo contiene)
-        # desbordaban las cajas vecinas en este hueco angosto. El peso
-        # visual sale del color saturado y el peso de fuente, no de un
-        # contenedor.
-        ax.text(13, 24.3,
-                f"Los microdatos se quedan en la máquina\n"
-                f"{d(DATOS_MB, 1)} MB · el repositorio enlaza\n"
-                f"a la fuente oficial del INEI",
-                ha="center", va="center", fontsize=12.5, color=mpl("buena"),
-                fontweight="bold", linespacing=1.45)
+    # El mensaje de los microdatos NO va aquí dentro: incrustado en el hueco
+    # entre las dos filas de cajas flotaba suelto y descentraba la figura al
+    # recortarla `bbox_inches="tight"`. Vive como banda de ancho completo
+    # bajo el diagrama, en la propia lámina.
     return _guardar(fig, "fig_arquitectura")
 
 
@@ -316,31 +313,46 @@ def fig_precomputo():
     ax.set_xlim(0, 100); ax.set_ylim(0, 40); ax.axis("off")
 
     def bloque(x, w, titulo, subt, items, fc, ec, tc):
+        """
+        `items` son pares (qué es en llano, nombre técnico). El nombre
+        técnico va debajo, gris y pequeño: quien lo conoce lo reconoce y
+        quien no, ya entendió la línea de arriba.
+        """
         ax.add_patch(FancyBboxPatch((x, 4), w, 32, boxstyle="round,pad=0.6",
                                     fc=fc, ec=ec, lw=1.6, zorder=3))
         ax.text(x + w / 2, 33.4, titulo, ha="center", va="top", fontsize=16,
                 fontweight="bold", color=tc, zorder=4)
-        ax.text(x + w / 2, 29.2, subt, ha="center", va="top", fontsize=12.5,
+        ax.text(x + w / 2, 29.4, subt, ha="center", va="top", fontsize=12,
                 color=mpl("texto_medio"), zorder=4)
-        for k, it in enumerate(items):
-            ax.text(x + 2.6, 24.6 - k * 3.85, "·  " + it, ha="left", va="top",
-                    fontsize=13, color=mpl("texto"), zorder=4)
+        for k, (llano, tecnico) in enumerate(items):
+            cy = 25.0 - k * 4.3
+            ax.text(x + 2.6, cy, "·  " + llano, ha="left", va="top",
+                    fontsize=12.8, color=mpl("texto"), zorder=4)
+            ax.text(x + 4.4, cy - 1.95, tecnico, ha="left", va="top",
+                    fontsize=10.5, color=mpl("texto_tenue"), zorder=4)
 
     n_umbral = len(CURVA["umbral"])
     n_bins = len(UA["clasificador"]["histograma_oof"]["clase_1"])
     n_pdp = len(UA["clasificador"]["dependencia_parcial"])
     bloque(1, 46, "UNA VEZ, en tu máquina", "src/09_precomputar_ui.py",
-           [f"curva umbral → consecuencias ({n_umbral} puntos)",
-            f"histograma OOF de probabilidades ({n_bins} bins)",
-            f"dependencia parcial de las {n_pdp} variables",
-            "cohortes y percentiles comparables",
-            "tasas observadas por grupo"],
+           [("Qué pasaría con cada corte del umbral",
+             f"(curva de umbral · {n_umbral} puntos)"),
+            ("Cómo se reparten las probabilidades del modelo",
+             f"(histograma fuera de muestra · {n_bins} tramos)"),
+            ("Cómo cambia la predicción con cada variable",
+             f"(dependencia parcial · {n_pdp} variables)"),
+            ("Con qué trabajadores parecidos se compara el perfil",
+             "(cohortes y percentiles)"),
+            ("Qué porcentaje es informal en cada grupo",
+             "(tasas observadas)")],
            mpl("acento_fondo"), mpl("acento"), mpl("acento_alto"))
     bloque(53, 46, "EN CALIENTE, al pulsar el botón", "app/streamlit_app.py",
-           ["una llamada a .predict() del regresor",
-            "una llamada a .predict_proba()",
-            "del clasificador",
-            "el resto: leer el JSON y dibujar SVG"],
+           [("Estimar el ingreso del perfil",
+             "(una llamada a .predict() del regresor)"),
+            ("Estimar su probabilidad de informalidad",
+             "(una llamada a .predict_proba() del clasificador)"),
+            ("Lo demás: leer el archivo guardado y dibujar",
+             "(JSON → SVG)")],
            mpl("buena_fondo"), mpl("buena"), mpl("buena"))
     ax.annotate("", xy=(52.4, 20), xytext=(47.6, 20),
                 arrowprops=dict(arrowstyle="-|>", mutation_scale=22, lw=2.2,
@@ -502,6 +514,32 @@ def caja(s, x, y, w, h):
     tf.word_wrap = True
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
     return tf
+
+
+def parrafo_mixto(tf, partes, primero=False, alin=None, esp_despues=8,
+                  esp_linea=None):
+    """
+    Un párrafo con varios tramos de formato distinto, en la MISMA línea base.
+
+    `partes` son tuplas (texto, tamaño, negrita, color, fuente). Sirve para
+    lo que un párrafo por tramo no puede dar: «App:» en sans junto a su URL
+    en mono sin que la etiqueta caiga en su propio renglón.
+    """
+    p = (tf.paragraphs[0] if primero and not tf.paragraphs[0].runs
+         else tf.add_paragraph())
+    for texto, tam, negrita, color, fuente in partes:
+        r = p.add_run()
+        r.text = texto
+        r.font.name = fuente
+        r.font.size = Pt(tam)
+        r.font.bold = negrita
+        r.font.color.rgb = rgb(color)
+    if alin:
+        p.alignment = alin
+    p.space_after = Pt(esp_despues)
+    if esp_linea:
+        p.line_spacing = esp_linea
+    return p
 
 
 def parrafo(tf, texto, tam=T_CUERPO, color="texto", negrita=False, fuente=FUENTE,
@@ -767,16 +805,19 @@ parrafo(tf, "Alan Nestor Cañazaca Mamani  ·  Magdalena Quico de la Cruz  ·  "
             "Yoichi Palacios Tanaka  ·  Edgar Delgado Ortega",
         tam=T_CUERPO, negrita=True, esp_despues=0, esp_linea=1.05)
 
-# Enlaces apilados: etiqueta en sans, URL en mono. Son los dos únicos enlaces
-# de todo el mazo; el resto de láminas no repite direcciones.
-_, tf = panel(s, MARGEN, 5.72, 12.09, 1.60)
-parrafo(tf, "App", tam=T_CUERPO, color="texto_medio", primero=True,
-        esp_despues=1)
-parrafo(tf, APP_URL, tam=T_CUERPO, color="acento_alto", negrita=True,
-        fuente=MONO, esp_despues=7)
-parrafo(tf, "Repositorio", tam=T_CUERPO, color="texto_medio", esp_despues=1)
-parrafo(tf, REPO_URL, tam=T_CUERPO, color="acento_alto", negrita=True,
-        fuente=MONO, esp_despues=0)
+# Dos líneas, alineadas a la izquierda: etiqueta en sans y URL en mono
+# compartiendo línea base (por eso `parrafo_mixto` y no un párrafo por tramo).
+# Son los dos únicos enlaces del mazo; ninguna otra lámina repite direcciones.
+_, tf = panel(s, MARGEN, 5.86, 12.09, 1.24)
+for _k, (_etq, _url) in enumerate((("App:  ", APP_URL),
+                                   ("Repositorio:  ", REPO_URL))):
+    # LEFT explícito: el primer párrafo de una autoshape hereda el centrado
+    # del shape, y sin esto la línea de «App» salía corrida a la derecha
+    # mientras la de «Repositorio» quedaba al margen.
+    parrafo_mixto(tf, [(_etq, T_CUERPO, False, "texto_medio", FUENTE),
+                       (_url, T_CUERPO, True, "acento_alto", MONO)],
+                  primero=(_k == 0), alin=PP_ALIGN.LEFT,
+                  esp_despues=10 if _k == 0 else 0)
 notas(s, "Buenas. Somos el grupo de Alan, Magdalena, Yoichi y Edgar, del curso "
          "de Machine Learning de la ENEI, con el profesor Orlando Advíncula. "
          "Presentamos dos modelos entrenados sobre los microdatos públicos de "
@@ -840,10 +881,19 @@ y = titulo(s, "Cada push a main redespliega la app en la nube, sin pasos "
               "manuales",
            "Del editor al navegador solo hay commits: Streamlit Cloud "
            "reconstruye y publica en cada push.")
-# El diagrama es el protagonista de la lámina: ocupa casi toda la altura
-# del cuerpo. Lo que antes decía el panel de abajo (peso, MB de datos, INEI)
-# ya está escrito dentro del propio diagrama — repetirlo aparte era ruido.
-imagen_encajada(s, F_ARQ, MARGEN, y, 12.09, ALTO_CUERPO - 0.40)
+# El diagrama manda: se lleva el grueso del alto y se centra en el ancho
+# útil. Debajo, una banda de ancho completo con el mensaje de los
+# microdatos — antes iba incrustado en un hueco del propio diagrama, donde
+# flotaba suelto entre las cajas.
+ALTO_DIAG = ALTO_CUERPO - 1.10
+imagen_encajada(s, F_ARQ, MARGEN, y, 12.09, ALTO_DIAG)
+_, tf = panel(s, MARGEN, y + ALTO_DIAG + 0.16, 12.09, 0.88,
+              relleno="buena_fondo", borde="buena")
+parrafo(tf, f"Los microdatos se quedan en la máquina: los {d(DATOS_MB, 1)} MB "
+            f"de la ENAHO no viajan al repositorio, que enlaza a la fuente "
+            f"oficial del INEI.",
+        tam=T_CUERPO, color="buena", negrita=True, primero=True,
+        esp_despues=0, esp_linea=1.06, alin=PP_ALIGN.CENTER)
 pie_fuente(s, "docs/arquitectura.md · .gitignore · git ls-files · tamaños "
               "medidos del disco al generar esta lámina")
 notas(s, f"Esta es la lámina que sostiene todo lo demás. El pipeline completo "
@@ -870,32 +920,27 @@ y = titulo(s, "La app no calcula al abrirse: lee resultados ya guardados",
            "entrenar. La app solo las lee y las dibuja.")
 DIAGRAMA_H = 3.10
 imagen_encajada(s, F_PRECOMP, MARGEN, y, 12.09, DIAGRAMA_H)
-# El recorrido real, medido, como elemento central de la lámina: números
-# grandes intercalados con el texto que los conecta, en una sola tira.
+# El recorrido real, medido, como elemento central de la lámina. UNA sola
+# línea: el texto se acorta hasta que entra, nunca se parte en dos dejando
+# la cifra final huérfana en el renglón de abajo. Las cifras van a 26 pt,
+# no a 34, justamente para que quepa entera.
 _, tf_flujo = panel(s, MARGEN, y + DIAGRAMA_H + 0.13, 12.09,
                     ALTO_CUERPO - DIAGRAMA_H - 0.25, relleno="acento_fondo",
                     borde="acento")
 tf_flujo.vertical_anchor = MSO_ANCHOR.MIDDLE
-p_flujo = tf_flujo.paragraphs[0]
-p_flujo.alignment = PP_ALIGN.CENTER
-for _txt, _tam, _neg, _col, _fte in (
-        ("Abrir la app", T_CUERPO, False, "texto_medio", FUENTE),
-        ("   →   ", 26, True, "texto_tenue", MONO),
-        ("0", T_CIFRA, True, "buena", MONO),
-        (" ejecuciones del modelo", T_CUERPO, False, "texto_medio", FUENTE),
-        ("     ·     ", T_CUERPO, False, "texto_tenue", FUENTE),
-        ("Pulsar «Estimar»", T_CUERPO, False, "texto_medio", FUENTE),
-        ("   →   ", 26, True, "texto_tenue", MONO),
-        ("1", T_CIFRA, True, "acento", MONO),
-        (" llamada a predict()", T_CUERPO, False, "texto_medio", FUENTE),
-        ("   →   ", 26, True, "texto_tenue", MONO),
-        (f"S/ {ING_TIPICO}", T_CIFRA, True, "acento_alto", MONO)):
-    r_flujo = p_flujo.add_run()
-    r_flujo.text = _txt
-    r_flujo.font.name = _fte
-    r_flujo.font.size = Pt(_tam)
-    r_flujo.font.bold = _neg
-    r_flujo.font.color.rgb = rgb(_col)
+T_FLUJO = 26
+parrafo_mixto(tf_flujo, [
+    ("Abrir la app", T_CUERPO, False, "texto_medio", FUENTE),
+    ("  →  ", T_CUERPO, True, "texto_tenue", MONO),
+    ("0", T_FLUJO, True, "buena", MONO),
+    (" ejecuciones", T_CUERPO, False, "texto_medio", FUENTE),
+    ("      Pulsar «Estimar»", T_CUERPO, False, "texto_medio", FUENTE),
+    ("  →  ", T_CUERPO, True, "texto_tenue", MONO),
+    ("1", T_FLUJO, True, "acento", MONO),
+    (" predicción", T_CUERPO, False, "texto_medio", FUENTE),
+    ("  →  ", T_CUERPO, True, "texto_tenue", MONO),
+    (f"S/ {ING_TIPICO}", T_FLUJO, True, "acento_alto", MONO),
+], primero=True, alin=PP_ALIGN.CENTER, esp_despues=0)
 pie_fuente(s, "src/09_precomputar_ui.py · models/ui_artifacts.json · "
               "models/*.joblib · docs/presentacion/verificacion_local.py")
 notas(s, f"Este es el recorrido real de abrir la app: cero ejecuciones del "
@@ -957,7 +1002,7 @@ imagen(s, pulir_captura(FIGS / "cloud_form.png"), MARGEN, y, w=ANCHO_IMG)
 # sueltas: si mañana cambia el tamaño de la imagen, siguen en su sitio.
 ALTO_IMG = ANCHO_IMG / 1.5
 for k, (fx, fy) in enumerate(((0.10, 0.50), (0.30, 0.42), (0.30, 0.72),
-                              (0.28, 0.22), (0.095, 0.245)), start=1):
+                              (0.28, 0.22)), start=1):
     rotulo(s, MARGEN + fx * ANCHO_IMG, y + fy * ALTO_IMG, str(k))
 # La leyenda va numerada y en una sola columna: cuatro entradas cortas caben,
 # cuatro entradas explicadas no. El desarrollo largo está en las notas.
@@ -967,19 +1012,46 @@ COMPONENTES = [
     ("3 · st.selectbox", "una por variable categórica"),
     ("4 · st.expander · st.popover", "lectura llana y lectura técnica"),
 ]
-tfc = caja(s, 7.75, y + 0.04, 4.96, 2.98)
+tfc = caja(s, 7.75, y + 0.02, 4.96, 2.48)
 for k, (nom, txt) in enumerate(COMPONENTES):
     parrafo(tfc, nom, tam=T_CUERPO, color="acento_alto", negrita=True,
             fuente=MONO, primero=(k == 0), esp_despues=1)
-    parrafo(tfc, txt, tam=T_CUERPO, color="texto_medio", esp_despues=13,
-            esp_linea=1.02)
-_, tf = panel(s, 7.75, y + 3.06, 4.96, 1.55, relleno="acento_fondo",
-              borde="acento")
-parrafo(tf, "5 · st.slider + st.fragment", tam=T_CUERPO, color="acento_alto",
-        negrita=True, fuente=MONO, primero=True, esp_despues=2)
-parrafo(tf, "El umbral vive en «Empleo informal» (marcador 5): moverlo "
-            "reejecuta solo ese fragmento, no la página entera.",
-        tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.02)
+    parrafo(tfc, txt, tam=T_CUERPO, color="texto_medio", esp_despues=4,
+            esp_linea=1.0)
+# El control del umbral vive en la OTRA pestaña, así que no está en la
+# captura de la izquierda: se capturó aparte de la app en producción
+# (capturar_umbral.py) y va DENTRO de este recuadro, con su marcador sobre
+# el slider real. El recuadro se dimensiona a partir del alto real de la
+# imagen, no al tanteo: así nunca se sale por debajo del pie de fuente.
+CAP_UMBRAL = FIGS / "cloud_umbral_control.png"
+# Debajo de las cuatro entradas de la leyenda: cada una son dos renglones a
+# 18 pt, así que la lista llega hasta ~y+2,6 y el recuadro tiene que
+# empezar por debajo o le come la última línea al punto 4.
+_Y_PANEL_5 = y + 2.80
+if CAP_UMBRAL.exists():
+    from PIL import Image as _ImgU
+    _iw, _ih = _ImgU.open(CAP_UMBRAL).size
+    _ancho_u = 4.62
+    _alto_u = _ancho_u * _ih / _iw
+    _x_u, _y_u = 7.92, _Y_PANEL_5 + 0.52
+    panel(s, 7.75, _Y_PANEL_5, 4.96, _alto_u + 0.76,
+          relleno="acento_fondo", borde="acento")
+    tf = caja(s, 7.95, _Y_PANEL_5 + 0.14, 4.60, 0.32)
+    parrafo(tf, "5 · st.slider + st.fragment", tam=T_CUERPO,
+            color="acento_alto", negrita=True, fuente=MONO, primero=True,
+            esp_despues=0)
+    imagen(s, pulir_captura(CAP_UMBRAL), _x_u, _y_u, w=_ancho_u)
+    # El marcador cae sobre el slider real, en fracciones de la captura:
+    # el control ocupa la mitad derecha, a media altura.
+    rotulo(s, _x_u + 0.66 * _ancho_u, _y_u + 0.44 * _alto_u, "5")
+else:
+    _, tf = panel(s, 7.75, _Y_PANEL_5, 4.96, 1.20, relleno="acento_fondo",
+                  borde="acento")
+    parrafo(tf, "5 · st.slider + st.fragment", tam=T_CUERPO,
+            color="acento_alto", negrita=True, fuente=MONO, primero=True,
+            esp_despues=2)
+    parrafo(tf, "En «Empleo informal»: moverlo reejecuta solo ese fragmento.",
+            tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.02)
 pie_fuente(s, "captura de la app desplegada · app/streamlit_app.py "
               "(componentes realmente usados) · models/feature_schema.json")
 notas(s, "El formulario no declara ningún campo a mano: recorre "
@@ -1003,12 +1075,14 @@ notas(s, "El formulario no declara ningún campo a mano: recorre "
 s = lamina()
 y = titulo(s, "Lo que se publica va firmado, con tests y medido sobre la app "
               "viva",
-           "Tres controles rodean cada entrega: los contratos app–artefactos, "
-           "la autoría de cada commit y el QA del DOM real.")
+           "Tres controles rodean cada entrega: que la app y los archivos del "
+           "modelo digan lo mismo, quién publicó cada versión, y qué se ve "
+           "de verdad en la app.")
 filas = [["Control", "Qué garantiza", "Dónde se comprueba"],
          ["Tests de contrato",
-          "Los tres fallos que la app tuvo en producción, reproducidos sin "
-          "navegador: si vuelven, saltan en local, no en la nube.",
+          "Que la app no pida nada que sus archivos no tengan. Los tres "
+          "fallos reales están reproducidos sin navegador: si vuelven, "
+          "saltan en local y no en la nube.",
           "tests/test_contratos.py"],
          ["Commits firmados",
           "Cada versión publicada lleva la firma SSH del autor: se sabe quién "
@@ -1020,13 +1094,25 @@ filas = [["Control", "Qué garantiza", "Dónde se comprueba"],
           "docs/POST_ENTREGA.md"]]
 tabla(s, MARGEN, y, 12.09, 2.70, filas, anchos=[22, 52, 26], tam=16,
       tam_cab=16, cols_mono=[])
-_, tf = panel(s, MARGEN, y + 3.30, 12.09, 1.10, relleno="acento_fondo",
+# Los tres fallos, nombrados. Un recuadro que dice «rompió tres contratos»
+# sin decir cuáles no se puede narrar: cada línea dice qué se rompió y qué
+# vio el usuario. Salen de tests/test_contratos.py, un test por fallo.
+# Cada uno cabe en UNA línea a 18 pt: tres fallos de dos líneas desbordaban
+# el panel y se metían debajo del pie de fuente.
+_, tf = panel(s, MARGEN, y + 3.12, 12.09, 1.52, relleno="acento_fondo",
               borde="acento")
-parrafo(tf, "Un despliegue del 20 de agosto rompió tres contratos entre la "
-            "app y sus proveedores. Hoy cada uno de esos fallos es un test "
-            "que corre antes de publicar: el mismo error no puede volver.",
-        tam=T_CUERPO, color="texto", primero=True, esp_despues=0,
-        esp_linea=1.06)
+parrafo(tf, "LOS TRES FALLOS DEL 20 DE AGOSTO, HOY CADA UNO UN TEST",
+        tam=T_ETIQUETA, color="acento_alto", fuente=MONO, primero=True,
+        esp_despues=5)
+for _fallo in (
+        "Un tema del selector no estaba en la paleta: elegirlo dejaba la app "
+        "en blanco, sin vuelta atrás.",
+        "La app pedía un gráfico que el módulo desplegado no tenía: la "
+        "página se cortaba a medio dibujo.",
+        "Se renombró una clave del artefacto y la app siguió sirviendo la "
+        "vieja desde su caché."):
+    parrafo(tf, "—  " + _fallo, tam=T_CUERPO, color="texto", esp_despues=2,
+            esp_linea=1.0)
 pie_fuente(s, "tests/test_contratos.py · git log --show-signature · "
               "docs/POST_ENTREGA.md (estándares de la corrida de entrega)")
 notas(s, "Tres controles distintos, cada uno contra un tipo de fallo "
@@ -1117,16 +1203,17 @@ s = lamina()
 _orden = sorted(zip(IMP_REG["variables"], IMP_REG["media"]), key=lambda t: -t[1])
 y = titulo(s, "La categoría ocupacional y la educación son las variables que "
               "más cargan el regresor",
-           "Se baraja una variable al azar y se mide cuántos soles más falla "
-           "el modelo: mide uso, no causa.")
+           "Con el modelo ya entrenado, desordenamos una columna a la vez y "
+           "medimos cuánto empeora el error promedio. Mide cuánto la usa el "
+           "modelo, no qué la causa.")
 imagen_encajada(s, F_IMP, MARGEN, y, 8.00, 4.55)
 tarjeta(s, 8.86, y + 0.15, 3.85, 1.90, "categoría ocupacional",
         f"S/ {n(_orden[0][1])}",
-        "Lo que sube el error medio al desordenar esta columna al azar.",
+        "Lo que sube el error al mes si el modelo se queda sin ella.",
         color_cifra="acento")
 tarjeta(s, 8.86, y + 2.20, 3.85, 1.90, "años de educación",
         f"S/ {n(_orden[1][1])}",
-        "La segunda que más pesa: juntas, la mitad del efecto.",
+        "La segunda que más usa el modelo, con el mismo cálculo.",
         color_cifra="acento")
 pie_fuente(s, f"models/ui_artifacts.json (regresor.importancia_permutacion): "
               f"{IMP_REG['n_repeticiones']} repeticiones sobre "
@@ -1220,35 +1307,43 @@ y = titulo(s, "Revisamos nuestro propio trabajo: cuatro errores encontrados, "
               "cuatro publicados",
            "Cada cifra contra el archivo que la genera, cada cita contra su "
            "fuente; cada hallazgo, con su origen.")
+# La columna «Qué pasó» se narra: cada fila dice qué se leía mal y en qué
+# quedó. El texto sigue a la sección «Qué encontró la auditoría» de la app
+# (app/streamlit_app.py · AUDITORIA), que es donde vive la versión canónica.
 filas = [["Hallazgo", "Dónde nació", "Qué pasó"],
-         ["El centinela 999999 leído como un ingreso",
+         ["El código de faltante, leído como un sueldo",
           "DATOS DE ORIGEN",
-          f"El R² pasa de {d(_aut['corrida_sucia']['r2'], 3)} a "
-          f"{d(_aut['corrida_limpia']['r2'], 3)} al tratarlo como faltante"],
+          f"999999 es «no sabe», pero entraba como S/ 999.999: tratarlo como "
+          f"faltante subió el R² de {d(_aut['corrida_sucia']['r2'], 3)} a "
+          f"{d(_aut['corrida_limpia']['r2'], 3)}"],
          ["La rejilla de hiperparámetros estaba acotada",
           "DECISIÓN PROPIA",
-          f"El error baja de S/ {REJILLA['vieja']} a S/ {REJILLA['nueva']}: "
-          f"{REJILLA['mejora_pct']} %. No se promovió"],
+          f"Los tres quedaron en el borde. Ampliada, el error baja de "
+          f"S/ {REJILLA['vieja']} a S/ {REJILLA['nueva']} "
+          f"({REJILLA['mejora_pct']} %): no se promovió"],
          ["Una cifra del INEI con la etiqueta equivocada",
           "DECISIÓN PROPIA",
-          f"El {EXTERNA['inei_1_10']} % es del tramo 1-10, no de «Hasta 20»"],
+          f"El {EXTERNA['inei_1_10']} % es del tramo 1-10 del INEI; nuestra "
+          f"categoría «Hasta 20» da {d(TASA_HASTA20, 1)} %"],
          ["Tres afirmaciones distintas sobre el mismo R²",
           "DECISIÓN PROPIA · DOCUMENTACIÓN",
-          "Ni Lemieux ni Heckman reportan ese R²"]]
+          "Circulaban «0,4–0,5», «rara vez supera 0,4» y «ninguno supera "
+          "0,5»: quedó una, sobre Mincer y Card"]]
 # Ojo: python-pptx NO recorta una tabla, la CRECE hasta que quepa el texto. El
 # alto que se le pasa es un mínimo, así que lo que va debajo hay que colocarlo
 # contando con ese crecimiento — o acortar la celda, que es lo que se hizo.
-tabla(s, MARGEN, y, 12.09, 2.65, filas, anchos=[32, 24, 44], tam=16,
+tabla(s, MARGEN, y, 12.09, 2.65, filas, anchos=[30, 23, 47], tam=16,
       tam_cab=16, cols_mono=[])
-_, tf = panel(s, MARGEN, y + 3.05, 12.09, 1.48, relleno="acento_fondo",
+# La tabla CRECE con el texto: con «Qué pasó» narrado, la cuarta fila baja
+# hasta ~y+3,3. El panel arranca por debajo de eso o le pisa la última fila.
+_, tf = panel(s, MARGEN, y + 3.44, 12.09, 1.20, relleno="acento_fondo",
               borde="acento")
 parrafo(tf, "LA LÍNEA DE MÉTODO", tam=T_ETIQUETA, color="acento_alto",
-        fuente=MONO, primero=True, esp_despues=6)
-parrafo(tf, "Los problemas de origen se corrigen y se documentan; los propios "
-            "se corrigen y se aprende de ellos; los de cita se verifican yendo "
-            "al texto completo. Ninguno se borra: un hallazgo corregido en "
-            "silencio es un hallazgo desperdiciado.",
-        tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.06)
+        fuente=MONO, primero=True, esp_despues=4)
+parrafo(tf, "Los de origen se corrigen y se documentan; los propios se "
+            "corrigen y se aprende de ellos; los de cita se verifican en el "
+            "texto completo. Ninguno se borra en silencio.",
+        tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.04)
 pie_fuente(s, "INFORME_AUDITORIA.md · models/ui_artifacts.json (torneo.autopsia) "
               "· la sección «Qué encontró la auditoría» de la propia app")
 notas(s, f"Antes de publicar, el proyecto se auditó a sí mismo: cada cifra "
@@ -1325,10 +1420,86 @@ notas(s, f"Para cerrar, los límites. El regresor da un ingreso típico con un "
 # ---------------------------------------------------------------------------
 # Guardado
 # ---------------------------------------------------------------------------
+GUION = AQUI / "guion_hallazgos.md"
+GUION.write_text(f"""# Los cuatro hallazgos, para contarlos en voz alta
+
+> Generado por `docs/presentacion/generar_ppt.py` junto con la lámina de la
+> auditoría: las cifras salen de los mismos artefactos que la presentación,
+> no se escriben aquí a mano. La versión canónica de cada hallazgo vive en
+> `app/streamlit_app.py` (lista `AUDITORIA`) y en `INFORME_AUDITORIA.md`.
+
+Un párrafo por hallazgo. Cada uno se puede contar en unos treinta segundos
+y responde a lo mismo: qué se leía mal, cómo se notó, en qué quedó.
+
+## 1. El código de faltante, leído como un sueldo
+
+*Nació en los datos de origen.* El INEI codifica «no sabe» como el valor
+999999. Ese número entraba al modelo como si fuera un ingreso real de
+999.999 soles al mes, y arrastraba consigo toda la regresión: con esos casos
+dentro, vivir en zona urbana aparecía asociado a **once soles** más de
+ingreso, una cifra sin ningún sentido económico. Al tratar el centinela como
+dato faltante, el R² pasó de **{d(_aut['corrida_sucia']['r2'], 3)}** a
+**{d(_aut['corrida_limpia']['r2'], 3)}** y todos los coeficientes
+recuperaron su signo y su magnitud esperables. Es el hallazgo más grave de
+los cuatro y el único que no nació en una decisión nuestra: le habría pasado
+a cualquiera que use estos microdatos sin leer el diccionario de variables.
+
+## 2. La rejilla de hiperparámetros estaba acotada
+
+*Decisión propia.* Al buscar los hiperparámetros del modelo desplegado, los
+tres ganadores quedaron en el borde del rango que se había probado — la
+señal clásica de que el óptimo estaba fuera de la rejilla y nunca se llegó a
+mirar. Se amplió el rango y se volvió a buscar: el error baja de
+**S/ {REJILLA['vieja']}** a **S/ {REJILLA['nueva']}**, y los tres
+hiperparámetros quedan ya en el interior. La mejora es sistemática: gana en
+los cinco pliegues de la validación cruzada. Y aun así **no se promovió**.
+El motivo no es que la diferencia sea ruido, porque no lo es: es que
+{REJILLA['mejora_pct']} % de mejora no justifica regenerar el artefacto
+desplegado, revalidar el factor de smearing y rehacer todo el precómputo de
+la interfaz. Separar «es mejor» de «vale la pena cambiarlo» es parte del
+método, y el hallazgo queda documentado en vez de barrido.
+
+## 3. Una cifra del INEI con la etiqueta equivocada
+
+*Decisión propia.* Se publicaba que el gradiente por tamaño de empresa
+«replica el patrón oficial del INEI, con {EXTERNA['inei_1_10']} % de
+informalidad en microempresas». La cifra es real y es del INEI, pero
+corresponde a su tramo de **1 a 10 trabajadores**, que no es la categoría
+«Hasta 20» que usa este proyecto. Al resumir se perdió el tramo, y el lector
+terminaba mapeando el {EXTERNA['inei_1_10']} % a una categoría nuestra cuyo
+valor propio es **{d(TASA_HASTA20, 1)} %**. No era un dato inventado: era
+una comparación mal etiquetada, que es más difícil de detectar precisamente
+porque cada mitad, por separado, es correcta. La app ya no la escribe a
+mano: la calcula en el precómputo.
+
+## 4. Tres afirmaciones distintas sobre el mismo R²
+
+*Decisión propia y de documentación.* Sobre cuál es el R² esperable en una
+ecuación de ingresos circulaban por el proyecto tres versiones a la vez —
+«0,4–0,5», «rara vez supera 0,4» y «ningún R² supera 0,5» — repartidas en
+cuatro sitios distintos, cada una escrita en un momento diferente y ninguna
+consciente de las otras. Al ir a verificarlas apareció el segundo problema:
+las dos fuentes que se citaban para sostenerlas, Lemieux (2006) y Heckman,
+Lochner y Todd (2006), **no reportan ningún R²**, así que no se las podía
+citar para eso. Hoy la afirmación se define **una sola vez**, se apoya en
+los cuadros de Mincer y de Card, y dice explícitamente qué parte es lectura
+nuestra. La solución de fondo es esa: una cifra, un lugar donde vive.
+
+---
+
+**La línea de método.** Los problemas de origen se corrigen y se documentan;
+los propios se corrigen y se aprende de ellos; los de cita se verifican
+yendo al texto completo. Ninguno se borra: un hallazgo corregido en silencio
+es un hallazgo desperdiciado. Y los dos primeros tenían la misma raíz —
+cifras escritas a mano que nadie vuelve a comprobar — así que el arreglo
+estructural fue sacarlas del texto y calcularlas en el precómputo.
+""", encoding="utf-8")
+
 SALIDA = AQUI / "ENAHO_exposicion.pptx"
 prs.save(SALIDA)
 print(f"{SALIDA.relative_to(RAIZ)} · {len(prs.slides._sldIdLst)} láminas · "
-      f"{SALIDA.stat().st_size / 1e6:.2f} MB\n")
+      f"{SALIDA.stat().st_size / 1e6:.2f} MB")
+print(f"{GUION.relative_to(RAIZ)} · guion de los cuatro hallazgos\n")
 print("Títulos-afirmación del mazo:")
 for k, t in enumerate(TITULOS, 1):
     print(f"  {k:>2}. {t}")

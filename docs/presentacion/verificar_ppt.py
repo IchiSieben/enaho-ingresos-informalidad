@@ -154,6 +154,15 @@ for k, v in FS["regresor"]["metricas_test"].items():
     permitir(v, f"feature_schema · regresor.metricas_test.{k}")
 for k, v in FS["clasificador"]["metricas_test"].items():
     permitir(v, f"feature_schema · clasificador.metricas_test.{k}")
+# Tasas observadas por grupo: el arreglo del hallazgo del 88,6 % fue
+# justamente dejar de escribirlas a mano y calcularlas en el precómputo, así
+# que la lámina de la auditoría las cita desde aquí.
+for _var, _bloque in UA["clasificador"].get("tasas_observadas", {}).items():
+    for _grupo, _datos in _bloque.get("grupos", {}).items():
+        for _k in ("pct_ponderado", "pct_crudo"):
+            if _k in _datos:
+                permitir(_datos[_k],
+                         f"ui_artifacts · tasas_observadas.{_var}[{_grupo}].{_k}")
 permitir(UA["clasificador"]["pr"]["baseline"], "ui_artifacts · clasificador.pr.baseline")
 permitir(UA["clasificador"]["pr"]["auc"], "ui_artifacts · clasificador.pr.auc")
 permitir(UA["clasificador"]["roc"]["auc"], "ui_artifacts · clasificador.roc.auc")
@@ -255,6 +264,13 @@ _cent = re.search(r"CENTINELAS_MONETARIOS = \[([\d.,\s]+)\]",
 if _cent:
     for _v in _cent.group(1).split(","):
         permitir(_v.strip(), "src/comun.py · CENTINELAS_MONETARIOS")
+        # También en su forma legible («999.999»): la lámina de la auditoría
+        # lo escribe con separador de millar, porque ahí el centinela se
+        # cuenta como el sueldo imposible que el modelo llegó a creerse.
+        try:
+            permitir(float(_v), "src/comun.py · CENTINELAS_MONETARIOS")
+        except ValueError:
+            pass
 else:
     falla("no se encontró CENTINELAS_MONETARIOS en src/comun.py")
 
