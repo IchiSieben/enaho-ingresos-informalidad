@@ -7,7 +7,7 @@
 """
 Audita docs/presentacion/ENAHO_exposicion.pptx después de generarla. Comprueba:
 
-  1. estructura     — 18 láminas, cada una con notas del orador y con al menos
+  1. estructura     — 12 láminas, cada una con notas del orador y con al menos
                       un elemento visual dominante (imagen o tabla);
   2. tipografía     — ninguna caja de texto con cuerpo por debajo de 18 pt,
                       salvo las dos excepciones declaradas (etiqueta de tarjeta
@@ -34,7 +34,7 @@ from pptx.util import Pt
 RAIZ = Path(__file__).resolve().parents[2]
 AQUI = RAIZ / "docs" / "presentacion"
 PPTX = AQUI / "ENAHO_exposicion.pptx"
-LAMINAS_ESPERADAS = 18
+LAMINAS_ESPERADAS = 12
 MINIMO_PT = 18.0          # cuerpo en cajas de texto
 MINIMO_TABLA_PT = 16.0    # celdas de tabla: 5 columnas de prosa a 18 no caben
 
@@ -259,10 +259,11 @@ else:
     falla("no se encontró CENTINELAS_MONETARIOS en src/comun.py")
 
 # Estructurales: no son cifras de resultado y no requieren artefacto.
+# El 25 es el día de la exposición (carátula: 25 de agosto de 2026).
 ESTRUCTURALES = {
     "2025", "2026", "2024", "2022", "16", "9", "1", "2", "3", "4", "5", "6", "7",
-    "8", "10", "11", "12", "13", "14", "15", "17", "18", "0", "20", "50", "100",
-    "500", "1.000", "1000", "1,33", "0,90", "0,5", "0,50", "0,500",
+    "8", "10", "11", "12", "13", "14", "15", "17", "18", "0", "20", "25", "50",
+    "100", "500", "1.000", "1000", "1,33", "0,90", "0,5", "0,50", "0,500",
     "2.0", "4.0",          # nombres de licencia: Apache-2.0, CC BY-NC 4.0
 }
 for e in ESTRUCTURALES:

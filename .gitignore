@@ -19,5 +19,8 @@ models/_oof_clasificador.npy
 # Archivos de bloqueo de Office (~$archivo.pptx): temporales, nunca se versionan.
 ~$*
 
-# Recortes derivados de las capturas: los regenera generar_ppt.py en cada corrida.
+# Recortes y pulidos derivados de las capturas: los regenera generar_ppt.py
+# en cada corrida (recorte lateral y borde con esquinas suaves).
 docs/presentacion/figuras/cloud_*_panel.png
+docs/presentacion/figuras/cloud_*_zona.png
+docs/presentacion/figuras/*_pulida.png
