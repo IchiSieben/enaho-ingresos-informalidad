@@ -164,6 +164,28 @@ def test_maquinas_trae_lo_que_la_sala_exige():
     assert "modelos_bytes" in maq["tamanos"]
 
 
+def test_la_carga_sirve_el_archivo_nuevo_no_la_cache(tmp_path, monkeypatch):
+    """
+    El agujero que quedaba del bug 3: st.cache_data EXCLUYE de la clave de
+    caché los parámetros que empiezan con guion bajo, así que `_firma` nunca
+    invalidó nada — la firma cambiaba y la caché devolvía el dict viejo igual
+    (en Cloud, tras un redespliegue en caliente, la app mostraba los datos del
+    artefacto anterior con el código nuevo). Este test lee, cambia el archivo
+    y exige ver el contenido nuevo.
+    """
+    import streamlit_app as app
+    monkeypatch.setattr(app, "DIR_MODELS", tmp_path)
+    ruta = tmp_path / "ui_maquinas.json"
+
+    ruta.write_text(json.dumps({"version": 1}), encoding="utf-8")
+    assert app.cargar_maquinas()["version"] == 1
+    ruta.write_text(json.dumps({"version": 2, "relleno": "x" * 60}),
+                    encoding="utf-8")
+    assert app.cargar_maquinas()["version"] == 2, (
+        "la caché sirvió el artefacto viejo pese a que el archivo cambió: "
+        "¿el parámetro de la firma vuelve a llamarse `_firma`?")
+
+
 def test_el_embudo_publicado_cuadra():
     """Cada recorte debe explicar exactamente la diferencia entre etapas."""
     emb = _maquinas()["embudo"]

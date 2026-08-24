@@ -169,8 +169,13 @@ def firma_artefactos() -> tuple:
     return (s.st_size, int(s.st_mtime))
 
 
+# La firma va SIN guion bajo inicial a propósito: st.cache_data EXCLUYE de la
+# clave de caché los parámetros que empiezan con «_» — con `_firma` la caché
+# tenía una sola entrada para siempre y un redespliegue en caliente seguía
+# sirviendo el artefacto viejo (solo el reboot lo curaba). Verificado
+# empíricamente: f((1,)) y f((2,)) devolvían lo mismo.
 @st.cache_data(show_spinner=False)
-def _leer_artefactos(_firma: tuple) -> dict:
+def _leer_artefactos(firma: tuple) -> dict:
     ruta = DIR_MODELS / "ui_artifacts.json"
     if not ruta.exists():
         return {}
@@ -195,7 +200,8 @@ def firma_maquinas() -> tuple:
 
 
 @st.cache_data(show_spinner=False)
-def _leer_maquinas(_firma: tuple) -> dict:
+def _leer_maquinas(firma: tuple) -> dict:
+    # `firma` sin guion bajo: ver la nota de _leer_artefactos.
     ruta = DIR_MODELS / "ui_maquinas.json"
     if not ruta.exists():
         return {}
