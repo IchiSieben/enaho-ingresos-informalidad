@@ -182,6 +182,15 @@ for nom, med in zip(imp["variables"], imp["media"]):
     permitir(round(med), f"ui_artifacts · regresor.importancia[{nom}]")
 permitir(imp["n_filas"], "ui_artifacts · regresor.importancia.n_filas")
 permitir(imp["n_repeticiones"], "ui_artifacts · regresor.importancia.n_repeticiones")
+# La del clasificador se mide en puntos de PR-AUC (fracciones pequeñas):
+# se permite el valor crudo, cuyas formas redondeadas (0,046…) son las que
+# la lámina de variables escribe.
+imp_c = UA["clasificador"]["importancia_permutacion"]
+for nom, med in zip(imp_c["variables"], imp_c["media"]):
+    permitir(med, f"ui_artifacts · clasificador.importancia[{nom}]")
+permitir(imp_c["n_filas"], "ui_artifacts · clasificador.importancia.n_filas")
+permitir(imp_c["n_repeticiones"],
+         "ui_artifacts · clasificador.importancia.n_repeticiones")
 permitir(len(REFS.REFERENCIAS), "app/referencias.py · nº de referencias")
 permitir(len([f for f in FS["regresor"]["features"] if f["tipo"] == "numerico"]),
          "feature_schema · nº de numéricas")

@@ -124,6 +124,7 @@ META = UA["meta"]
 CURVA = UA["clasificador"]["curva_umbral"]
 BASE_PR = UA["clasificador"]["pr"]["baseline"]
 IMP_REG = UA["regresor"]["importancia_permutacion"]
+IMP_CLF = UA["clasificador"]["importancia_permutacion"]
 E6 = UA["torneo"]["explicativo_e6_ponderado"]
 ABL_V2 = next(f for f in ABLACION if "categoria" in f["variante"])
 
@@ -837,41 +838,67 @@ y = titulo(s, "Una app pública, dos modelos: cuánto gana un perfil y si su "
               "empleo es informal",
            "El mismo formulario alimenta dos modelos independientes; cada "
            "pestaña corre el suyo.")
+# La franja de la base, arriba: la pauta pide describir los datos antes que
+# los modelos. Cada cifra sale de su artefacto (embudo del informe, conteos
+# del schema); el detalle variable a variable vive en la tabla mínima de la
+# lámina de los modelos.
+_, tf = panel(s, MARGEN, y, 12.09, 0.80, relleno="acento_fondo",
+              borde="acento")
+tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+parrafo_mixto(tf, [
+    ("La base: ENAHO 2025 (INEI), módulos ", T_CUERPO, False, "texto", FUENTE),
+    ("02 · 03 · 05", T_CUERPO, True, "acento_alto", MONO),
+    (" — ", T_CUERPO, False, "texto_tenue", FUENTE),
+    (EMBUDO["torneo"], T_CUERPO, True, "acento_alto", MONO),
+    (" trabajadores con ingreso laboral · ", T_CUERPO, False, "texto", FUENTE),
+    (str(len(REG["features"])), T_CUERPO, True, "acento_alto", MONO),
+    (" variables de entrada: ", T_CUERPO, False, "texto", FUENTE),
+    (str(len(NUM)), T_CUERPO, True, "acento_alto", MONO),
+    (" numéricas y ", T_CUERPO, False, "texto", FUENTE),
+    (str(len(CAT)), T_CUERPO, True, "acento_alto", MONO),
+    (" categóricas", T_CUERPO, False, "texto", FUENTE),
+], primero=True, alin=PP_ALIGN.CENTER, esp_despues=0, esp_linea=1.04)
 ANCHO_CAP = 5.86
 # Recortadas (la barra lateral no se lee proyectada) y pulidas como producto.
 imagen_encajada(s, pulir_captura(recorte_lateral("cloud_reg_form.png",
                                                  "cloud_reg_panel.png")),
-                MARGEN, y, ANCHO_CAP, 3.02)
+                MARGEN, y + 0.92, ANCHO_CAP, 2.42)
 imagen_encajada(s, pulir_captura(recorte_lateral("cloud_clf_resultado.png",
                                                  "cloud_clf_panel.png")),
-                6.85, y, ANCHO_CAP, 3.02)
+                6.85, y + 0.92, ANCHO_CAP, 2.42)
 for x, etq, txt in (
         (MARGEN, "Estimación de ingreso  ·  regresión",
          "Estima el ingreso laboral mensual en soles con Gradient Boosting "
-         "sobre el logaritmo del ingreso (especificación E9)."),
+         "(especificación E9)."),
         (6.85, "Empleo informal  ·  clasificación",
-         "Estima la probabilidad de que el empleo sea informal, también con "
-         "Gradient Boosting, sobre las mismas once variables.")):
-    _, tf = panel(s, x, y + 3.14, ANCHO_CAP, 1.48)
+         "Estima la probabilidad de que el empleo sea informal, con las "
+         "mismas 11 variables.")):
+    _, tf = panel(s, x, y + 3.46, ANCHO_CAP, 1.28)
     parrafo(tf, etq.upper(), tam=T_ETIQUETA, color="texto_tenue", fuente=MONO,
-            primero=True, esp_despues=6)
-    parrafo(tf, txt, tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.06)
-pie_fuente(s, f"capturas de la app desplegada en Streamlit Community Cloud "
-              f"({APP_URL}).")
-notas(s, f"La app tiene cuatro secciones; estas son las dos que hacen "
-         f"predicción. A la izquierda, el formulario del regresor: se describe "
-         f"un perfil laboral y devuelve un ingreso mensual típico en soles. A "
-         f"la derecha, la pestaña de informalidad: con las mismas once "
-         f"variables devuelve una probabilidad y, según dónde se ponga el "
-         f"umbral, un veredicto. Son dos modelos independientes que comparten "
-         f"las entradas, no un modelo con dos salidas. Las otras dos secciones "
-         f"son el torneo de modelos y la ficha técnica. Y toda la app se "
-         f"explica sola: cada sección tiene una lectura llana y un expander de "
-         f"detalle técnico, los gráficos etiquetan qué es DATO, qué es "
-         f"MECÁNICA y qué es HIPÓTESIS, la matriz de confusión está nombrada "
-         f"en castellano, y hay {N_REFERENCIAS} referencias bibliográficas con "
-         f"el enlace comprobado una a una. Nadie necesita abrir el código para "
-         f"entender qué está viendo.")
+            primero=True, esp_despues=5)
+    parrafo(tf, txt, tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.04)
+pie_fuente(s, f"INFORME_AUDITORIA.md §4 (embudo) · models/feature_schema.json "
+              f"(variables) · capturas de la app desplegada ({APP_URL}).")
+notas(s, f"Primero la base, que es la franja de arriba: microdatos públicos "
+         f"de la ENAHO 2025 del INEI, tres módulos —el 02 de miembros del "
+         f"hogar, el 03 de educación y el 05 de empleo e ingresos— cruzados "
+         f"por persona. Tras los filtros documentados quedan "
+         f"{EMBUDO['torneo']} trabajadores con ingreso laboral, descritos por "
+         f"once variables: cinco numéricas y seis categóricas, las mismas "
+         f"para los dos modelos; el detalle variable a variable viene unas "
+         f"láminas más adelante. Sobre esa base, la app tiene cuatro "
+         f"secciones y estas son las dos que hacen predicción. A la "
+         f"izquierda, el formulario del regresor: se describe un perfil "
+         f"laboral y devuelve un ingreso mensual típico en soles. A la "
+         f"derecha, la pestaña de informalidad: con las mismas once variables "
+         f"devuelve una probabilidad y, según dónde se ponga el umbral, un "
+         f"veredicto. Son dos modelos independientes que comparten las "
+         f"entradas, no un modelo con dos salidas. Y toda la app se explica "
+         f"sola: lectura llana con expander técnico, gráficos etiquetados "
+         f"como DATO, MECÁNICA o HIPÓTESIS, la matriz de confusión en "
+         f"castellano, y {N_REFERENCIAS} referencias con el enlace comprobado "
+         f"una a una. Nadie necesita abrir el código para entender qué está "
+         f"viendo.")
 
 # ---------------------------------------------------------------------------
 # Lámina 3 — la arquitectura, el ancla del mazo
@@ -1201,39 +1228,69 @@ notas(s, f"La guía pide comparar Random Forest y Gradient Boosting, y esta "
 # ---------------------------------------------------------------------------
 s = lamina()
 _orden = sorted(zip(IMP_REG["variables"], IMP_REG["media"]), key=lambda t: -t[1])
-y = titulo(s, "La categoría ocupacional y la educación son las variables que "
-              "más cargan el regresor",
-           "Con el modelo ya entrenado, desordenamos una columna a la vez y "
-           "medimos cuánto empeora el error promedio. Mide cuánto la usa el "
-           "modelo, no qué la causa.")
+_orden_clf = sorted(zip(IMP_CLF["variables"], IMP_CLF["media"]),
+                    key=lambda t: -t[1])
+# El título afirma que el trío es el mismo en ambos modelos. Se comprueba,
+# no se supone: si algún día los artefactos divergen, no se genera una
+# lámina que afirma algo que dejó de ser cierto.
+if ({v for v, _ in _orden[:3]} != {v for v, _ in _orden_clf[:3]}):
+    raise SystemExit(
+        "El top 3 de importancia ya no coincide entre regresor y "
+        "clasificador: el título de la lámina de variables lo afirma. "
+        "Revísalo antes de generar.")
+y = titulo(s, "Las mismas tres variables cargan los dos modelos: categoría, "
+              "educación y tamaño de empresa",
+           "Con cada modelo ya entrenado, desordenamos una columna a la vez "
+           "y medimos cuánto empeora: soles de error en el regresor, puntos "
+           "de PR-AUC en el clasificador. Uso, no causa.")
 imagen_encajada(s, F_IMP, MARGEN, y, 8.00, 4.55)
-tarjeta(s, 8.86, y + 0.15, 3.85, 1.90, "categoría ocupacional",
-        f"S/ {n(_orden[0][1])}",
-        "Lo que sube el error al mes si el modelo se queda sin ella.",
-        color_cifra="acento")
-tarjeta(s, 8.86, y + 2.20, 3.85, 1.90, "años de educación",
-        f"S/ {n(_orden[1][1])}",
-        "La segunda que más usa el modelo, con el mismo cálculo.",
-        color_cifra="acento")
-pie_fuente(s, f"models/ui_artifacts.json (regresor.importancia_permutacion): "
-              f"{IMP_REG['n_repeticiones']} repeticiones sobre "
-              f"{n(IMP_REG['n_filas'])} filas de test")
+tarjeta(s, 8.86, y + 0.05, 3.85, 1.38, "categoría ocupacional",
+        f"S/ {n(_orden[0][1])}", "Soles de error si se pierde.",
+        color_cifra="acento", tam_cifra=30)
+tarjeta(s, 8.86, y + 1.53, 3.85, 1.38, "años de educación",
+        f"S/ {n(_orden[1][1])}", "La segunda, mismo cálculo.",
+        color_cifra="acento", tam_cifra=30)
+# El clasificador, con su propia métrica: cuántos puntos de PR-AUC pierde
+# al barajar cada variable. Etiquetas cortas porque en 3,85" no caben las
+# del formulario.
+_ETI_CORTA = {"tamano_empresa": "tamaño de empresa",
+              "categoria": "categoría ocupacional",
+              "anios_educ": "años de educación",
+              "horas_total": "horas semanales"}
+_, tf = panel(s, 8.86, y + 3.01, 3.85, 1.66, relleno="acento_fondo",
+              borde="acento")
+parrafo(tf, "Y EN EL CLASIFICADOR · TOP 3", tam=T_ETIQUETA,
+        color="acento_alto", fuente=MONO, primero=True, esp_despues=4)
+for _nom, _med in _orden_clf[:3]:
+    parrafo_mixto(tf, [
+        (_ETI_CORTA.get(_nom, _nom), T_CUERPO, False, "texto", FUENTE),
+        (f"  −{d(_med, 3)}", T_CUERPO, True, "acento_alto", MONO),
+    ], esp_despues=2, esp_linea=1.0)
+parrafo(tf, "PUNTOS DE PR-AUC PERDIDOS", tam=T_ETIQUETA, color="texto_tenue",
+        fuente=MONO, esp_despues=0)
+pie_fuente(s, f"models/ui_artifacts.json (importancia_permutacion del "
+              f"regresor y del clasificador): {IMP_REG['n_repeticiones']} "
+              f"repeticiones sobre {n(IMP_REG['n_filas'])} filas de test en "
+              f"ambos")
 notas(s, f"Tomamos una variable, desordenamos sus valores al azar entre las "
-         f"personas, y medimos cuántos soles más se equivoca el modelo. La "
-         f"categoría ocupacional sube el error en unos S/ {n(_orden[0][1])} "
-         f"al mes y los años de educación en unos S/ {n(_orden[1][1])}. Ojo "
-         f"con la lectura: esto mide cuánto usa el modelo cada variable, no "
-         f"cuánto causa cada variable en el ingreso real. Para la lectura "
-         f"causal está el modelo explicativo E6, una regresión ponderada "
-         f"aparte que está en la app: ahí cada año de educación se asocia a "
-         f"un {d(E6['efectos_pct']['anios_educ'], 1)} % más de ingreso y "
-         f"vivir en zona urbana a un {d(E6['efectos_pct']['urbano'], 1)} % "
-         f"más. En el clasificador hicimos además una ablación estructural: "
-         f"quitar el tamaño de empresa y la categoría ocupacional baja el "
-         f"PR-AUC de {d(float(ABLACION[0]['PRAUC_cv']), 4)} a "
-         f"{d(float(ABL_V2['PRAUC_cv']), 4)}; esas dos variables llevan gran "
-         f"parte de la señal, lo cual es coherente con cómo se define la "
-         f"informalidad.")
+         f"personas, y medimos cuánto empeora cada modelo ya entrenado. En "
+         f"el regresor eso se mide en soles: la categoría ocupacional sube "
+         f"el error en unos S/ {n(_orden[0][1])} al mes y los años de "
+         f"educación en unos S/ {n(_orden[1][1])}. En el clasificador, el "
+         f"mismo ejercicio se mide en puntos de PR-AUC: barajar el tamaño de "
+         f"empresa le quita {d(_orden_clf[0][1], 3)}, la categoría "
+         f"ocupacional {d(_orden_clf[1][1], 3)} y los años de educación "
+         f"{d(_orden_clf[2][1], 3)}. Es el mismo trío en los dos modelos, en "
+         f"distinto orden — y coherente con la ablación estructural: quitar "
+         f"tamaño y categoría juntas baja el PR-AUC de "
+         f"{d(float(ABLACION[0]['PRAUC_cv']), 4)} a "
+         f"{d(float(ABL_V2['PRAUC_cv']), 4)}. Ojo con la lectura: esto mide "
+         f"cuánto usa cada modelo la variable, no cuánto causa la variable "
+         f"en la realidad. Para la lectura causal está el modelo explicativo "
+         f"E6, una regresión ponderada aparte que está en la app: ahí cada "
+         f"año de educación se asocia a un "
+         f"{d(E6['efectos_pct']['anios_educ'], 1)} % más de ingreso y vivir "
+         f"en zona urbana a un {d(E6['efectos_pct']['urbano'], 1)} % más.")
 
 # ---------------------------------------------------------------------------
 # Lámina 10 — verificación local = nube, los dos modelos (guía)
