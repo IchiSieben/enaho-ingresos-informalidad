@@ -58,7 +58,7 @@ GRAFICOS_REQUERIDOS = [
     "envolver", "franja_probabilidad", "matriz_confusion",
     "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
     "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
-    "viaje_dato",
+    "viaje_dato", "miniatura_pd",
 ]
 
 # Claves del artefacto sin las que una sección no puede dibujarse. Se listan
@@ -117,7 +117,7 @@ SECCIONES = [
     ("informalidad", "Empleo informal"),
     ("torneo", "Torneo de modelos"),
     ("ficha", "Ficha técnica"),
-    ("maquinas", "⚙ Sala de máquinas"),
+    ("maquinas", "⚙ Cómo se hizo"),
 ]
 DERIVADAS = {"exper", "exper2"}   # las calcula la app, no el usuario
 
@@ -1507,6 +1507,12 @@ def _kb(b) -> str:
     return "—" if b is None else n(b / 1024, 1) + " KB"
 
 
+def _enlace_pie(texto: str, ruta: str) -> str:
+    """Chip-enlace al archivo exacto en GitHub, en pestaña nueva."""
+    return (f"<a class='chip-evidencia' target='_blank' rel='noopener' "
+            f"href='{BLOB}/{quote(ruta)}'>{escape(texto)}</a>")
+
+
 def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
     """Contenido de las seis estaciones; toda cifra viene de un artefacto."""
     reg = schema["regresor"]
@@ -1551,7 +1557,8 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
               "GitHub ni a la nube."),
              ("filas crudas · módulo 05", n(crudo) if crudo else "—",
               "Cada fila es una persona encuestada."),
-         ]},
+         ],
+         "codigo": [("ver el código →", "src/00_inventario.py")]},
         {"titulo": "Limpieza", "sub": (f"{n(muestra)} filas" if muestra else "—"),
          "entra": f"Las {n(crudo)} filas crudas más la educación y demografía "
                   "de los módulos 02 y 03.",
@@ -1572,7 +1579,9 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
              ("TFNR excluidos", n(tfnr.get("filas", 0)) if tfnr else "—",
               "Trabajadores familiares no remunerados: trabajan, pero sin "
               "sueldo no hay cifra que aprender."),
-         ]},
+         ],
+         "codigo": [("ver el código →", "src/03_fase1_preparacion.py"),
+                    ("el embudo auditado (§4) →", "INFORME_AUDITORIA.md")]},
         {"titulo": "Torneo", "sub": f"{len(tabla)} recetas" if tabla else "—",
          "entra": f"El train de {n(split.get('train', 0))} filas en "
                   "validación cruzada de 5 pliegues; el test no opina.",
@@ -1590,7 +1599,8 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
               "Cuánto se equivoca por persona, medido sin tocar el test."),
              ("recetas comparadas", str(len(tabla)) if tabla else "—",
               "Mismas filas, mismos pliegues: solo cambia la receta."),
-         ]},
+         ],
+         "codigo": [("ver el código →", "src/04_torneo_regresion.py")]},
         {"titulo": "Entrenamiento", "sub": "2 × .joblib",
          "entra": f"La receta ganadora y las {n(split.get('train', 0))} filas "
                   "de entrenamiento.",
@@ -1608,7 +1618,9 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
               "El detector de empleo informal."),
              ("corrección de Duan", f"× {d(float(reg['smearing_duan']), 4)}",
               "Una constante calculada al entrenar; la app solo multiplica."),
-         ]},
+         ],
+         "codigo": [("ver el código →", "src/07_guardar_regresor.py"),
+                    ("el clasificador →", "src/06_entrenar_clasificador.py")]},
         {"titulo": "Artefactos", "sub": "3 × JSON",
          "entra": "Los modelos entrenados y los microdatos, por última vez.",
          "decide": "Todo lo que la app va a dibujar se calcula AQUÍ, una sola "
@@ -1624,7 +1636,8 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
               "solo carga lo precomputado."),
              ("feature_schema.json", _kb(modelos.get("feature_schema.json")),
               "El contrato del formulario: variables, rangos y opciones."),
-         ]},
+         ],
+         "codigo": [("ver el código →", "src/09_precomputar_ui.py")]},
         {"titulo": "Nube", "sub": _mb(tam.get("repo_versionado_bytes")),
          "entra": f"El repositorio versionado: {n(tam.get('repo_archivos', 0))} "
                   f"archivos, {_mb(tam.get('repo_versionado_bytes'))} — "
@@ -1647,7 +1660,8 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
               "La misma versión que entrenó los modelos: un .joblib no es "
               "portable entre versiones."),
          ],
-         "nota": nota_nube},
+         "nota": nota_nube,
+         "codigo": [("ver el código →", "app/streamlit_app.py")]},
     ]
 
 
@@ -1851,7 +1865,7 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
     maq = cargar_maquinas()
 
     cabecera(
-        "⚙ Sala de máquinas — cómo se construyó",
+        "Cómo se hizo, paso a paso — de la encuesta del INEI a la app",
         "Esta pestaña abre el capó: el recorrido de los datos desde los CSV "
         "del INEI hasta la página que estás viendo, los filtros con sus "
         "recortes, el motor de la predicción paso a paso y un explorador "
@@ -1890,8 +1904,14 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         elegido = st.radio("Estación", titulos, horizontal=True,
                            key="maq_estacion", label_visibility="collapsed")
     idx = titulos.index(elegido) if elegido in titulos else 0
+    # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. El
+    # selector manual de arriba sigue mandando sobre el panel de detalle.
+    animado = st.toggle("▶ Ver el viaje en movimiento", key="maq_viaje_anim",
+                        help="Un punto recorre las seis estaciones en bucle "
+                             "(12 s por vuelta). El detalle de abajo lo "
+                             "sigue eligiendo el selector.")
     grafico(graficos.viaje_dato(titulos, [e["sub"] for e in estaciones],
-                                idx, T()), 150)
+                                idx, T(), animado=animado), 168)
     est = estaciones[idx]
     c1, c2, c3 = st.columns(3, gap="medium")
     for col, rotulo, texto in ((c1, "Qué entra", est["entra"]),
@@ -1906,6 +1926,10 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
          + "</div>")
     if est.get("nota"):
         html(f"<div class='sutil' style='margin-top:8px'>{est['nota']}</div>")
+    if est.get("codigo"):
+        html("<div style='margin-top:10px'>"
+             + " ".join(_enlace_pie(t, r) for t, r in est["codigo"])
+             + "</div>")
     with st.expander("¿Qué principio hay aquí? · viaje"):
         html("<div class='sutil'>Precómputo y fuente única: la app no "
              "calcula al abrirse — todo lo que este viaje muestra lo generó "
@@ -1976,6 +2000,20 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         html("<div class='senal senal-aviso'><div>▲</div><div>El artefacto "
              "no trae la dependencia parcial del regresor.</div></div>")
     else:
+        # El panorama: las 9 formas de un vistazo, todas precomputadas. No es
+        # interactivo a propósito — para el detalle está el selector de abajo.
+        html("<div class='eyebrow'>El panorama · las 9 curvas de un "
+             "vistazo</div>")
+        cols9 = st.columns(3, gap="medium")
+        for j, f9 in enumerate(feats):
+            p9 = pd_reg[f9["nombre"]]
+            with cols9[j % 3]:
+                grafico(graficos.miniatura_pd(
+                    p9["valores"], p9["efecto"], p9["tipo"], T()), 70)
+                html(f"<div class='sutil' style='margin-top:-8px;"
+                     f"text-align:center'>"
+                     f"{escape(f9.get('etiqueta', f9['nombre']))}</div>")
+        st.write("")
         feat = st.selectbox(
             "Variable", feats,
             format_func=lambda f: f.get("etiqueta", f["nombre"]),
@@ -1998,6 +2036,34 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         html("<div class='sutil'>¿Por qué 9 y no 11? Experiencia y "
              "experiencia² van atadas — moverlas por separado sería un "
              "perfil imposible.</div>")
+
+        # Modo delta: dos puntos YA precomputados de la misma curva; el
+        # selector no toca el modelo.
+        st.write("")
+        html("<div class='eyebrow'>¿Y si cambia? · el delta sobre la "
+             "curva</div>")
+        vals = perfil["valores"]
+        etiqs = ([d(float(v), 1) for v in vals]
+                 if perfil["tipo"] == "numerico" else [str(v) for v in vals])
+        c_de, c_a = st.columns(2)
+        with c_de:
+            i_de = st.selectbox("de …", range(len(vals)), index=0,
+                                format_func=lambda i: etiqs[i],
+                                key=f"maq_delta_de_{nombre}")
+        with c_a:
+            i_a = st.selectbox("a …", range(len(vals)),
+                               index=len(vals) - 1,
+                               format_func=lambda i: etiqs[i],
+                               key=f"maq_delta_a_{nombre}")
+        delta = float(perfil["efecto"][i_a]) - float(perfil["efecto"][i_de])
+        signo = "+" if delta >= 0 else "−"
+        html("<div class='rejilla-tarjetas'>" + tarjeta(
+            f"pasar de {escape(etiqs[i_de])} a {escape(etiqs[i_a])}",
+            f"≈ {signo}S/ {n(abs(delta))}",
+            nota="Diferencia que describe el modelo, no un efecto causal.",
+            llano="al mes, para el perfil promedio: dos puntos ya "
+                  "precomputados de la misma curva — nada se recalcula.")
+            + "</div>")
     with st.expander("¿Qué principio hay aquí? · explorador"):
         html("<div class='sutil'>Precómputo puro: cada curva son 20 puntos "
              "que <code>src/09</code> calculó una sola vez sobre 5.000 "
