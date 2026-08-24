@@ -40,6 +40,11 @@ torneo = import_module("04_torneo_regresion")
 RAIZ = Path(__file__).resolve().parents[1]
 RUTA_SALIDA = DIR_MODELS / "ui_artifacts.json"
 RUTA_OOF = DIR_MODELS / "_oof_clasificador.npy"
+# Artefacto HERMANO de ui_artifacts.json para la pestaña «Sala de máquinas».
+# Va en archivo aparte a propósito: la presentación congelada del 25/08/2026
+# cita el tamaño en disco de ui_artifacts.json (44,7 KB) y verificar_ppt.py lo
+# mide con stat(); ese archivo no puede crecer ni un byte sin romper el PPT.
+RUTA_MAQUINAS = DIR_MODELS / "ui_maquinas.json"
 
 N_JOBS = 8
 N_PD = 5_000
@@ -442,6 +447,116 @@ def artefactos_torneo(df: pd.DataFrame) -> dict:
 
 
 # --------------------------------------------------------------------------
+# Bloque "sala de maquinas": embudo auditado + tamanos medidos -> ui_maquinas.json
+# --------------------------------------------------------------------------
+def _cifra_informe(texto: str, patron: str) -> int:
+    """Entero con puntos de miles leido del informe; aborta si no aparece."""
+    m = re.search(patron, texto)
+    if not m:
+        raise SystemExit(f"INFORME_AUDITORIA.md: no se encontro {patron!r}. "
+                         "Se aborta sin escribir ui_maquinas.json.")
+    return int(m.group(1).replace(".", ""))
+
+
+def embudo_auditado() -> dict:
+    """
+    El embudo NO se recalcula aqui: se LEE de INFORME_AUDITORIA.md §4 (que a su
+    vez lo reconstruyo reejecutando src/03 sobre los microdatos) y se verifica
+    con aritmetica. Si el informe cambia y las restas dejan de cuadrar, esto
+    aborta en vez de publicar un embudo inconsistente. Los porques de cada
+    filtro son prosa y viven en la app; aqui solo van los numeros y su fuente.
+    """
+    t = (RAIZ / "INFORME_AUDITORIA.md").read_text(encoding="utf-8")
+    crudo = _cifra_informe(t, r"Módulo 05 — Empleo e ingresos \(crudo\)\s+([\d.]+)")
+    rec_ocupados = _cifra_informe(t, r"ocupados \(OCU500 = 1\)\s+−([\d.]+)")
+    ocupados = _cifra_informe(t, r"\nOcupados\s+([\d.]+)")
+    rec_edad_ing = _cifra_informe(t, r"ingreso laboral mensual > 0\s+−([\d.]+)")
+    tfnr = _cifra_informe(t, r"TFNR \(P507 = 5\): ([\d.]+) filas")
+    tfnr_pond = _cifra_informe(t, r"\(([\d.]+) personas ponderadas\)")
+    modelado = _cifra_informe(t, r"Dataset de modelado\s+([\d.]+) filas")
+    rec_completos = _cifra_informe(t, r"e ingreso\s+−([\d.]+)\s+\(0,6")
+    muestra = _cifra_informe(t, r"Muestra del torneo E1–E9\s+([\d.]+)")
+    train = _cifra_informe(t, r"Train ([\d.]+)")
+    test = _cifra_informe(t, r"Test ([\d.]+)")
+
+    cuentas = {
+        "crudo - ocupados": crudo - rec_ocupados == ocupados,
+        "ocupados - edad/ingreso": ocupados - rec_edad_ing == modelado,
+        "modelado - incompletos": modelado - rec_completos == muestra,
+        "train + test": train + test == muestra,
+    }
+    if not all(cuentas.values()):
+        raise SystemExit(f"El embudo del informe no cuadra: {cuentas}. "
+                         "Se aborta sin escribir ui_maquinas.json.")
+
+    return {
+        "fuente": ("INFORME_AUDITORIA.md §4 — embudo reconstruido "
+                   "reejecutando src/03_fase1_preparacion.py"),
+        "etapas": [
+            {"clave": "crudo", "titulo": "Módulo 05 crudo",
+             "filas": crudo, "recorte": 0},
+            {"clave": "ocupados", "titulo": "Ocupados",
+             "filas": ocupados, "recorte": rec_ocupados},
+            {"clave": "modelado", "titulo": "Dataset de modelado",
+             "filas": modelado, "recorte": rec_edad_ing},
+            {"clave": "torneo", "titulo": "Muestra del torneo E1–E9",
+             "filas": muestra, "recorte": rec_completos},
+        ],
+        "tfnr": {"filas": tfnr, "personas_ponderadas": tfnr_pond},
+        "split": {"train": train, "test": test,
+                  "descripcion": "80/20, random_state = 42"},
+    }
+
+
+def tamanos_medidos() -> dict:
+    """Bytes medidos de disco al generar; la app los formatea al mostrarlos."""
+    def mide(ruta: Path):
+        return ruta.stat().st_size if ruta.exists() else None
+
+    modelos = {x: mide(DIR_MODELS / x) for x in (
+        "regresor_e9.joblib", "clasificador_gb.joblib",
+        "feature_schema.json", "ui_artifacts.json")}
+    data = RAIZ / "data"
+    data_bytes = (sum(x.stat().st_size for x in data.rglob("*") if x.is_file())
+                  if data.exists() else None)
+    repo_bytes = repo_archivos = None
+    try:
+        out = subprocess.run(["git", "ls-files"], cwd=RAIZ, capture_output=True,
+                             text=True, timeout=15)
+        rutas = [p for p in out.stdout.splitlines() if p]
+        if rutas:
+            repo_archivos = len(rutas)
+            repo_bytes = sum((RAIZ / p).stat().st_size for p in rutas
+                             if (RAIZ / p).exists())
+    except Exception:
+        pass
+    return {
+        "modelos_bytes": modelos,
+        "data_bytes": data_bytes,
+        "torneo_frame_bytes": mide(DIR_PROCESSED / "torneo_frame.parquet"),
+        "repo_versionado_bytes": repo_bytes,
+        "repo_archivos": repo_archivos,
+    }
+
+
+def escribir_maquinas() -> None:
+    artefactos = {
+        "embudo": embudo_auditado(),
+        "tamanos": tamanos_medidos(),
+        "meta": {
+            "generado_por": "src/09_precomputar_ui.py",
+            "fecha_generacion": datetime.now(timezone.utc)
+                                        .strftime("%Y-%m-%d %H:%M UTC"),
+            "commit": hash_commit(),
+        },
+    }
+    escribir_json_atomico(
+        RUTA_MAQUINAS,
+        json.dumps(artefactos, ensure_ascii=False, separators=(",", ":")))
+    log(f"{RUTA_MAQUINAS.name}: {RUTA_MAQUINAS.stat().st_size / 1024:.1f} KB")
+
+
+# --------------------------------------------------------------------------
 def main() -> None:
     schema = json.loads(RUTA_SCHEMA.read_text(encoding="utf-8"))
     artefactos: dict = {}
@@ -593,7 +708,15 @@ def main() -> None:
     log(f"\n{RUTA_SALIDA.name}: {kb:.1f} KB")
     if kb > 500:
         log("*** AVISO: supera el objetivo de 500 KB ***")
+    escribir_maquinas()
 
 
 if __name__ == "__main__":
-    main()
+    # --solo-maquinas regenera UNICAMENTE ui_maquinas.json: no toca
+    # ui_artifacts.json ni necesita datos ni modelos. Es la via para publicar
+    # cifras nuevas en la UI con la presentacion congelada (que cita el tamano
+    # en disco de ui_artifacts.json).
+    if "--solo-maquinas" in sys.argv:
+        escribir_maquinas()
+    else:
+        main()

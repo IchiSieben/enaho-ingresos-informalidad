@@ -141,3 +141,35 @@ def test_la_carga_se_invalida_cuando_el_archivo_cambia(tmp_path, monkeypatch):
     ruta.write_text(json.dumps({"v": 2, "relleno": "x" * 50}), encoding="utf-8")
     v2 = app.firma_artefactos()
     assert v1 != v2, "la firma no cambia al cambiar el archivo: la caché se queda pegada"
+
+
+# --------------------------------------------------------------------------
+# Sala de máquinas — el artefacto hermano (ui_maquinas.json)
+# --------------------------------------------------------------------------
+# Va en archivo aparte porque la presentación congelada cita el tamaño en
+# disco de ui_artifacts.json: ese archivo no puede crecer. Mismos contratos:
+# que exista lo que la sección dibuja, y que el embudo publicado cuadre.
+def _maquinas() -> dict:
+    ruta = RAIZ / "models" / "ui_maquinas.json"
+    if not ruta.exists():
+        pytest.skip("no hay models/ui_maquinas.json en este entorno")
+    return json.loads(ruta.read_text(encoding="utf-8"))
+
+
+def test_maquinas_trae_lo_que_la_sala_exige():
+    maq = _maquinas()
+    claves = [e["clave"] for e in maq["embudo"]["etapas"]]
+    assert claves == ["crudo", "ocupados", "modelado", "torneo"]
+    assert {"train", "test"} <= set(maq["embudo"]["split"])
+    assert "modelos_bytes" in maq["tamanos"]
+
+
+def test_el_embudo_publicado_cuadra():
+    """Cada recorte debe explicar exactamente la diferencia entre etapas."""
+    emb = _maquinas()["embudo"]
+    etapas = emb["etapas"]
+    for previa, actual in zip(etapas, etapas[1:]):
+        assert previa["filas"] - actual["recorte"] == actual["filas"], (
+            f"de «{previa['clave']}» a «{actual['clave']}» las cuentas no "
+            f"cuadran")
+    assert emb["split"]["train"] + emb["split"]["test"] == etapas[-1]["filas"]

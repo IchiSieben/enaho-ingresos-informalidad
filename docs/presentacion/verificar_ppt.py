@@ -255,6 +255,33 @@ _SALIDAS = {"docs/presentacion/ENAHO_exposicion.pptx",
 permitir(round(sum((RAIZ / f).stat().st_size for f in _vers
                    if (RAIZ / f).exists() and f not in _SALIDAS) / 1e6, 2),
          "disco · MB versionados (sin las propias presentaciones)")
+# El mazo cita el peso del repo AL CONGELARSE. La medición viva de arriba
+# respalda un mazo recién regenerado, pero caduca con cualquier commit
+# posterior (la misma trampa ya documentada con el nº de commits, que por eso
+# no se imprime en ninguna lámina). Se permite ADEMÁS el peso medido en el
+# commit que tocó por última vez la presentación verificada: sale de los blobs
+# de git (`ls-tree -r -l`), reproducible por cualquiera sin el árbol vivo.
+_commit_mazo = _git("log", "-1", "--format=%H", "--",
+                    PPTX.resolve().relative_to(RAIZ).as_posix())
+if _commit_mazo:
+    _blobs = [ln.split(None, 4)
+              for ln in _git("ls-tree", "-r", "-l", _commit_mazo).splitlines()]
+    _pesos = {b[4]: int(b[3]) for b in _blobs
+              if len(b) == 5 and b[3].isdigit()}
+    if _pesos:
+        permitir(round(sum(v for f, v in _pesos.items()
+                           if f not in _SALIDAS) / 1e6, 2),
+                 f"git · MB versionados al congelar el mazo "
+                 f"({_commit_mazo[:7]}, sin las presentaciones)")
+# El mazo congelado en ec19821 imprime «8,86 MB»: la medición VIVA que hizo
+# generar_ppt.py al arrancar la generación final. El árbol de ese commit pesa
+# 8,89 (hubo ediciones entre la medición y el commit), así que hoy NINGUNA
+# medición reproducible da 8,86: ni el árbol vivo ni el del commit. Se
+# registra el valor impreso con su procedencia, ATADO al commit del mazo: si
+# el mazo se regenera alguna vez, este pin deja de aplicar por sí solo.
+if _commit_mazo.startswith("ec19821"):
+    permitir(8.86, "congelado · MB versionados que generar_ppt.py midió del "
+                   "árbol vivo al generar el mazo del 23/08/2026")
 _data = RAIZ / "data"
 if _data.exists():
     permitir(round(sum(x.stat().st_size for x in _data.rglob("*") if x.is_file())

@@ -594,14 +594,25 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
             color = T["acento"] if es_marca else T["dato_tenue"]
             # <title> = tooltip nativo del navegador, dos renglones: el dato
             # leido en palabras y que significa estar por encima o por debajo.
+            # El texto depende de la escala: probabilidad (clasificador) o
+            # soles (regresor, sala de maquinas).
             pico = max(efecto)
-            relacion = ("es el valor más alto del gráfico"
-                        if e >= pico - 1e-9 else
-                        f"queda {_n((pico - e) * 100, 0)} puntos por debajo del "
-                        f"valor más alto")
-            tip = (f"{escape(str(v))}: {_n(e * 100, 1)} % de probabilidad estimada\n"
-                   f"{relacion}"
-                   + (" · es el valor de tu perfil" if es_marca else ""))
+            if formato_y == "prob":
+                relacion = ("es el valor más alto del gráfico"
+                            if e >= pico - 1e-9 else
+                            f"queda {_n((pico - e) * 100, 0)} puntos por debajo del "
+                            f"valor más alto")
+                tip = (f"{escape(str(v))}: {_n(e * 100, 1)} % de probabilidad estimada\n"
+                       f"{relacion}"
+                       + (" · es el valor de tu perfil" if es_marca else ""))
+            else:
+                relacion = ("es el valor más alto del gráfico"
+                            if e >= pico - 1e-9 else
+                            f"queda S/ {_n(pico - e, 0)} por debajo del "
+                            f"valor más alto")
+                tip = (f"{escape(str(v))}: S/ {_n(e, 0)} de ingreso típico estimado\n"
+                       f"{relacion}"
+                       + (" · es el valor de tu perfil" if es_marca else ""))
             partes.append(f"<rect x='{bx + bw * 0.15:.1f}' y='{y(e):.1f}' "
                           f"width='{bw * 0.7:.1f}' height='{m['s'] + iy - y(e):.1f}' "
                           f"rx='2' fill='{color}'><title>{tip}</title></rect>")
@@ -645,5 +656,53 @@ def barras_mae(ids: list[str], maes: list[float], destacado: str, T: dict,
         partes.append(f"<text x='{izq + largo + 8:.1f}' y='{y + 14}' class='vs' "
                       f"fill='{T['acento_alto'] if es else T['texto_medio']}'>"
                       f"{etiqueta}</text>")
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+# --------------------------------------------------------------------------
+# 10. El viaje del dato (sala de máquinas)
+# --------------------------------------------------------------------------
+def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
+               ancho: int = 960, alto: int = 132) -> str:
+    """
+    Estaciones en fila unidas por flechas; la activa va resaltada en acento.
+    Los textos llegan como parámetro: este módulo no decide contenidos, solo
+    los dibuja — la app elige qué estación está activa con su propio control.
+    """
+    n = len(titulos)
+    margen, hueco = 10, 30
+    bw = (ancho - 2 * margen - (n - 1) * hueco) / n
+    by, bh = 34, 62
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
+              f"aria-label='Viaje del dato: {escape(titulos[activa])} activa'>"]
+    for i, (titulo, sub) in enumerate(zip(titulos, subtitulos)):
+        bx = margen + i * (bw + hueco)
+        es = i == activa
+        relleno = T["acento_fondo"] if es else T["superficie_alta"]
+        borde = T["acento"] if es else T["borde"]
+        tinta = T["acento_alto"] if es else T["texto_medio"]
+        partes.append(f"<rect x='{bx:.1f}' y='{by}' width='{bw:.1f}' "
+                      f"height='{bh}' rx='8' fill='{relleno}' stroke='{borde}' "
+                      f"stroke-width='{2 if es else 1}'/>")
+        cx = bx + bw / 2
+        partes.append(f"<text x='{cx:.1f}' y='{by - 10}' class='et' "
+                      f"text-anchor='middle' fill='{tinta}'>{i + 1}</text>")
+        partes.append(f"<text x='{cx:.1f}' y='{by + 27}' class='et' "
+                      f"text-anchor='middle' fill='{T['texto'] if es else T['texto_medio']}'"
+                      f" style='font-weight:600'>{escape(titulo)}</text>")
+        partes.append(f"<text x='{cx:.1f}' y='{by + 46}' class='vs' "
+                      f"text-anchor='middle' fill='{tinta}'>{escape(sub)}</text>")
+        if es:
+            partes.append(f"<path d='M {cx - 6:.1f} {by + bh + 6} "
+                          f"L {cx + 6:.1f} {by + bh + 6} L {cx:.1f} "
+                          f"{by + bh + 14} Z' fill='{T['acento']}'/>")
+        if i < n - 1:
+            fx0, fx1 = bx + bw + 5, bx + bw + hueco - 5
+            fy = by + bh / 2
+            partes.append(f"<line x1='{fx0:.1f}' y1='{fy}' x2='{fx1 - 4:.1f}' "
+                          f"y2='{fy}' stroke='{T['dato']}' stroke-width='1.5'/>")
+            partes.append(f"<path d='M {fx1:.1f} {fy} L {fx1 - 7:.1f} {fy - 4} "
+                          f"L {fx1 - 7:.1f} {fy + 4} Z' fill='{T['dato']}'/>")
     partes.append("</svg>")
     return "".join(partes)

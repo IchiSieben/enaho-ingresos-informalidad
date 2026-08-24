@@ -29,6 +29,7 @@ import re
 import sys
 from html import escape
 from pathlib import Path
+from time import perf_counter
 from urllib.parse import quote
 
 import joblib
@@ -57,6 +58,7 @@ GRAFICOS_REQUERIDOS = [
     "envolver", "franja_probabilidad", "matriz_confusion",
     "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
     "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
+    "viaje_dato",
 ]
 
 # Claves del artefacto sin las que una sección no puede dibujarse. Se listan
@@ -115,6 +117,7 @@ SECCIONES = [
     ("informalidad", "Empleo informal"),
     ("torneo", "Torneo de modelos"),
     ("ficha", "Ficha técnica"),
+    ("maquinas", "⚙ Sala de máquinas"),
 ]
 DERIVADAS = {"exper", "exper2"}   # las calcula la app, no el usuario
 
@@ -176,6 +179,31 @@ def _leer_artefactos(_firma: tuple) -> dict:
 
 def cargar_artefactos() -> dict:
     return _leer_artefactos(firma_artefactos())
+
+
+# ui_maquinas.json es HERMANO de ui_artifacts.json (ambos los escribe src/09).
+# Va en archivo aparte a propósito: la presentación congelada del 25/08/2026
+# cita el tamaño en disco de ui_artifacts.json (44,7 KB) y verificar_ppt.py lo
+# mide con stat() — ese archivo no puede crecer ni un byte. Las cifras nuevas
+# de la sala de máquinas viven aquí; las viejas no se tocan.
+def firma_maquinas() -> tuple:
+    ruta = DIR_MODELS / "ui_maquinas.json"
+    if not ruta.exists():
+        return ()
+    s = ruta.stat()
+    return (s.st_size, int(s.st_mtime))
+
+
+@st.cache_data(show_spinner=False)
+def _leer_maquinas(_firma: tuple) -> dict:
+    ruta = DIR_MODELS / "ui_maquinas.json"
+    if not ruta.exists():
+        return {}
+    return json.loads(ruta.read_text(encoding="utf-8"))
+
+
+def cargar_maquinas() -> dict:
+    return _leer_maquinas(firma_maquinas())
 
 
 @st.cache_resource(show_spinner=False)
@@ -1456,6 +1484,504 @@ def seccion_ficha(schema: dict, art: dict) -> None:
 
 
 # --------------------------------------------------------------------------
+# Sección 5: sala de máquinas — cómo se construyó
+# --------------------------------------------------------------------------
+# Sus cifras salen de models/ui_maquinas.json (hermano de ui_artifacts.json,
+# ambos de src/09) y de los artefactos ya existentes. Nada se calcula aquí,
+# salvo el «rayos X»: una predicción real cronometrada paso a paso.
+#
+# TODO(fase2): walkthrough del código por estación (enlaces blob/main a src/00-09).
+# TODO(fase2): quiz de autoevaluación al pie de cada sección.
+# TODO(fase2): comparador visual E1→E9 sobre torneo.tabla.
+def _mb(b) -> str:
+    return "—" if b is None else n(b / 1e6, 1) + " MB"
+
+
+def _kb(b) -> str:
+    return "—" if b is None else n(b / 1024, 1) + " KB"
+
+
+def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
+    """Contenido de las seis estaciones; toda cifra viene de un artefacto."""
+    reg = schema["regresor"]
+    tam = maq.get("tamanos", {})
+    modelos = tam.get("modelos_bytes", {})
+    emb = {e["clave"]: e for e in maq.get("embudo", {}).get("etapas", [])}
+    split = maq.get("embudo", {}).get("split", {})
+    tfnr = maq.get("embudo", {}).get("tfnr", {})
+    tabla = sorted(art.get("torneo", {}).get("tabla", []),
+                   key=lambda f: f["MAE_cv"])
+    autopsia = art.get("torneo", {}).get("autopsia", {})
+    meta = art.get("meta", {})
+
+    crudo = emb.get("crudo", {}).get("filas")
+    muestra = emb.get("torneo", {}).get("filas")
+    ganador, segundo = (tabla + [{}, {}])[:2]
+
+    return [
+        {"titulo": "Microdatos INEI", "sub": _mb(tam.get("data_bytes")),
+         "entra": "Tres archivos CSV públicos del INEI (ENAHO 2025): módulo "
+                  "02 (miembros del hogar), 03 (educación) y 05 (empleo e "
+                  "ingresos). Separados por «;», codificación latin-1 y hasta "
+                  "una columna con coma decimal — los datos reales llegan así.",
+         "decide": "Qué módulos sirven para la pregunta: 02, 03 y 05 se "
+                   "quedan; la Sumaria y los módulos 09/10 se descartaron "
+                   "porque no aportan variables a estos dos problemas.",
+         "sale": f"El módulo 05 crudo: {n(crudo)} filas de personas "
+                 "encuestadas, todavía con centinelas y sin filtrar.",
+         "tarjetas": [
+             ("microdatos en disco", _mb(tam.get("data_bytes")),
+              "Viven solo en la computadora de desarrollo: jamás suben a "
+              "GitHub ni a la nube."),
+             ("filas crudas · módulo 05", n(crudo) if crudo else "—",
+              "Cada fila es una persona encuestada."),
+         ]},
+        {"titulo": "Limpieza", "sub": (f"{n(muestra)} filas" if muestra else "—"),
+         "entra": f"Las {n(crudo)} filas crudas más la educación y demografía "
+                  "de los módulos 02 y 03.",
+         "decide": "Dos cosas: qué es un dato falso (el 999999 que el INEI "
+                   "usa como «no sabe» se convierte en vacío) y quién "
+                   "pertenece a la población de estudio — los filtros del "
+                   "embudo que se ve más abajo.",
+         "sale": f"{n(muestra)} trabajadores listos para el torneo, en un "
+                 f"parquet de {_mb(tam.get('torneo_frame_bytes'))}.",
+         "tarjetas": [
+             ("centinelas limpiados",
+              n(autopsia.get("n_centinelas", 0)) if autopsia else "—",
+              f"Con ellos dentro, una regresión de prueba salía absurda: R² "
+              f"{d(autopsia.get('corrida_sucia', {}).get('r2', 0), 2)} y hasta "
+              f"la educación «restaba» ingreso. Limpios: R² "
+              f"{d(autopsia.get('corrida_limpia', {}).get('r2', 0), 2)} y "
+              f"signos con sentido."),
+             ("TFNR excluidos", n(tfnr.get("filas", 0)) if tfnr else "—",
+              "Trabajadores familiares no remunerados: trabajan, pero sin "
+              "sueldo no hay cifra que aprender."),
+         ]},
+        {"titulo": "Torneo", "sub": f"{len(tabla)} recetas" if tabla else "—",
+         "entra": f"El train de {n(split.get('train', 0))} filas en "
+                  "validación cruzada de 5 pliegues; el test no opina.",
+         "decide": "Qué receta gana. Nueve especificaciones E1–E9 —de la "
+                   "regresión lineal simple al gradient boosting— compiten "
+                   "por el MAE de validación cruzada: un solo número por "
+                   "receta, decidido ANTES de mirar el test.",
+         "sale": (f"La receta {art.get('torneo', {}).get('desplegada', '—')} "
+                  f"elegida: se equivoca S/ {d(ganador.get('MAE_cv', 0), 1)} "
+                  f"al mes en promedio; la segunda ({segundo.get('ID', '—')}) "
+                  f"S/ {d(segundo.get('MAE_cv', 0), 1)}." if tabla else "—"),
+         "tarjetas": [
+             ("MAE_cv del ganador",
+              f"S/ {d(ganador.get('MAE_cv', 0), 1)}" if tabla else "—",
+              "Cuánto se equivoca por persona, medido sin tocar el test."),
+             ("recetas comparadas", str(len(tabla)) if tabla else "—",
+              "Mismas filas, mismos pliegues: solo cambia la receta."),
+         ]},
+        {"titulo": "Entrenamiento", "sub": "2 × .joblib",
+         "entra": f"La receta ganadora y las {n(split.get('train', 0))} filas "
+                  "de entrenamiento.",
+         "decide": "Los últimos números propios del modelo: entrenar el "
+                   "gradient boosting definitivo y calcular la corrección de "
+                   f"Duan (× {d(float(reg['smearing_duan']), 4)}) con "
+                   "residuos out-of-fold — nunca con el test.",
+         "sale": "Dos modelos serializados (.joblib) que viajan DENTRO del "
+                 "repositorio: la nube no reentrena, solo los lee.",
+         "tarjetas": [
+             ("regresor_e9.joblib", _kb(modelos.get("regresor_e9.joblib")),
+              "El estimador de ingreso, listo para predecir."),
+             ("clasificador_gb.joblib",
+              _kb(modelos.get("clasificador_gb.joblib")),
+              "El detector de empleo informal."),
+             ("corrección de Duan", f"× {d(float(reg['smearing_duan']), 4)}",
+              "Una constante calculada al entrenar; la app solo multiplica."),
+         ]},
+        {"titulo": "Artefactos", "sub": "3 × JSON",
+         "entra": "Los modelos entrenados y los microdatos, por última vez.",
+         "decide": "Todo lo que la app va a dibujar se calcula AQUÍ, una sola "
+                   "vez: curvas de umbral, dependencia parcial (11 variables "
+                   "× 20 puntos), importancia por permutación (9.000 filas × "
+                   "5 repeticiones), cohortes ponderadas.",
+         "sale": "Tres JSON pequeños: ui_artifacts.json, feature_schema.json "
+                 "y ui_maquinas.json (el de esta pestaña). Mover un control "
+                 "en la app no recalcula nada: lee de aquí.",
+         "tarjetas": [
+             ("ui_artifacts.json", _kb(modelos.get("ui_artifacts.json")),
+              f"De {_mb(tam.get('data_bytes'))} de microdatos a esto: la app "
+              "solo carga lo precomputado."),
+             ("feature_schema.json", _kb(modelos.get("feature_schema.json")),
+              "El contrato del formulario: variables, rangos y opciones."),
+         ]},
+        {"titulo": "Nube", "sub": _mb(tam.get("repo_versionado_bytes")),
+         "entra": f"El repositorio versionado: {n(tam.get('repo_archivos', 0))} "
+                  f"archivos, {_mb(tam.get('repo_versionado_bytes'))} — "
+                  "código, modelos, artefactos y presentación. Los microdatos "
+                  "NO.",
+         "decide": f"Qué viaja y qué no: data/ "
+                   f"({_mb(tam.get('data_bytes'))}) se queda; los .joblib y "
+                   "los JSON sí van. Y las versiones quedan fijadas en "
+                   "requirements.txt: la nube instala exactamente lo probado "
+                   "en local.",
+         "sale": "La app pública en Streamlit Community Cloud. Cada push a "
+                 "main la redespliega sola en unos minutos — esta pestaña "
+                 "llegó así.",
+         "tarjetas": [
+             ("sube a la nube", _mb(tam.get("repo_versionado_bytes")),
+              "Todo lo versionado en GitHub, presentación incluida."),
+             ("se queda en local", _mb(tam.get("data_bytes")),
+              "Los microdatos: pesan demasiado y la app no los necesita."),
+             ("scikit-learn fijado", meta.get("version_scikit_learn", "—"),
+              "La misma versión que entrenó los modelos: un .joblib no es "
+              "portable entre versiones."),
+         ]},
+    ]
+
+
+def _sankey_embudo(maq: dict) -> None:
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        html("<div class='senal senal-aviso'><div>▲</div><div>Falta "
+             "<code>plotly</code> (está en requirements.txt): el diagrama "
+             "del embudo no puede dibujarse.</div></div>")
+        return
+
+    Tt = T()
+    emb = maq["embudo"]
+    e = {x["clave"]: x for x in emb["etapas"]}
+    tfnr, split = emb["tfnr"], emb["split"]
+
+    def rgba(hexcolor: str, a: float) -> str:
+        h = hexcolor.lstrip("#")
+        return (f"rgba({int(h[0:2], 16)},{int(h[2:4], 16)},"
+                f"{int(h[4:6], 16)},{a})")
+
+    etiquetas = [
+        f"Módulo 05 crudo · {n(e['crudo']['filas'])}",
+        f"Ocupados · {n(e['ocupados']['filas'])}",
+        f"Dataset de modelado · {n(e['modelado']['filas'])}",
+        f"Muestra del torneo · {n(e['torneo']['filas'])}",
+        f"Train · {n(split['train'])}",
+        f"Test · {n(split['test'])}",
+        f"No ocupados · {n(e['ocupados']['recorte'])}",
+        f"Menores de 14 o sin ingreso · {n(e['modelado']['recorte'])}",
+        f"Casos incompletos · {n(e['torneo']['recorte'])}",
+    ]
+    color_nodo = [Tt["acento"]] * 6 + [Tt["dato"]] * 3
+    sigue, fuera = rgba(Tt["acento"], 0.30), rgba(Tt["dato"], 0.35)
+    enlaces = [
+        # (origen, destino, valor, color, por qué)
+        (0, 1, e["ocupados"]["filas"], sigue,
+         "Siguen: quienes estuvieron ocupados en la semana de referencia "
+         "(OCU500 = 1)."),
+        (0, 6, e["ocupados"]["recorte"], fuera,
+         "El modelo estima ingreso del trabajo: sin ocupación no hay ingreso "
+         "laboral que estimar."),
+        (1, 2, e["modelado"]["filas"], sigue,
+         "Siguen: ocupados de 14 años o más con ingreso monetario positivo."),
+        (1, 7, e["modelado"]["recorte"], fuera,
+         f"Menores de 14 (edad mínima laboral del INEI) o sin ingreso "
+         f"laboral positivo. Aquí van los {n(tfnr['filas'])} TFNR: "
+         f"trabajadores familiares no remunerados — trabajan, pero sin "
+         f"sueldo no hay cifra que aprender."),
+        (2, 3, e["torneo"]["filas"], sigue,
+         "Siguen: filas completas en todas las variables del torneo."),
+        (2, 8, e["torneo"]["recorte"], fuera,
+         "Las 9 recetas deben compararse sobre exactamente las mismas filas: "
+         "fuera quien no tiene completos tamaño de empresa, miembros, horas, "
+         "educación o ingreso (0,6 %)."),
+        (3, 4, split["train"], sigue,
+         f"El 80 % entrena los modelos ({split['descripcion']})."),
+        (3, 5, split["test"], sigue,
+         "El 20 % queda guardado y solo se mira al final, para medir sin "
+         "hacer trampa."),
+    ]
+    tema = estilos.nombre_tema(Tt)
+    fuente = (estilos.FUENTE_MONO if tema in estilos.TEMAS_MONO
+              else estilos.FUENTE_UI)
+    fig = go.Figure(go.Sankey(
+        arrangement="snap",
+        node=dict(
+            label=etiquetas, color=color_nodo, pad=22, thickness=14,
+            line=dict(width=0),
+            x=[0.01, 0.26, 0.51, 0.76, 0.99, 0.99, 0.26, 0.51, 0.76],
+            hovertemplate="%{label}<extra></extra>"),
+        link=dict(
+            source=[l[0] for l in enlaces], target=[l[1] for l in enlaces],
+            value=[l[2] for l in enlaces], color=[l[3] for l in enlaces],
+            customdata=[l[4] for l in enlaces],
+            hovertemplate="%{value:,.0f} filas<br>%{customdata}"
+                          "<extra></extra>")))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family=fuente, size=13, color=Tt["texto"]),
+        separators=",.", height=430, margin=dict(l=8, r=8, t=12, b=8),
+        hoverlabel=dict(bgcolor=Tt["superficie_alta"],
+                        font=dict(family=fuente, color=Tt["texto"])))
+    st.plotly_chart(fig, use_container_width=True,
+                    config={"displayModeBar": False})
+
+
+def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
+    """
+    Una predicción REAL con el capó abierto: los mismos pasos que corre la
+    pestaña de ingreso, cronometrados en esta sesión. Teatro honesto: nada de
+    la secuencia está inventado ni pregrabado.
+    """
+    def ms(t0: float) -> str:
+        dt = (perf_counter() - t0) * 1000
+        return "&lt;1 ms" if dt < 1 else f"{n(dt)} ms"
+
+    with st.status("Motor en marcha…", expanded=True) as estado:
+        def paso(k: int, titulo: str, llano: str, t0: float) -> None:
+            st.markdown(f"**{k} · {titulo}** — {ms(t0)}",
+                        unsafe_allow_html=True)
+            st.markdown(f"<div class='sutil'>{llano}</div>",
+                        unsafe_allow_html=True)
+
+        total0 = perf_counter()
+        t0 = perf_counter()
+        modelo = cargar_modelo("regresor_e9.joblib")
+        paso(1, "Leer el modelo entrenado", "regresor_e9.joblib llega listo "
+             "desde el repositorio: aquí nunca se entrena nada. La primera "
+             "vez se lee del disco; después queda en memoria.", t0)
+
+        t0 = perf_counter()
+        cols = columnas_esperadas(modelo)
+        fila_ord = fila[cols]
+        paso(2, "Ordenar tu perfil", f"Una fila con las {len(cols)} variables "
+             "en el orden exacto que el modelo declara — ni una más, ni una "
+             "menos: es el contrato del schema.", t0)
+
+        interno = getattr(modelo, "regressor_", None)
+        internos = getattr(interno, "named_steps", {}) if interno is not None else {}
+        prep, gb = internos.get("prep"), internos.get("modelo")
+        k = 3
+        if prep is not None and gb is not None:
+            t0 = perf_counter()
+            Xt = prep.transform(fila_ord)
+            paso(k, "Abrir las categorías (one-hot)", "Cada categoría se "
+                 f"vuelve una columna de ceros y unos: la fila pasa de "
+                 f"{len(cols)} a {Xt.shape[1]} columnas, que es lo único que "
+                 "el árbol sabe leer.", t0)
+            k += 1
+            t0 = perf_counter()
+            log_pred = float(gb.predict(Xt)[0])
+            paso(k, "Predecir en la escala del entrenamiento", "El gradient "
+                 f"boosting responde en logaritmo: {d(log_pred, 3)}. Se "
+                 "entrenó así porque los ingresos tienen cola larga.", t0)
+            k += 1
+
+        t0 = perf_counter()
+        mediana = float(modelo.predict(fila_ord)[0])
+        paso(k, "Deshacer el logaritmo", f"S/ {n(mediana)} — el ingreso "
+             "típico (mediana): la mitad de los perfiles como este gana "
+             "menos, la otra mitad más.", t0)
+        k += 1
+
+        t0 = perf_counter()
+        smear = float(reg["smearing_duan"])
+        media = (mediana + 1) * smear - 1
+        paso(k, "Corrección de Duan", f"× {d(smear, 4)}: deshacer un "
+             "logaritmo deja corto el promedio; esta constante —calculada al "
+             "entrenar, nunca aquí— lo repara. Ingreso esperado: "
+             f"S/ {n(media)}.", t0)
+
+        # expanded=True: al completar, los pasos QUEDAN a la vista — son el
+        # contenido de la sección, no un spinner que esconder.
+        estado.update(label=f"Motor recorrido: {k} pasos en "
+                            f"{n((perf_counter() - total0) * 1000)} ms",
+                      state="complete", expanded=True)
+
+    tarjetas = [
+        tarjeta("ingreso típico", f"S/ {n(mediana)}", color=T()["acento_alto"],
+                llano="El mismo número que da la pestaña «Estimación de "
+                      "ingreso» con este perfil: es el mismo motor, solo que "
+                      "con el capó abierto."),
+        tarjeta("ingreso esperado", f"S/ {n(media)}",
+                llano="El promedio, tras la corrección de Duan del paso "
+                      "final."),
+    ]
+    html("<div class='rejilla-tarjetas'>" + "".join(tarjetas) + "</div>")
+
+
+# Una línea llana por variable del explorador. Escritas MIRANDO las curvas
+# precomputadas (no al revés): si se regeneran los artefactos y una curva
+# cambia de forma, la línea correspondiente hay que revisarla a mano.
+LINEAS_PD: dict[str, str] = {
+    "anios_educ": "Cada año suma, pero no parejo: el tramo que más paga es "
+                  "el final — la educación superior.",
+    "edad": "Sube hasta la madurez laboral y luego se aplana: los últimos "
+            "años ya no añaden ingreso.",
+    "horas_total": "Más horas, más ingreso — pero lejos de proporcional: "
+                   "multiplicar las horas por ocho apenas duplica la "
+                   "estimación.",
+    "sexo": "Con el mismo perfil, el modelo estima menos para las mujeres: "
+            "es la brecha que existe en los datos de la encuesta — descrita, "
+            "no avalada.",
+    "area": "El mismo perfil paga distinto según dónde vive: urbano por "
+            "encima de rural.",
+    "dominio": "La geografía mueve la estimación: costa y Lima por encima; "
+               "la sierra, más abajo.",
+    "rama": "Minería paga como ninguna otra rama; el agro, menos que todas — "
+            "con la misma persona.",
+    "tamano_empresa": "Cuanto más grande la empresa, mayor la estimación: el "
+                      "salto grande está entre «hasta 20» y el resto.",
+    "categoria": "Empleadores arriba, independientes abajo: esta variable "
+                 "mueve la estimación más que casi cualquier otra.",
+}
+
+
+def seccion_maquinas(schema: dict, art: dict) -> None:
+    reg = schema["regresor"]
+    maq = cargar_maquinas()
+
+    cabecera(
+        "⚙ Sala de máquinas — cómo se construyó",
+        "Esta pestaña abre el capó: el recorrido de los datos desde los CSV "
+        "del INEI hasta la página que estás viendo, los filtros con sus "
+        "recortes, el motor de la predicción paso a paso y un explorador "
+        "para mover una variable. Nada de lo que ves aquí se calcula de "
+        "nuevo: sale de los mismos artefactos que alimentan las otras "
+        "pestañas.",
+        "Las cifras del embudo y los tamaños medidos viven en "
+        "<code>models/ui_maquinas.json</code>, generado por "
+        "<code>src/09_precomputar_ui.py</code> leyendo el embudo auditado de "
+        "<code>INFORME_AUDITORIA.md §4</code> y midiendo los archivos en "
+        "disco. Va en un artefacto hermano de <code>ui_artifacts.json</code> "
+        "porque la presentación congelada cita el tamaño en disco de este "
+        "último: no puede crecer ni un byte.",
+        seccion="maquinas")
+    st.write("")
+
+    if not maq:
+        html("<div class='senal senal-aviso'><div>▲</div><div>Falta "
+             "<code>models/ui_maquinas.json</code>. Genéralo con "
+             "<code>python src/09_precomputar_ui.py --solo-maquinas</code>."
+             "</div></div>")
+        return
+
+    # ---------- 1 · El viaje del dato ----------
+    html("<h2>El viaje del dato</h2>")
+    html("<div class='entradilla'>Seis estaciones desde la encuesta hasta la "
+         "nube. Elige una y mira qué entra, qué se decide y qué sale — con "
+         "sus tamaños medidos.</div>")
+    estaciones = _estaciones(schema, art, maq)
+    titulos = [e["titulo"] for e in estaciones]
+    control = getattr(st, "segmented_control", None)
+    if control is not None:
+        elegido = control("Estación", titulos, default=titulos[0],
+                          key="maq_estacion", label_visibility="collapsed")
+    else:
+        elegido = st.radio("Estación", titulos, horizontal=True,
+                           key="maq_estacion", label_visibility="collapsed")
+    idx = titulos.index(elegido) if elegido in titulos else 0
+    grafico(graficos.viaje_dato(titulos, [e["sub"] for e in estaciones],
+                                idx, T()), 150)
+    est = estaciones[idx]
+    c1, c2, c3 = st.columns(3, gap="medium")
+    for col, rotulo, texto in ((c1, "Qué entra", est["entra"]),
+                               (c2, "Qué se decide", est["decide"]),
+                               (c3, "Qué sale", est["sale"])):
+        with col:
+            html(f"<div class='eyebrow'>{rotulo}</div>"
+                 f"<div class='sutil'>{texto}</div>")
+    st.write("")
+    html("<div class='rejilla-tarjetas'>"
+         + "".join(tarjeta(et, v, llano=ll) for et, v, ll in est["tarjetas"])
+         + "</div>")
+    with st.expander("¿Qué principio hay aquí? · viaje"):
+        html("<div class='sutil'>Precómputo y fuente única: la app no "
+             "calcula al abrirse — todo lo que este viaje muestra lo generó "
+             "<code>src/09</code> una sola vez, y es lo mismo que alimenta "
+             "las otras pestañas y la presentación.</div>")
+
+    st.divider()
+
+    # ---------- 2 · El embudo ----------
+    html("<h2>El embudo: de la encuesta al modelo</h2>")
+    html("<div class='entradilla'>Cada filtro recorta filas y tiene un "
+         "porqué: pasa el cursor por los flujos para leerlo. Del módulo "
+         "crudo a la muestra final del torneo.</div>")
+    _sankey_embudo(maq)
+    with st.expander("¿Qué principio hay aquí? · embudo"):
+        html("<div class='sutil'>Estos números no están tecleados en esta "
+             "página: <code>src/09</code> los lee del informe de auditoría "
+             "(§4), verifica que las restas cuadren y los publica en el "
+             "artefacto. Si el informe cambia, esta página cambia sola — o "
+             "el generador aborta.</div>")
+
+    st.divider()
+
+    # ---------- 3 · Rayos X de la predicción ----------
+    html("<h2>Rayos X de la predicción</h2>")
+    html("<div class='entradilla'>El mismo formulario de la primera pestaña, "
+         "pero con el capó abierto: al estimar se ve cada paso real del "
+         "motor, con su tiempo.</div>")
+    if st.toggle("Ver el motor", key="maq_motor",
+                 help="Los pasos son los reales de esta sesión, "
+                      "cronometrados al ejecutarse. No es una animación."):
+        izq, der = st.columns([35, 65], gap="large")
+        with izq:
+            html("<div class='eyebrow'>Perfil del trabajador</div>")
+            fila = formulario(reg["features"], "maq")
+            st.write("")
+            lanzar = st.button("Estimar mirando el motor", type="primary",
+                               key="btn_maq")
+        with der:
+            if lanzar:
+                _rayos_x(reg, fila)
+            else:
+                html("<div class='panel'><div class='panel-titulo'>Motor en "
+                     "espera</div><div class='sutil'>Arma el perfil y pulsa "
+                     "«Estimar mirando el motor»: verás leer el schema, "
+                     "abrir las categorías en columnas, predecir en "
+                     "logaritmo, deshacerlo y aplicar la corrección de Duan "
+                     "— cada paso con su tiempo real.</div></div>")
+    with st.expander("¿Qué principio hay aquí? · motor"):
+        html("<div class='sutil'>Teatro honesto: la secuencia son los pasos "
+             "reales, cronometrados en tu sesión. Lo único que la app no "
+             "hace nunca en vivo es entrenar: el modelo llegó listo en el "
+             "repositorio, con las versiones fijadas.</div>")
+
+    st.divider()
+
+    # ---------- 4 · Mueve una variable ----------
+    html("<h2>Mueve una variable</h2>")
+    html("<div class='entradilla'>Si solo cambiara esta característica y "
+         "todo lo demás quedara igual, ¿cómo se movería el ingreso "
+         "estimado? Curvas precomputadas: elegir no recalcula nada.</div>")
+    pd_reg = art.get("regresor", {}).get("dependencia_parcial", {})
+    feats = [f for f in reg["features"]
+             if f["nombre"] not in DERIVADAS and pd_reg.get(f["nombre"])]
+    if not feats:
+        html("<div class='senal senal-aviso'><div>▲</div><div>El artefacto "
+             "no trae la dependencia parcial del regresor.</div></div>")
+    else:
+        feat = st.selectbox(
+            "Variable", feats,
+            format_func=lambda f: f.get("etiqueta", f["nombre"]),
+            key="maq_var")
+        nombre = feat["nombre"]
+        perfil = pd_reg[nombre]
+        marca = (st.session_state.get("valores_maq", {}).get(nombre)
+                 or st.session_state.get("valores_reg", {}).get(nombre))
+        html(f"<div class='titulo-grafico'>"
+             f"{escape(feat.get('etiqueta', nombre))}</div>")
+        grafico(graficos.dependencia_parcial(
+            perfil["valores"], perfil["efecto"], perfil["tipo"],
+            feat.get("etiqueta", nombre), T(), marca=marca,
+            formato_y="soles", mostrar_etiqueta=False), 230)
+        linea = LINEAS_PD.get(nombre, "Así cambia la estimación cuando solo "
+                                      "se mueve esta variable.")
+        html(f"<div class='sutil'><b>{linea}</b> El eje vertical es el "
+             "ingreso típico estimado (S/ al mes) con el resto del perfil "
+             "en su valor promedio.</div>")
+    with st.expander("¿Qué principio hay aquí? · explorador"):
+        html("<div class='sutil'>Precómputo puro: cada curva son 20 puntos "
+             "que <code>src/09</code> calculó una sola vez sobre 5.000 "
+             "filas. Mover el selector no toca el modelo — por eso responde "
+             "al instante.</div>")
+
+
+# --------------------------------------------------------------------------
 def main() -> None:
     st.set_page_config(page_title="ENAHO — ingreso e informalidad",
                        page_icon="◈", layout="wide",
@@ -1514,6 +2040,8 @@ def main() -> None:
         seccion_informalidad(schema, art)
     elif seccion == "torneo":
         seccion_torneo(schema, art)
+    elif seccion == "maquinas":
+        seccion_maquinas(schema, art)
     else:
         seccion_ficha(schema, art)
 
