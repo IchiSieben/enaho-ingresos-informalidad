@@ -50,3 +50,32 @@
 12. **Paquete PyPI de auditoría de microdatos ENAHO** (`enahoaudit` o
     similar). Nicho: barrido de centinelas, factores de expansión con coma
     decimal, tabla umbral → consecuencias, embudo de N reproducible.
+
+## Incidente 24/08/2026: caída en Cloud tras f468c45 (ronda «simple y vivo»)
+
+13. **TODO: re-aterrizar la ronda revertida en cd3a945** (viaje animado SMIL,
+    links al código por estación, modo delta y panorama de miniaturas).
+    Diagnóstico registrado esa noche:
+    - La app pública cayó con `ImportError` levantado por el guard
+      `_verificar_graficos()` (`streamlit_app.py:81/89`); Streamlit Cloud
+      redacta el mensaje en pantalla — **el nombre exacto que faltaba está
+      solo en los logs de Manage app** (leerlos antes de reintentar).
+    - En local NO reproduce: en el commit f468c45 el import es limpio y
+      `graficos.miniatura_pd`/`viaje_dato` existen (Python 3.12.10; smoke
+      Playwright 24/24 antes del push). El traceback de Cloud muestra
+      formato de Python 3.13 (`~~~^^`): el entorno de Cloud no es el local.
+    - Los números de línea 81/89 son idénticos en f468c45 y 7f18278 (la
+      edición de GRAFICOS_REQUERIDOS reemplazó una línea por una línea),
+      así que el traceback no identifica qué versión del script corría.
+    - Hipótesis principal (consistente con el bug del 20/08 y con el fix
+      de caché de cd7f/7f18278): recarga en caliente que reejecuta el
+      script principal NUEVO (exige `miniatura_pd`) con el módulo
+      `graficos` VIEJO aún en `sys.modules`, y un Reboot que no re-trajo
+      el build completo de f468c45.
+    - Plan de reintento: (a) leer los logs de Manage app; (b) aterrizar en
+      DOS commits — primero `app/graficos.py` solo, después
+      `streamlit_app.py` + `GRAFICOS_REQUERIDOS` — para que ninguna
+      recarga vea un script que exige nombres que su módulo cacheado no
+      tiene; (c) tras el deploy, Reboot completo y smoke en la URL
+      pública; (d) evaluar fijar la versión de Python de Cloud a 3.12
+      para casar con local.
