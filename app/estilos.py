@@ -189,8 +189,11 @@ html, body, [data-testid="stAppViewContainer"] * {{
 }}
 /* El selector `*` de arriba también alcanza a los iconos de Streamlit, que son
    ligaduras tipográficas: sin su fuente, el nombre del icono se imprime literal
-   ("arrow_drop_down") al lado del texto. Hay que devolvérsela. */
-[data-testid="stIconMaterial"], [data-testid="stExpanderIcon"],
+   ("arrow_drop_down") al lado del texto. Hay que devolvérsela. El prefijo ^= es
+   a propósito: el check del st.status llega como stExpanderIconCheck (y el de
+   error como stExpanderIconError) — con el selector exacto se escapaban y la
+   palabra "check" aparecía impresa junto al encabezado. */
+[data-testid="stIconMaterial"], [data-testid^="stExpanderIcon"],
 .material-symbols-rounded, span.material-icons {{
   font-family: 'Material Symbols Rounded', 'Material Icons' !important;
 }}

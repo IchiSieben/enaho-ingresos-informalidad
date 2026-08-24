@@ -530,12 +530,39 @@ def tamanos_medidos() -> dict:
                              if (RAIZ / p).exists())
     except Exception:
         pass
+    # Peso del repo AL COMMIT del mazo congelado, con la MISMA regla con que
+    # el mazo se midio a si mismo (sin las dos presentaciones): permite que la
+    # app reconcilie su medicion viva con la cifra de la lamina sin escribir
+    # ninguna de las dos a mano. Sale de los blobs de git, no del arbol vivo.
+    salidas_ppt = {"docs/presentacion/ENAHO_exposicion.pptx",
+                   "docs/presentacion/ENAHO_exposicion_EXPO.pptx"}
+    repo_mazo = None
+    try:
+        def git(*args):
+            return subprocess.run(["git", *args], cwd=RAIZ, capture_output=True,
+                                  text=True, timeout=15).stdout.strip()
+        commit_mazo = git("log", "-1", "--format=%H", "--",
+                          "docs/presentacion/ENAHO_exposicion.pptx")
+        if commit_mazo:
+            filas = [ln.split(None, 4)
+                     for ln in git("ls-tree", "-r", "-l", commit_mazo).splitlines()]
+            pesos = {b[4]: int(b[3]) for b in filas
+                     if len(b) == 5 and b[3].isdigit()}
+            if pesos:
+                repo_mazo = {
+                    "commit": commit_mazo,
+                    "bytes": sum(v for f, v in pesos.items()
+                                 if f not in salidas_ppt),
+                }
+    except Exception:
+        pass
     return {
         "modelos_bytes": modelos,
         "data_bytes": data_bytes,
         "torneo_frame_bytes": mide(DIR_PROCESSED / "torneo_frame.parquet"),
         "repo_versionado_bytes": repo_bytes,
         "repo_archivos": repo_archivos,
+        "repo_mazo": repo_mazo,
     }
 
 

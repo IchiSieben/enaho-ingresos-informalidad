@@ -1518,6 +1518,16 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
     muestra = emb.get("torneo", {}).get("filas")
     ganador, segundo = (tabla + [{}, {}])[:2]
 
+    # Reconciliación con la lámina del mazo: las DOS cifras vienen leídas
+    # (medición viva vs. blobs de git al commit del mazo), ninguna a mano.
+    mazo = tam.get("repo_mazo") or {}
+    nota_nube = None
+    if mazo.get("bytes") and tam.get("repo_versionado_bytes"):
+        nota_nube = (f"El mazo congelado midió {n(mazo['bytes'] / 1e6, 1)} MB "
+                     "en su commit; la diferencia es la propia presentación y "
+                     "esta pestaña, añadidas después — el repo crece, la "
+                     "medición del mazo quedó anclada a su commit.")
+
     return [
         {"titulo": "Microdatos INEI", "sub": _mb(tam.get("data_bytes")),
          "entra": "Tres archivos CSV públicos del INEI (ENAHO 2025): módulo "
@@ -1630,7 +1640,8 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
              ("scikit-learn fijado", meta.get("version_scikit_learn", "—"),
               "La misma versión que entrenó los modelos: un .joblib no es "
               "portable entre versiones."),
-         ]},
+         ],
+         "nota": nota_nube},
     ]
 
 
@@ -1848,7 +1859,7 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         "disco. Va en un artefacto hermano de <code>ui_artifacts.json</code> "
         "porque la presentación congelada cita el tamaño en disco de este "
         "último: no puede crecer ni un byte.",
-        seccion="maquinas")
+        seccion="máquinas")
     st.write("")
 
     if not maq:
@@ -1887,6 +1898,8 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
     html("<div class='rejilla-tarjetas'>"
          + "".join(tarjeta(et, v, llano=ll) for et, v, ll in est["tarjetas"])
          + "</div>")
+    if est.get("nota"):
+        html(f"<div class='sutil' style='margin-top:8px'>{est['nota']}</div>")
     with st.expander("¿Qué principio hay aquí? · viaje"):
         html("<div class='sutil'>Precómputo y fuente única: la app no "
              "calcula al abrirse — todo lo que este viaje muestra lo generó "
@@ -1921,6 +1934,8 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         izq, der = st.columns([35, 65], gap="large")
         with izq:
             html("<div class='eyebrow'>Perfil del trabajador</div>")
+            html("<div class='sutil'>Mismo perfil por defecto que la pestaña "
+                 "de ingreso: mismo número, mismo motor.</div>")
             fila = formulario(reg["features"], "maq")
             st.write("")
             lanzar = st.button("Estimar mirando el motor", type="primary",
@@ -1974,6 +1989,9 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         html(f"<div class='sutil'><b>{linea}</b> El eje vertical es el "
              "ingreso típico estimado (S/ al mes) con el resto del perfil "
              "en su valor promedio.</div>")
+        html("<div class='sutil'>¿Por qué 9 y no 11? Experiencia y "
+             "experiencia² van atadas — moverlas por separado sería un "
+             "perfil imposible.</div>")
     with st.expander("¿Qué principio hay aquí? · explorador"):
         html("<div class='sutil'>Precómputo puro: cada curva son 20 puntos "
              "que <code>src/09</code> calculó una sola vez sobre 5.000 "
