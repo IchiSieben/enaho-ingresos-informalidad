@@ -9,7 +9,7 @@ Audita una salida de la exposición después de generarla (por defecto la
 ENTREGA; pásale otra ruta como primer argumento para auditar la EXPO:
 `verificar_ppt.py docs/presentacion/ENAHO_exposicion_EXPO.pptx`). Comprueba:
 
-  1. estructura     — 13 láminas, cada una con notas del orador y con al menos
+  1. estructura     — 14 láminas, cada una con notas del orador y con al menos
                       un elemento visual dominante (imagen o tabla);
   2. tipografía     — ninguna caja de texto con cuerpo por debajo de 18 pt,
                       salvo las dos excepciones declaradas (etiqueta de tarjeta
@@ -37,7 +37,7 @@ RAIZ = Path(__file__).resolve().parents[2]
 AQUI = RAIZ / "docs" / "presentacion"
 PPTX = (Path(sys.argv[1]) if len(sys.argv) > 1
         else AQUI / "ENAHO_exposicion.pptx")
-LAMINAS_ESPERADAS = 13
+LAMINAS_ESPERADAS = 14
 MINIMO_PT = 18.0          # cuerpo en cajas de texto
 MINIMO_TABLA_PT = 16.0    # celdas de tabla: 5 columnas de prosa a 18 no caben
 

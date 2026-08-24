@@ -5,9 +5,9 @@
 # Licencia: Apache-2.0 (ver LICENSE)
 # ---------------------------------------------------------------------------
 """
-Genera DOS salidas de la misma exposición (16:9, 13 láminas en el orden de
+Genera DOS salidas de la misma exposición (16:9, 14 láminas en el orden de
 la pauta del docente: carátula · datos · variables · torneo · importancia ·
-despliegue · verificación · auditoría · cierre):
+despliegue · verificación · auditoría · prácticas · cierre):
 
   - ENAHO_exposicion.pptx       (ENTREGA) — notas mínimas: solo la línea de
                                  fuente por lámina. Es la que se envía.
@@ -348,7 +348,10 @@ def fig_precomputo():
         ax.text(x + w / 2, 29.6, subt, ha="center", va="top", fontsize=13.5,
                 color=mpl("texto_medio"), zorder=4)
         for k, (llano, tecnico) in enumerate(items):
-            cy = 25.4 - k * 4.5
+            # Arranque 26,0 y paso 4,25: con el paso anterior (4,5) la
+            # acotación del quinto ítem quedaba cortada por el borde
+            # inferior de la caja (y=4) — el QA lo cazó en el render.
+            cy = 26.0 - k * 4.25
             ax.text(x + 2.2, cy, "·  " + llano, ha="left", va="top",
                     fontsize=14.5, color=mpl("texto"), zorder=4)
             ax.text(x + 3.7, cy - 2.2, tecnico, ha="left", va="top",
@@ -504,7 +507,50 @@ def fig_importancia():
     return _guardar(fig, "fig_importancia")
 
 
+def fig_una_fuente():
+    """
+    El principio estrella en un vistazo: UNA fuente con tres lectores —
+    y al lado, tachado, el antipatrón de las dos copias. Dos colores:
+    acento para el patrón, rojo para lo que no se hace.
+    """
+    fig, ax = plt.subplots(figsize=(14.5, 1.75))
+    ax.set_xlim(0, 100); ax.set_ylim(0, 12); ax.axis("off")
+
+    def cajita(x, y0, w, h, texto, fc, ec, tc, fs=12.5, bold=False):
+        ax.add_patch(FancyBboxPatch((x, y0), w, h, boxstyle="round,pad=0.35",
+                                    fc=fc, ec=ec, lw=1.5, zorder=3))
+        ax.text(x + w / 2, y0 + h / 2, texto, ha="center", va="center",
+                fontsize=fs, fontweight="bold" if bold else "normal",
+                color=tc, zorder=4)
+
+    cajita(1, 3.4, 15, 5.2, "UNA FUENTE", mpl("acento_fondo"), mpl("acento"),
+           mpl("acento_alto"), fs=14, bold=True)
+    for _yc, _destino in ((10.0, "formulario"), (6.0, "este PPT"),
+                          (2.0, "nube")):
+        cajita(30, _yc - 1.7, 13.5, 3.4, _destino, mpl("superficie"),
+               mpl("borde"), mpl("texto"))
+        ax.add_patch(FancyArrowPatch((16.4, 6), (29.6, _yc),
+                                     arrowstyle="-|>", mutation_scale=16,
+                                     lw=1.8, color=mpl("acento"), zorder=2,
+                                     shrinkA=0, shrinkB=0))
+    ax.plot([58, 58], [0.8, 11.2], color=mpl("borde"), lw=1.2,
+            ls=(0, (4, 3)), zorder=1)
+    cajita(64, 4.2, 12.5, 3.6, "copia A", mpl("mala_fondo"), mpl("mala"),
+           mpl("mala"))
+    cajita(85, 4.2, 12.5, 3.6, "copia B", mpl("mala_fondo"), mpl("mala"),
+           mpl("mala"))
+    ax.text(80.8, 6.0, "≠", ha="center", va="center", fontsize=17,
+            fontweight="bold", color=mpl("mala"), zorder=4)
+    ax.text(80.8, 10.3, "?", ha="center", va="center", fontsize=15,
+            fontweight="bold", color=mpl("mala"), zorder=4)
+    # El tachado: este lado del diagrama es lo que NO se hace.
+    ax.plot([62.5, 99], [0.6, 11.4], color=mpl("mala"), lw=2.4, zorder=5,
+            alpha=0.85)
+    return _guardar(fig, "fig_una_fuente")
+
+
 F_REQ = fig_requisitos()
+F_FUENTE = fig_una_fuente()
 F_CONSOLA_REG = fig_consola("REGRESOR", "fig_consola_regresor")
 F_CONSOLA_CLF = fig_consola("CLASIFICADOR", "fig_consola_clasificador")
 F_ARQ = fig_arquitectura()
@@ -1046,15 +1092,22 @@ y = titulo(s, "Cada push a main redespliega la app en la nube, sin pasos "
 # útil. Debajo, una banda de ancho completo con el mensaje de los
 # microdatos — antes iba incrustado en un hueco del propio diagrama, donde
 # flotaba suelto entre las cajas.
-ALTO_DIAG = ALTO_CUERPO - 1.10
+# La banda dice QUÉ sube y QUÉ no, sin ambigüedad: dos oraciones, ambas a
+# 18 pt (el mínimo tipográfico del mazo no admite prosa menor) — la primera
+# es la afirmación, la segunda el destino de lo que no sube.
+ALTO_DIAG = ALTO_CUERPO - 1.54
 imagen_encajada(s, F_ARQ, MARGEN, y, 12.09, ALTO_DIAG)
-_, tf = panel(s, MARGEN, y + ALTO_DIAG + 0.16, 12.09, 0.88,
+_, tf = panel(s, MARGEN, y + ALTO_DIAG + 0.14, 12.09, 1.32,
               relleno="buena_fondo", borde="buena")
-parrafo(tf, f"Los microdatos se quedan en la máquina: los {d(DATOS_MB, 1)} MB "
-            f"de la ENAHO no viajan al repositorio, que enlaza a la fuente "
-            f"oficial del INEI.",
+parrafo(tf, f"Al repositorio sube el resumen, no la base: código, modelos ya "
+            f"entrenados y resultados precalculados ({d(REPO['mb'], 2)} MB).",
         tam=T_CUERPO, color="buena", negrita=True, primero=True,
-        esp_despues=0, esp_linea=1.06, alin=PP_ALIGN.CENTER)
+        esp_despues=3, esp_linea=1.04, alin=PP_ALIGN.CENTER)
+parrafo(tf, f"Los {d(DATOS_MB, 1)} MB de microdatos se quedan en la máquina; "
+            f"el README deja el enlace al portal del INEI para quien quiera "
+            f"descargarlos y reproducir todo.",
+        tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.04,
+        alin=PP_ALIGN.CENTER)
 pie_fuente(s, "docs/arquitectura.md · .gitignore · git ls-files · tamaños "
               "medidos del disco al generar esta lámina")
 notas(s, f"QUÉ DIGO — Esta lámina sostiene todo lo demás. Entrenamos en "
@@ -1065,7 +1118,9 @@ notas(s, f"QUÉ DIGO — Esta lámina sostiene todo lo demás. Entrenamos en "
          f"reconstruye la app y la publica sola. Entre guardar el cambio y "
          f"verlo en el navegador no hay ningún paso manual. Y los datos "
          f"originales del INEI, {d(DATOS_MB, 1)} megas, nunca salen de la "
-         f"máquina: el repositorio enlaza a la fuente oficial.\n\n"
+         f"máquina: el README deja el enlace al portal del INEI solo para "
+         f"quien quiera reproducir todo — la app nunca descarga nada del "
+         f"INEI.\n\n"
          f"TÉRMINOS DE ESTA LÁMINA — Dónde vive cada cosa: TODO vive en "
          f"GitHub — el código, los modelos .joblib y los JSON viajan dentro "
          f"del repositorio; los microdatos no. Streamlit Cloud no guarda "
@@ -1077,10 +1132,12 @@ notas(s, f"QUÉ DIGO — Esta lámina sostiene todo lo demás. Entrenamos en "
          f"cuando el repositorio cambia («hay versión nueva, redespliega»). "
          f"Repositorio: la carpeta versionada del proyecto, con su "
          f"historia completa.\n\n"
-         f"SI PREGUNTAN — ¿Y si Streamlit Cloud se cae o se borra la app? "
-         f"No se pierde nada: en Streamlit no vive nada que no esté en "
-         f"GitHub. Se vuelve a conectar el repositorio y la app renace "
-         f"idéntica, porque la nube solo clona, instala y ejecuta.")
+         f"SI PREGUNTAN — ¿Y si Streamlit Cloud se cae, o se borra hasta "
+         f"la carpeta local? No se pierde nada: en Streamlit no vive nada "
+         f"que no esté en GitHub — se reconecta el repositorio y la app "
+         f"renace idéntica —, los microdatos se vuelven a bajar del portal "
+         f"del INEI y los artefactos se regeneran corriendo el código. "
+         f"Todo lo que no sube es recuperable o regenerable.")
 
 # ---------------------------------------------------------------------------
 # Lámina 4 — artefactos precomputados
@@ -1090,16 +1147,37 @@ y = titulo(s, "La app no calcula al abrirse: lee resultados ya guardados",
            "Curvas, histogramas y tablas se calcularon una sola vez, al "
            "entrenar. La app solo las lee y las dibuja.")
 DIAGRAMA_H = 3.10
-imagen_encajada(s, F_PRECOMP, MARGEN, y, 12.09, DIAGRAMA_H)
-# El recorrido real, medido, como elemento central de la lámina. UNA sola
-# línea: el texto se acorta hasta que entra, nunca se parte en dos dejando
-# la cifra final huérfana en el renglón de abajo. Las cifras van a 26 pt,
-# no a 34, justamente para que quepa entera.
-_, tf_flujo = panel(s, MARGEN, y + DIAGRAMA_H + 0.13, 12.09,
-                    ALTO_CUERPO - DIAGRAMA_H - 0.25, relleno="acento_fondo",
-                    borde="acento")
+# centrar=False: la figura se pega arriba de su caja (encajada por ancho
+# mide ~2,89" de alto) y así la escalera de abajo respira sin robarle
+# altura a las cajas grandes.
+imagen_encajada(s, F_PRECOMP, MARGEN, y, 12.09, DIAGRAMA_H, centrar=False)
+# La escalera de tamaños: tres órdenes de magnitud, de izquierda a derecha
+# y con la cifra cada vez más chica — la base se queda, el resumen viaja,
+# la app lee solo lo mínimo. Cada cifra sale de su medición.
+Y_ESC = y + 3.04
+for _px, _pw, _cifra, _tam_c, _col, _txt in (
+        (MARGEN, 3.55, f"{d(DATOS_MB, 1)} MB", 20, "buena",
+         "la base, se queda en casa"),
+        (MARGEN + 4.04, 3.55, f"{d(REPO['mb'], 2)} MB", 19, "acento",
+         "el resumen, viaja al repo"),
+        (MARGEN + 8.08, 4.01, f"{d(UI_KB, 1)} KB", 18, "acento_alto",
+         "lo que la app lee en cada visita")):
+    _, tf = panel(s, _px, Y_ESC, _pw, 0.82)
+    parrafo(tf, _cifra, tam=_tam_c, color=_col, negrita=True, fuente=MONO,
+            primero=True, esp_despues=1, alin=PP_ALIGN.CENTER)
+    parrafo(tf, _txt, tam=T_CUERPO, color="texto_medio", esp_despues=0,
+            alin=PP_ALIGN.CENTER)
+for _fx in (MARGEN + 3.55, MARGEN + 7.59):
+    tf = caja(s, _fx, Y_ESC + 0.21, 0.49, 0.40)
+    parrafo(tf, "→", tam=20, color="texto_tenue", negrita=True, fuente=MONO,
+            primero=True, esp_despues=0, alin=PP_ALIGN.CENTER)
+# El recorrido real, medido. UNA sola línea: el texto se acorta hasta que
+# entra, nunca se parte dejando la cifra final huérfana. La banda termina
+# a 0,16" del pie de fuente — el QA mide esa holgura.
+_, tf_flujo = panel(s, MARGEN, Y_ESC + 1.00, 12.09, 0.56,
+                    relleno="acento_fondo", borde="acento")
 tf_flujo.vertical_anchor = MSO_ANCHOR.MIDDLE
-T_FLUJO = 26
+T_FLUJO = 20
 parrafo_mixto(tf_flujo, [
     ("Abrir la app", T_CUERPO, False, "texto_medio", FUENTE),
     ("  →  ", T_CUERPO, True, "texto_tenue", MONO),
@@ -1120,9 +1198,10 @@ notas(s, f"QUÉ DIGO — Cuando alguien abre la app, el modelo no se ejecuta "
          f"{d(UI_KB, 1)} kilobytes que la app solo lee y dibuja. El modelo "
          f"trabaja únicamente cuando el usuario arma su perfil y pulsa "
          f"«Estimar»: una sola predicción, que para el perfil por defecto "
-         f"da S/ {ING_TIPICO}. Por eso la app carga rápido y no se cae: la "
-         f"nube gratuita da poca memoria, y todo lo pesado quedó fuera del "
-         f"momento en que alguien la mira.\n\n"
+         f"da S/ {ING_TIPICO}. La escalera del medio es la decisión en "
+         f"cifras: si subiéramos la base entera y calculáramos en el "
+         f"servidor, la app cargaría lenta y se quedaría sin memoria; por "
+         f"eso se precalcula una vez y en cada visita solo se lee.\n\n"
          f"TÉRMINOS DE ESTA LÁMINA — Precómputo: calcular una sola vez, al "
          f"entrenar, lo que la app va a mostrar siempre, en vez de "
          f"recalcularlo con cada visita. Artefacto: un resultado ya "
@@ -1373,7 +1452,7 @@ filas_v = [["Variables de entrada",
             f"one-hot dentro del pipeline"]]
 tabla(s, MARGEN, y + 2.02, 12.09, 1.50, filas_v, anchos=[24, 76], tam=16,
       tam_cab=16, cols_mono=[])
-_, tf = panel(s, MARGEN, y + 3.66, 12.09, 0.90, relleno="acento_fondo",
+_, tf = panel(s, MARGEN, y + 3.74, 12.09, 0.86, relleno="acento_fondo",
               borde="acento")
 parrafo(tf, f"El clasificador no se corta en 0,5: el umbral operativo "
             f"{d(PUNTO['umbral'], 4)} se fijó para que la precisión llegue a "
@@ -1436,12 +1515,12 @@ y = titulo(s, "Las mismas tres variables cargan los dos modelos: categoría, "
            "y medimos cuánto empeora: soles de error en el regresor, puntos "
            "de PR-AUC en el clasificador. Uso, no causa.")
 imagen_encajada(s, F_IMP, MARGEN, y, 8.00, 4.55)
-tarjeta(s, 8.86, y + 0.02, 3.85, 1.32, "categoría ocupacional",
+tarjeta(s, 8.86, y + 0.02, 3.85, 1.28, "categoría ocupacional",
         f"S/ {n(_orden[0][1])}", "Soles de error si se pierde.",
-        color_cifra="acento", tam_cifra=30)
-tarjeta(s, 8.86, y + 1.46, 3.85, 1.32, "años de educación",
+        color_cifra="acento", tam_cifra=28)
+tarjeta(s, 8.86, y + 1.42, 3.85, 1.28, "años de educación",
         f"S/ {n(_orden[1][1])}", "La segunda, mismo cálculo.",
-        color_cifra="acento", tam_cifra=30)
+        color_cifra="acento", tam_cifra=28)
 # El clasificador, con su propia métrica en el propio encabezado del panel.
 # El valor va PRIMERO y en mono: así los tres quedan alineados en columna
 # en vez de dejar un borde derecho irregular.
@@ -1452,7 +1531,7 @@ _ETI_CORTA = {"tamano_empresa": "tamaño de empresa",
 # El encabezado integra la métrica en DOS líneas exactas de mono 14
 # (~30 caracteres por línea en 3,45" útiles): más largo pasaba a tres
 # líneas y empujaba la última fila fuera del panel, sobre el pie.
-_, tf = panel(s, 8.86, y + 2.90, 3.85, 1.80, relleno="acento_fondo",
+_, tf = panel(s, 8.86, y + 2.82, 3.85, 1.76, relleno="acento_fondo",
               borde="acento")
 parrafo(tf, "CLASIFICADOR · TOP 3 — CAÍDA DE PR-AUC AL DESORDENAR",
         tam=T_ETIQUETA, color="acento_alto", fuente=MONO,
@@ -1461,7 +1540,7 @@ for _nom, _med in _orden_clf[:3]:
     parrafo_mixto(tf, [
         (f"−{d(_med, 3)}", T_CUERPO, True, "acento_alto", MONO),
         (f"  {_ETI_CORTA.get(_nom, _nom)}", T_CUERPO, False, "texto", FUENTE),
-    ], esp_despues=5, esp_linea=1.0)
+    ], esp_despues=4, esp_linea=1.0)
 pie_fuente(s, f"models/ui_artifacts.json (importancia_permutacion del "
               f"regresor y del clasificador): {IMP_REG['n_repeticiones']} "
               f"repeticiones sobre {n(IMP_REG['n_filas'])} filas de test en "
@@ -1647,6 +1726,46 @@ notas(s, f"QUÉ DIGO — Antes de publicar revisamos nuestro propio trabajo: "
          f"mejor» de «vale la pena cambiarlo» es parte del método.")
 
 # ---------------------------------------------------------------------------
+# Lámina de prácticas (entrega: posición 13) — el inventario, con su dónde
+# ---------------------------------------------------------------------------
+s = lamina()
+y = titulo(s, "Las prácticas que sostienen el código",
+           "Seis prácticas de ingeniería, cada una con su lugar concreto en "
+           "este proyecto y el error que evita.")
+imagen_encajada(s, F_FUENTE, MARGEN, y, 12.09, 1.30)
+# Celdas de UNA línea: las tablas de python-pptx crecen con el texto y ya
+# nos pisaron un panel una vez. Los anchos están medidos para eso.
+filas = [["Práctica", "Dónde vive en este proyecto", "Qué error evita"],
+         ["Fuente única (DRY)",
+          "schema→formulario · artefactos→PPT · requirements→nube",
+          "Dos copias que se contradicen"],
+         ["Precomputar lo pesado",
+          f"src/09 → ui_artifacts.json ({d(UI_KB, 1)} KB), la app solo lee",
+          "App lenta o sin memoria"],
+         ["Versiones fijadas",
+          "requirements.txt = meta del artefacto, o se aborta",
+          "Un modelo distinto en la nube"],
+         ["Cada bug, un test",
+          "test_contratos.py reproduce los tres fallos del 20/08",
+          "Que el mismo error regrese"],
+         ["Despliegue sin manos",
+          "push → webhook → redeploy automático",
+          "Pasos manuales que se olvidan"],
+         ["Verificar, no confiar",
+          "local = desplegado · verificar_ppt.py traza cada cifra",
+          "Números dichos de memoria"]]
+tabla(s, MARGEN, y + 1.48, 12.09, 2.55, filas, anchos=[20, 50, 30], tam=16,
+      tam_cab=16, cols_mono=[])
+pie_fuente(s, "models/feature_schema.json · models/ui_artifacts.json · "
+              "requirements.txt · tests/test_contratos.py · "
+              "docs/presentacion/verificar_ppt.py")
+notas(s, f"""QUÉ DIGO — Nada de esto lo inventamos: son prácticas estándar de ingeniería, y esta lámina dice dónde vive cada una en el proyecto. Una sola fuente de verdad: el formulario, estas láminas y la nube leen archivos generados; nadie copia números a mano. Lo pesado se precalcula una vez. Las versiones van fijadas y el generador aborta si divergen. Cada bug que tuvimos quedó convertido en un test. El despliegue no tiene pasos manuales. Y no confiamos: verificamos — el modelo local contra el desplegado, y cada cifra contra su archivo. La corriente va en una sola dirección: entrenamiento → schema → formulario; nadie edita la copia, todos leen la fuente.
+
+TÉRMINOS DE ESTA LÁMINA — DRY («don't repeat yourself»): cada dato vive en UN solo lugar y los demás lo leen de ahí — es la caja del diagrama. Fallo silencioso: el error que no revienta; si el formulario escribiera «hasta 20 trabajadores» donde el modelo aprendió «Hasta 20», el modelo no explota — predice basura sin avisar. Con el schema ese error no puede existir, porque el menú y el modelo leen el mismo archivo. Antipatrón: la solución que se sabe que sale mal — aquí, mantener dos copias del mismo dato (el lado tachado del diagrama). Webhook: el aviso automático de GitHub a la nube.
+
+SI PREGUNTAN — ¿Y si alguien quiere cambiar una opción del formulario? No puede hacerlo a mano: tendría que cambiar el schema, que sale del entrenamiento — y entonces el formulario, la app y estas láminas cambian juntos. Esa es exactamente la gracia de la fuente única.""")
+
+# ---------------------------------------------------------------------------
 # Lámina 12 — cierre
 # ---------------------------------------------------------------------------
 s = lamina()
@@ -1792,10 +1911,10 @@ estructural fue sacarlas del texto y calcularlas en el precómputo.
 # Las láminas se construyeron en orden de código (1 carátula · 2 datos ·
 # 3 variables · 4 push · 5 precómputo · 6 versiones · 7 formulario ·
 # 8 tests · 9 torneo · 10 importancia · 11 local=nube · 12 auditoría ·
-# 13 cierre) y se entregan en el de la pauta: la estadística sube antes del
-# bloque de despliegue. Reordenar la lista de diapositivas es mover el
-# elemento XML: re-append de un hijo existente lo desplaza al final.
-ORDEN_FINAL = [1, 2, 3, 9, 10, 4, 5, 6, 7, 8, 11, 12, 13]
+# 13 prácticas · 14 cierre) y se entregan en el de la pauta: la estadística
+# sube antes del bloque de despliegue. Reordenar la lista de diapositivas
+# es mover el elemento XML: re-append de un hijo existente lo desplaza.
+ORDEN_FINAL = [1, 2, 3, 9, 10, 4, 5, 6, 7, 8, 11, 12, 13, 14]
 assert sorted(ORDEN_FINAL) == list(range(1, len(prs.slides._sldIdLst) + 1)), \
     "ORDEN_FINAL no es una permutación de las láminas construidas"
 _lst = prs.slides._sldIdLst
