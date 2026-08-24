@@ -1990,9 +1990,14 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
 
     # ---------- 4 · Mueve una variable ----------
     html("<h2>Mueve una variable</h2>")
-    html("<div class='entradilla'>Si solo cambiara esta característica y "
-         "todo lo demás quedara igual, ¿cómo se movería el ingreso "
-         "estimado? Curvas precomputadas: elegir no recalcula nada.</div>")
+    html("<div class='entradilla'>¿Cuánto cambiaría el ingreso estimado si "
+         "esta característica fuera distinta y todo lo demás quedara igual? "
+         "Es la pregunta clásica del <i>ceteris paribus</i>, y la curva que "
+         "la responde se llama dependencia parcial: el modelo ya entrenado "
+         "se recorre a lo largo de los valores de una variable, con el "
+         "resto del perfil en su promedio. Las curvas se calcularon una "
+         "sola vez al entrenar — elegir aquí solo muestra la que "
+         "pides.</div>")
     pd_reg = art.get("regresor", {}).get("dependencia_parcial", {})
     feats = [f for f in reg["features"]
              if f["nombre"] not in DERIVADAS and pd_reg.get(f["nombre"])]
@@ -2069,6 +2074,24 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
              "que <code>src/09</code> calculó una sola vez sobre 5.000 "
              "filas. Mover el selector no toca el modelo — por eso responde "
              "al instante.</div>")
+        html("<div class='sutil' style='margin-top:8px'>La dependencia "
+             "parcial tiene pedigrí: la introdujo el mismo artículo que "
+             "propuso el <i>gradient boosting</i> desplegado aquí.<br>"
+             "· Friedman, J. H. (2001). Greedy function approximation: A "
+             "gradient boosting machine. <i>Annals of Statistics, 29</i>(5), "
+             "1189–1232, §8.2.<br>"
+             "· Hastie, Tibshirani &amp; Friedman (2009). <i>The Elements "
+             "of Statistical Learning</i> (2.ª ed.), §10.13.2. Springer.<br>"
+             "· Molnar, C. (2022). <i>Interpretable Machine Learning</i> "
+             "(2.ª ed.), capítulo <i>Partial Dependence Plot</i> — "
+             "<a href='https://christophm.github.io/interpretable-ml-book/' "
+             "target='_blank' rel='noopener'>christophm.github.io/"
+             "interpretable-ml-book ↗</a> (acceso libre).</div>")
+        html("<div class='sutil' style='margin-top:8px'>La advertencia "
+             "honesta de esos mismos textos: estas curvas asumen que la "
+             "variable movida no está fuertemente correlacionada con las "
+             "demás — por eso experiencia y experiencia² no se mueven por "
+             "separado.</div>")
 
 
 # --------------------------------------------------------------------------
