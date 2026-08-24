@@ -664,133 +664,45 @@ def barras_mae(ids: list[str], maes: list[float], destacado: str, T: dict,
 # 10. El viaje del dato (sala de máquinas)
 # --------------------------------------------------------------------------
 def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
-               ancho: int = 960, alto: int = 148, animado: bool = False) -> str:
+               ancho: int = 960, alto: int = 132) -> str:
     """
-    Estaciones en fila unidas por flechas. Dos modos:
-    - estático: la estación `activa` va resaltada (la elige la app);
-    - `animado`: un punto (el dato) recorre las estaciones en bucle con SMIL
-      (~12 s por vuelta) y cada caja se ilumina al pasar — la animación vive
-      DENTRO del SVG: cero reruns, cero JavaScript.
-
-    Los textos llegan como parámetro: este módulo no decide contenidos.
-    Nota de implementación: los colores de los <text> van por `style=` inline
-    porque las clases .et/.vs fijan `fill` por CSS y el CSS le gana al
-    atributo; y SMIL solo anima los <rect> (fill/stroke inline, sin clase).
+    Estaciones en fila unidas por flechas; la activa va resaltada en acento.
+    Los textos llegan como parámetro: este módulo no decide contenidos, solo
+    los dibuja — la app elige qué estación está activa con su propio control.
     """
     n = len(titulos)
     margen, hueco = 10, 30
     bw = (ancho - 2 * margen - (n - 1) * hueco) / n
-    by, bh = 42, 66
-    cy = by + bh / 2
-    centros = [margen + i * (bw + hueco) + bw / 2 for i in range(n)]
-    rotulo = (f"Viaje del dato en movimiento: un punto recorre las "
-              f"{n} estaciones" if animado else
-              f"Viaje del dato: {escape(titulos[activa])} activa")
+    by, bh = 34, 62
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='{rotulo}'>"]
-
-    w = 0.06                       # medio ancho de la ventana de iluminación
-    dur = "12s"
+              f"aria-label='Viaje del dato: {escape(titulos[activa])} activa'>"]
     for i, (titulo, sub) in enumerate(zip(titulos, subtitulos)):
         bx = margen + i * (bw + hueco)
-        es = (not animado) and i == activa
+        es = i == activa
         relleno = T["acento_fondo"] if es else T["superficie_alta"]
         borde = T["acento"] if es else T["borde"]
         tinta = T["acento_alto"] if es else T["texto_medio"]
-
-        anims = ""
-        if animado:
-            f = i / (n - 1)
-            base_f, lit_f = T["superficie_alta"], T["acento_fondo"]
-            base_s, lit_s = T["borde"], T["acento"]
-            if i == 0:
-                kt = f"0;{w};{1 - w};1"
-                vf, vs = (f"{lit_f};{base_f};{base_f};{lit_f}",
-                          f"{lit_s};{base_s};{base_s};{lit_s}")
-            elif i == n - 1:
-                kt = f"0;{1 - w};1"
-                vf, vs = (f"{base_f};{base_f};{lit_f}",
-                          f"{base_s};{base_s};{lit_s}")
-            else:
-                kt = f"0;{f - w};{f};{f + w};1"
-                vf = f"{base_f};{base_f};{lit_f};{base_f};{base_f}"
-                vs = f"{base_s};{base_s};{lit_s};{base_s};{base_s}"
-            anims = (f"<animate attributeName='fill' values='{vf}' "
-                     f"keyTimes='{kt}' dur='{dur}' repeatCount='indefinite'/>"
-                     f"<animate attributeName='stroke' values='{vs}' "
-                     f"keyTimes='{kt}' dur='{dur}' repeatCount='indefinite'/>")
-
         partes.append(f"<rect x='{bx:.1f}' y='{by}' width='{bw:.1f}' "
                       f"height='{bh}' rx='8' fill='{relleno}' stroke='{borde}' "
-                      f"stroke-width='{2 if es else 1}'>{anims}</rect>")
-        cx = centros[i]
+                      f"stroke-width='{2 if es else 1}'/>")
+        cx = bx + bw / 2
         partes.append(f"<text x='{cx:.1f}' y='{by - 10}' class='et' "
-                      f"text-anchor='middle' style='font-size:11px;"
-                      f"fill:{tinta}'>{i + 1}</text>")
-        partes.append(f"<text x='{cx:.1f}' y='{by + 28}' class='et' "
-                      f"text-anchor='middle' style='font-size:11px;"
-                      f"font-weight:600;fill:"
-                      f"{T['texto'] if es else T['texto_medio']}'>"
-                      f"{escape(titulo)}</text>")
-        partes.append(f"<text x='{cx:.1f}' y='{by + 48}' class='vs' "
-                      f"text-anchor='middle' style='font-size:12px;"
-                      f"fill:{tinta}'>{escape(sub)}</text>")
+                      f"text-anchor='middle' fill='{tinta}'>{i + 1}</text>")
+        partes.append(f"<text x='{cx:.1f}' y='{by + 27}' class='et' "
+                      f"text-anchor='middle' fill='{T['texto'] if es else T['texto_medio']}'"
+                      f" style='font-weight:600'>{escape(titulo)}</text>")
+        partes.append(f"<text x='{cx:.1f}' y='{by + 46}' class='vs' "
+                      f"text-anchor='middle' fill='{tinta}'>{escape(sub)}</text>")
         if es:
             partes.append(f"<path d='M {cx - 6:.1f} {by + bh + 6} "
                           f"L {cx + 6:.1f} {by + bh + 6} L {cx:.1f} "
                           f"{by + bh + 14} Z' fill='{T['acento']}'/>")
         if i < n - 1:
             fx0, fx1 = bx + bw + 5, bx + bw + hueco - 5
-            partes.append(f"<line x1='{fx0:.1f}' y1='{cy}' x2='{fx1 - 4:.1f}' "
-                          f"y2='{cy}' stroke='{T['dato']}' stroke-width='1.5'/>")
-            partes.append(f"<path d='M {fx1:.1f} {cy} L {fx1 - 7:.1f} {cy - 4} "
-                          f"L {fx1 - 7:.1f} {cy + 4} Z' fill='{T['dato']}'/>")
-
-    if animado:
-        # El dato viaja en línea recta por los centros; como van equiespaciados,
-        # la fracción de llegada a la estación i es exactamente i/(n−1) — de ahí
-        # salen los keyTimes de las cajas.
-        partes.append(
-            f"<circle r='6' fill='{T['acento_alto']}' stroke='{T['fondo']}' "
-            f"stroke-width='1.5'><animateMotion dur='{dur}' "
-            f"repeatCount='indefinite' "
-            f"path='M {centros[0]:.1f} {cy} L {centros[-1]:.1f} {cy}'/>"
-            f"</circle>")
-    partes.append("</svg>")
-    return "".join(partes)
-
-
-# --------------------------------------------------------------------------
-# 11. Miniatura de dependencia parcial (el panorama del explorador)
-# --------------------------------------------------------------------------
-def miniatura_pd(valores, efecto, tipo: str, T: dict,
-                 ancho: int = 200, alto: int = 64) -> str:
-    """Curva o barras sin ejes ni rótulos: solo la forma, para la grilla."""
-    m = 6
-    lo, hi = min(efecto), max(efecto)
-    if hi - lo < 1e-9:
-        lo, hi = lo - 0.01, hi + 0.01
-    y = lambda v: m + (1 - (v - lo) / (hi - lo)) * (alto - 2 * m)
-    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Miniatura de la curva'>"]
-    if tipo == "numerico":
-        vlo, vhi = float(min(valores)), float(max(valores))
-        span = (vhi - vlo) or 1.0
-        x = lambda v: m + (float(v) - vlo) / span * (ancho - 2 * m)
-        partes.append(f"<path d='{_ruta(list(zip(valores, efecto)), x, y)}' "
-                      f"fill='none' stroke='{T['acento']}' stroke-width='2'/>")
-    else:
-        # Piso bajo el mínimo: normalizar entre min y max deja la barra más
-        # baja con altura CERO (en «Sexo», Mujer desaparecía del panorama).
-        piso = lo - (hi - lo) * 0.35
-        yb = lambda v: m + (1 - (v - piso) / (hi - piso)) * (alto - 2 * m)
-        k = len(valores)
-        bwm = (ancho - 2 * m) / max(k, 1)
-        for i, e in enumerate(efecto):
-            bx = m + i * bwm
-            partes.append(f"<rect x='{bx + bwm * 0.18:.1f}' y='{yb(e):.1f}' "
-                          f"width='{bwm * 0.64:.1f}' "
-                          f"height='{alto - m - yb(e):.1f}' rx='1.5' "
-                          f"fill='{T['dato_tenue']}'/>")
+            fy = by + bh / 2
+            partes.append(f"<line x1='{fx0:.1f}' y1='{fy}' x2='{fx1 - 4:.1f}' "
+                          f"y2='{fy}' stroke='{T['dato']}' stroke-width='1.5'/>")
+            partes.append(f"<path d='M {fx1:.1f} {fy} L {fx1 - 7:.1f} {fy - 4} "
+                          f"L {fx1 - 7:.1f} {fy + 4} Z' fill='{T['dato']}'/>")
     partes.append("</svg>")
     return "".join(partes)
