@@ -79,3 +79,18 @@
       tiene; (c) tras el deploy, Reboot completo y smoke en la URL
       pública; (d) evaluar fijar la versión de Python de Cloud a 3.12
       para casar con local.
+
+    **RESUELTO (24/08/2026, mañana).** Re-aterrizado según el plan:
+    - **Python fijado en 3.12 en la configuración de la app en Streamlit
+      Cloud** (antes corría 3.13; local es 3.12.10) — el pin forzó un
+      rebuild completo que se esperó y verificó antes de tocar main.
+    - Pre-vuelo bajo Python 3.13.14 real (`uv run --python 3.13`): el
+      graficos.py de f468c45 importaba limpio — quedó descartado un fallo
+      de sintaxis/import propio de 3.13; la causa de trabajo es la recarga
+      en caliente con el módulo viejo (el log de Manage app se perdió con
+      la rotación del reboot/rebuild, así que no hay confirmación textual).
+    - Aterrizaje en dos commits: f869eb9 (solo app/graficos.py, sin
+      consumidores — gate en la URL pública detectando el deploy por el
+      viewBox nuevo del SVG) y 509e916 (streamlit_app.py + contrato en el
+      mismo commit). Smoke Playwright completo en la URL pública tras cada
+      push: título nuevo, animación SMIL, delta con cifra, 849/1.189.
