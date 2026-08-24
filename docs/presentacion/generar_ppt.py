@@ -5,11 +5,28 @@
 # Licencia: Apache-2.0 (ver LICENSE)
 # ---------------------------------------------------------------------------
 """
-Genera docs/presentacion/ENAHO_exposicion.pptx: 16:9, 12 láminas, notas del
-orador en todas. La mesa evalúa un curso de DESPLIEGUE de machine learning:
-el mazo defiende la arquitectura y sus garantías; el detalle estadístico
-—torneo de nueve, embudo, umbral, prevalencia— vive en las notas, listo para
-preguntas, no en pantalla.
+Genera DOS salidas de la misma exposición (16:9, 13 láminas en el orden de
+la pauta del docente: carátula · datos · variables · torneo · importancia ·
+despliegue · verificación · auditoría · cierre):
+
+  - ENAHO_exposicion.pptx       (ENTREGA) — notas mínimas: solo la línea de
+                                 fuente por lámina. Es la que se envía.
+  - ENAHO_exposicion_EXPO.pptx  (EXPO)    — láminas idénticas byte a byte,
+                                 con las notas completas del orador (QUÉ
+                                 DIGO · TÉRMINOS · SI PREGUNTAN). Es la
+                                 chuleta del equipo en la vista del
+                                 presentador.
+
+Flags:  --solo-entrega  |  --solo-expo   (sin flag se generan las dos).
+
+Las láminas se CONSTRUYEN en un orden y se ENTREGAN en otro: el reorden se
+hace sobre la lista de diapositivas al guardar (ORDEN_FINAL), no moviendo
+código — así el generador conserva su estructura y el mazo sigue la pauta.
+
+La mesa evalúa un curso de DESPLIEGUE de machine learning: el mazo defiende
+la arquitectura y sus garantías; el detalle estadístico —torneo de nueve,
+embudo, umbral, prevalencia— vive en las notas EXPO, listo para preguntas,
+no en pantalla.
 
 Reglas de composición (verificar_ppt.py comprueba las medibles):
 
@@ -162,15 +179,17 @@ def _git(*a) -> str:
                           encoding="utf-8").stdout.strip()
 
 
-SALIDA_REL = "docs/presentacion/ENAHO_exposicion.pptx"
+SALIDAS_REL = {"docs/presentacion/ENAHO_exposicion.pptx",
+               "docs/presentacion/ENAHO_exposicion_EXPO.pptx"}
 VERSIONADOS = [f for f in _git("ls-files").split("\n") if f]
 REPO = {
     "n_archivos": len(VERSIONADOS),
-    # Sin contar la propia presentación: si se incluyera, la cifra que la
-    # lámina de arquitectura imprime cambiaría al guardarla y no habría forma
-    # de verificarla (el archivo se mide antes de existir en su tamaño final).
+    # Sin contar las propias presentaciones (ENTREGA y EXPO): si entraran,
+    # la cifra que la lámina de arquitectura imprime cambiaría al guardarlas
+    # y no habría forma de verificarla (los archivos se miden antes de
+    # existir en su tamaño final).
     "mb": round(sum((RAIZ / f).stat().st_size for f in VERSIONADOS
-                    if (RAIZ / f).exists() and f != SALIDA_REL) / 1e6, 2),
+                    if (RAIZ / f).exists() and f not in SALIDAS_REL) / 1e6, 2),
 }
 _DATA = RAIZ / "data"
 DATOS_MB = (round(sum(x.stat().st_size for x in _DATA.rglob("*") if x.is_file())
@@ -310,7 +329,10 @@ def fig_arquitectura():
 
 
 def fig_precomputo():
-    fig, ax = plt.subplots(figsize=(12.2, 5.0))
+    # Aspecto 3,9:1: la lámina encaja la figura por altura (3,10") y con
+    # este aspecto el resultado llena el ancho útil completo (12,09") en
+    # vez de quedar encogido al centro con aire a los lados.
+    fig, ax = plt.subplots(figsize=(15.2, 3.9))
     ax.set_xlim(0, 100); ax.set_ylim(0, 40); ax.axis("off")
 
     def bloque(x, w, titulo, subt, items, fc, ec, tc):
@@ -321,21 +343,24 @@ def fig_precomputo():
         """
         ax.add_patch(FancyBboxPatch((x, 4), w, 32, boxstyle="round,pad=0.6",
                                     fc=fc, ec=ec, lw=1.6, zorder=3))
-        ax.text(x + w / 2, 33.4, titulo, ha="center", va="top", fontsize=16,
+        ax.text(x + w / 2, 33.4, titulo, ha="center", va="top", fontsize=18.5,
                 fontweight="bold", color=tc, zorder=4)
-        ax.text(x + w / 2, 29.4, subt, ha="center", va="top", fontsize=12,
+        ax.text(x + w / 2, 29.6, subt, ha="center", va="top", fontsize=13.5,
                 color=mpl("texto_medio"), zorder=4)
         for k, (llano, tecnico) in enumerate(items):
-            cy = 25.0 - k * 4.3
-            ax.text(x + 2.6, cy, "·  " + llano, ha="left", va="top",
-                    fontsize=12.8, color=mpl("texto"), zorder=4)
-            ax.text(x + 4.4, cy - 1.95, tecnico, ha="left", va="top",
-                    fontsize=10.5, color=mpl("texto_tenue"), zorder=4)
+            cy = 25.4 - k * 4.5
+            ax.text(x + 2.2, cy, "·  " + llano, ha="left", va="top",
+                    fontsize=14.5, color=mpl("texto"), zorder=4)
+            ax.text(x + 3.7, cy - 2.2, tecnico, ha="left", va="top",
+                    fontsize=11.8, color=mpl("texto_tenue"), zorder=4)
 
     n_umbral = len(CURVA["umbral"])
     n_bins = len(UA["clasificador"]["histograma_oof"]["clase_1"])
     n_pdp = len(UA["clasificador"]["dependencia_parcial"])
-    bloque(1, 46, "UNA VEZ, en tu máquina", "src/09_precomputar_ui.py",
+    # Las cajas llegan casi al borde del lienzo (0,8..99,2): la lámina las
+    # encaja por ancho y así el diagrama alcanza de verdad el ancho útil,
+    # alineado con la banda del recorrido de abajo.
+    bloque(0.8, 47.5, "UNA VEZ, en tu máquina", "src/09_precomputar_ui.py",
            [("Qué pasaría con cada corte del umbral",
              f"(curva de umbral · {n_umbral} puntos)"),
             ("Cómo se reparten las probabilidades del modelo",
@@ -347,7 +372,7 @@ def fig_precomputo():
             ("Qué porcentaje es informal en cada grupo",
              "(tasas observadas)")],
            mpl("acento_fondo"), mpl("acento"), mpl("acento_alto"))
-    bloque(53, 46, "EN CALIENTE, al pulsar el botón", "app/streamlit_app.py",
+    bloque(51.7, 47.5, "EN CALIENTE, al pulsar el botón", "app/streamlit_app.py",
            [("Estimar el ingreso del perfil",
              "(una llamada a .predict() del regresor)"),
             ("Estimar su probabilidad de informalidad",
@@ -355,13 +380,14 @@ def fig_precomputo():
             ("Lo demás: leer el archivo guardado y dibujar",
              "(JSON → SVG)")],
            mpl("buena_fondo"), mpl("buena"), mpl("buena"))
-    ax.annotate("", xy=(52.4, 20), xytext=(47.6, 20),
+    ax.annotate("", xy=(51.4, 20), xytext=(48.6, 20),
                 arrowprops=dict(arrowstyle="-|>", mutation_scale=22, lw=2.2,
                                 color=mpl("texto_tenue")))
-    ax.text(24, 1.5, f"ui_artifacts.json · {d(UI_KB, 1)} KB", ha="center",
-            va="center", fontsize=14, fontweight="bold", color=mpl("acento_alto"))
-    ax.text(76, 1.5, f"2 modelos .joblib · {n(JOBLIB_KB)} KB", ha="center",
-            va="center", fontsize=14, fontweight="bold", color=mpl("buena"))
+    ax.text(24, 1.3, f"ui_artifacts.json · {d(UI_KB, 1)} KB", ha="center",
+            va="center", fontsize=15.5, fontweight="bold",
+            color=mpl("acento_alto"))
+    ax.text(76, 1.3, f"2 modelos .joblib · {n(JOBLIB_KB)} KB", ha="center",
+            va="center", fontsize=15.5, fontweight="bold", color=mpl("buena"))
     return _guardar(fig, "fig_precomputo")
 
 
@@ -432,8 +458,11 @@ def fig_requisitos():
                 color=mpl("texto"), fontweight="bold", va="top", ha="right")
     ax.text(50, 20, "=", ha="center", va="center", fontsize=34,
             color=mpl("buena"), fontweight="bold")
-    ax.text(50, -4, "si no coinciden, el modelo no carga en la nube",
-            ha="center", va="center", fontsize=13, color=mpl("mala"),
+    # El mensaje central de la lámina, no una letra chica: a tamaño de
+    # subtítulo (la figura se coloca a ~0,73× en la lámina, así que estos
+    # 27 pt quedan en ~20 pt proyectados), centrado bajo el «=».
+    ax.text(50, -4.6, "si no coinciden, el modelo no carga en la nube",
+            ha="center", va="center", fontsize=27, color=mpl("mala"),
             fontweight="bold")
     p = FIGS / "fig_requisitos.png"
     fig.savefig(p, dpi=200, facecolor=mpl("fondo"))
@@ -760,11 +789,21 @@ def rotulo(s, x, y, texto, color="acento_alto", tam=T_ETIQUETA):
     return fig
 
 
-def notas(s, texto):
-    s.notes_slide.notes_text_frame.text = texto
+# Las notas NO se escriben al construir: se registran junto con la fuente de
+# la lámina y se vuelcan al final, dos veces — la versión ENTREGA lleva solo
+# la línea de fuente, la versión EXPO lleva el guion completo del orador.
+NOTAS_REG: list[tuple] = []
+_ULTIMA_FUENTE = ""
+
+
+def notas(s, texto, fuente=None):
+    NOTAS_REG.append((s, texto,
+                      _ULTIMA_FUENTE if fuente is None else fuente))
 
 
 def pie_fuente(s, texto, y=None):
+    global _ULTIMA_FUENTE
+    _ULTIMA_FUENTE = texto
     y = Y_PIE if y is None else y
     tf = caja(s, MARGEN, y, UTIL, 0.34)
     parrafo(tf, "Fuente: " + texto, tam=T_PIE, color="texto_tenue",
@@ -819,16 +858,38 @@ for _k, (_etq, _url) in enumerate((("App:  ", APP_URL),
                        (_url, T_CUERPO, True, "acento_alto", MONO)],
                   primero=(_k == 0), alin=PP_ALIGN.LEFT,
                   esp_despues=10 if _k == 0 else 0)
-notas(s, "Buenas. Somos el grupo de Alan, Magdalena, Yoichi y Edgar, del curso "
-         "de Machine Learning de la ENEI, con el profesor Orlando Advíncula. "
-         "Presentamos dos modelos entrenados sobre los microdatos públicos de "
-         "la ENAHO 2025 del INEI: uno estima el ingreso laboral mensual y otro "
-         "clasifica si un empleo es informal. Los dos están desplegados en una "
-         "app pública de Streamlit que vamos a abrir en vivo. El curso es de "
-         "despliegue, así que el peso de la exposición está en cómo llega el "
-         "modelo del editor al navegador y en qué garantías tenemos de que lo "
-         "que corre en la nube es lo que entrenamos. Esos dos enlaces son los "
-         "únicos que hace falta apuntar; no vuelven a aparecer.")
+# El hipervínculo va en una zona clicable INVISIBLE sobre cada URL, no en el
+# run: PowerPoint restila todo run con hlinkClick (azul del tema y
+# subrayado) aunque el rPr diga u="none" y traiga su propio color — se
+# comprobó sobre el archivo generado. La acción de clic a nivel de shape
+# abre el enlace igual en modo presentación y no toca el texto.
+for _zx, _zy, _zw, _url in ((MARGEN + 0.50, 5.98, 6.00, APP_URL),
+                            (MARGEN + 1.26, 6.42, 6.30, REPO_URL)):
+    _z = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(_zx), Inches(_zy),
+                            Inches(_zw), Inches(0.38))
+    _z.fill.background()
+    _z.line.fill.background()
+    _z.shadow.inherit = False
+    _z.click_action.hyperlink.address = "https://" + _url
+notas(s, "QUÉ DIGO — Buenas, somos el grupo de Alan, Magdalena, Yoichi y "
+         "Edgar. Hicimos dos modelos con los datos públicos de la encuesta "
+         "de hogares del INEI: uno estima cuánto gana una persona al mes y "
+         "otro qué tan probable es que su empleo sea informal. Los dos están "
+         "funcionando ahora mismo en una página web pública que vamos a "
+         "abrir en vivo. Como el curso es de despliegue, lo que más vamos a "
+         "contar es cómo llega el modelo desde nuestra computadora hasta el "
+         "navegador de cualquiera, y qué garantías tenemos de que lo que "
+         "corre allá es lo mismo que entrenamos acá. Los dos enlaces de la "
+         "pantalla son los únicos que hay que apuntar.\n\n"
+         "TÉRMINOS DE ESTA LÁMINA — Microdatos: las respuestas individuales "
+         "y anónimas de la encuesta, persona por persona, tal como las "
+         "publica el INEI. App desplegada: la aplicación ya instalada en un "
+         "servidor y accesible por una dirección web, no solo en nuestra "
+         "máquina.\n\n"
+         "SI PREGUNTAN — ¿La app está viva ahora mismo? Sí: es pública, "
+         "corre en Streamlit Community Cloud y se abre desde el enlace de "
+         "la carátula. En modo presentación el enlace es clicable.",
+      fuente="AUTHORS.md · CITATION.cff · enlaces verificados en pantalla")
 
 # ---------------------------------------------------------------------------
 # Lámina 2 — qué construimos
@@ -838,34 +899,35 @@ y = titulo(s, "Una app pública, dos modelos: cuánto gana un perfil y si su "
               "empleo es informal",
            "El mismo formulario alimenta dos modelos independientes; cada "
            "pestaña corre el suyo.")
-# La franja de la base, arriba: la pauta pide describir los datos antes que
-# los modelos. Cada cifra sale de su artefacto (embudo del informe, conteos
-# del schema); el detalle variable a variable vive en la tabla mínima de la
-# lámina de los modelos.
-_, tf = panel(s, MARGEN, y, 12.09, 0.80, relleno="acento_fondo",
-              borde="acento")
-tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-parrafo_mixto(tf, [
-    ("La base: ENAHO 2025 (INEI), módulos ", T_CUERPO, False, "texto", FUENTE),
-    ("02 · 03 · 05", T_CUERPO, True, "acento_alto", MONO),
-    (" — ", T_CUERPO, False, "texto_tenue", FUENTE),
-    (EMBUDO["torneo"], T_CUERPO, True, "acento_alto", MONO),
-    (" trabajadores con ingreso laboral · ", T_CUERPO, False, "texto", FUENTE),
-    (str(len(REG["features"])), T_CUERPO, True, "acento_alto", MONO),
-    (" variables de entrada: ", T_CUERPO, False, "texto", FUENTE),
-    (str(len(NUM)), T_CUERPO, True, "acento_alto", MONO),
-    (" numéricas y ", T_CUERPO, False, "texto", FUENTE),
-    (str(len(CAT)), T_CUERPO, True, "acento_alto", MONO),
-    (" categóricas", T_CUERPO, False, "texto", FUENTE),
-], primero=True, alin=PP_ALIGN.CENTER, esp_despues=0, esp_linea=1.04)
+# La base, en tres bloques que se leen de un vistazo (una franja corrida de
+# texto no se leía): fuente · tamaño · variables. Cada cifra sale de su
+# artefacto (embudo del informe, conteos del schema).
+for _bx, _bw, _l1, _l2 in (
+        (MARGEN, 3.70,
+         [("ENAHO 2025 · INEI", 20, True, "acento_alto", FUENTE)],
+         [("módulos ", T_CUERPO, False, "texto_medio", FUENTE),
+          ("02 · 03 · 05", T_CUERPO, True, "texto", MONO)]),
+        (MARGEN + 4.00, 4.09,
+         [(EMBUDO["torneo"], 20, True, "acento_alto", MONO)],
+         [("trabajadores con ingreso laboral", T_CUERPO, False,
+           "texto_medio", FUENTE)]),
+        (MARGEN + 8.39, 3.70,
+         [(str(len(REG["features"])), 20, True, "acento_alto", MONO),
+          (" variables", 20, True, "acento_alto", FUENTE)],
+         [(f"{len(NUM)} numéricas · {len(CAT)} categóricas", T_CUERPO,
+           False, "texto_medio", FUENTE)])):
+    _, tf = panel(s, _bx, y, _bw, 0.92, relleno="acento_fondo",
+                  borde="acento")
+    parrafo_mixto(tf, _l1, primero=True, alin=PP_ALIGN.CENTER, esp_despues=1)
+    parrafo_mixto(tf, _l2, alin=PP_ALIGN.CENTER, esp_despues=0)
 ANCHO_CAP = 5.86
 # Recortadas (la barra lateral no se lee proyectada) y pulidas como producto.
 imagen_encajada(s, pulir_captura(recorte_lateral("cloud_reg_form.png",
                                                  "cloud_reg_panel.png")),
-                MARGEN, y + 0.92, ANCHO_CAP, 2.42)
+                MARGEN, y + 1.04, ANCHO_CAP, 2.30)
 imagen_encajada(s, pulir_captura(recorte_lateral("cloud_clf_resultado.png",
                                                  "cloud_clf_panel.png")),
-                6.85, y + 0.92, ANCHO_CAP, 2.42)
+                6.85, y + 1.04, ANCHO_CAP, 2.30)
 for x, etq, txt in (
         (MARGEN, "Estimación de ingreso  ·  regresión",
          "Estima el ingreso laboral mensual en soles con Gradient Boosting "
@@ -879,26 +941,98 @@ for x, etq, txt in (
     parrafo(tf, txt, tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.04)
 pie_fuente(s, f"INFORME_AUDITORIA.md §4 (embudo) · models/feature_schema.json "
               f"(variables) · capturas de la app desplegada ({APP_URL}).")
-notas(s, f"Primero la base, que es la franja de arriba: microdatos públicos "
-         f"de la ENAHO 2025 del INEI, tres módulos —el 02 de miembros del "
-         f"hogar, el 03 de educación y el 05 de empleo e ingresos— cruzados "
-         f"por persona. Tras los filtros documentados quedan "
-         f"{EMBUDO['torneo']} trabajadores con ingreso laboral, descritos por "
-         f"once variables: cinco numéricas y seis categóricas, las mismas "
-         f"para los dos modelos; el detalle variable a variable viene unas "
-         f"láminas más adelante. Sobre esa base, la app tiene cuatro "
-         f"secciones y estas son las dos que hacen predicción. A la "
-         f"izquierda, el formulario del regresor: se describe un perfil "
-         f"laboral y devuelve un ingreso mensual típico en soles. A la "
-         f"derecha, la pestaña de informalidad: con las mismas once variables "
-         f"devuelve una probabilidad y, según dónde se ponga el umbral, un "
-         f"veredicto. Son dos modelos independientes que comparten las "
-         f"entradas, no un modelo con dos salidas. Y toda la app se explica "
-         f"sola: lectura llana con expander técnico, gráficos etiquetados "
-         f"como DATO, MECÁNICA o HIPÓTESIS, la matriz de confusión en "
-         f"castellano, y {N_REFERENCIAS} referencias con el enlace comprobado "
-         f"una a una. Nadie necesita abrir el código para entender qué está "
-         f"viendo.")
+notas(s, f"QUÉ DIGO — Primero los datos, que son los tres bloques de "
+         f"arriba: encuesta de hogares ENAHO 2025 del INEI, cruzando tres "
+         f"de sus módulos — quiénes viven en el hogar, su educación y su "
+         f"empleo. Después de los filtros quedan {EMBUDO['torneo']} "
+         f"trabajadores con ingreso laboral. A cada uno lo describen once "
+         f"variables, las mismas para los dos modelos; en la siguiente "
+         f"lámina están una por una. Sobre esa base, la app responde dos "
+         f"preguntas: a la izquierda, cuánto gana al mes un perfil como "
+         f"este; a la derecha, qué tan probable es que ese empleo sea "
+         f"informal. Son dos modelos separados que comparten las entradas, "
+         f"no un modelo con dos salidas.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Módulo: cada bloque temático de la "
+         f"encuesta ({'02'} hogar, {'03'} educación, {'05'} empleo); se "
+         f"cruzan por persona. Regresión: el modelo que responde con un "
+         f"número (soles al mes). Clasificación: el modelo que responde con "
+         f"una probabilidad entre 0 y 1 (informal o no). Modelo: el "
+         f"programa que aprendió de los {EMBUDO['torneo']} casos a "
+         f"responder esas preguntas para un perfil nuevo.\n\n"
+         f"SI PREGUNTAN — ¿Por qué dos modelos y no uno? Porque son "
+         f"preguntas de naturaleza distinta: una pide un monto y la otra "
+         f"una probabilidad. Comparten las once entradas para que el mismo "
+         f"formulario alimente a los dos, pero cada uno se entrenó y se "
+         f"evalúa por su lado.")
+
+# ---------------------------------------------------------------------------
+# Lámina de variables (entrega: posición 3) — cuáles son y cómo se eligieron
+# ---------------------------------------------------------------------------
+s = lamina()
+_F = {f["nombre"]: f for f in REG["features"]}
+# Media línea por variable, armada desde el schema: etiqueta + rango (las
+# numéricas) o niveles (las categóricas). Los rangos y conteos son datos del
+# schema, así que el verificador los traza como cualquier otra cifra.
+# Descripciones de UNA línea: una celda que se parte en dos hace crecer la
+# tabla (python-pptx la CRECE, no la recorta) y el panel de abajo terminaba
+# pisando las últimas filas.
+_DESC = {
+    "anios_educ": f"de {d(_F['anios_educ']['min'], 0)} a "
+                  f"{d(_F['anios_educ']['max'], 0)} años aprobados",
+    "edad": f"de {d(_F['edad']['min'], 0)} a {d(_F['edad']['max'], 0)} años",
+    "exper": "edad − educación − 6",
+    "exper2": "su cuadrado: efecto curvo",
+    "horas_total": f"de {d(_F['horas_total']['min'], 0)} a "
+                   f"{d(_F['horas_total']['max'], 0)} a la semana",
+    "sexo": " / ".join(_F["sexo"]["opciones"]),
+    "area": " / ".join(_F["area"]["opciones"]),
+    "dominio": f"{len(_F['dominio']['opciones'])} regiones del país",
+    "rama": f"{len(_F['rama']['opciones'])} sectores agrupados",
+    "tamano_empresa": f"{len(_F['tamano_empresa']['opciones'])} tramos, "
+                      f"desde «Hasta 20»",
+    "categoria": f"{len(_F['categoria']['opciones'])} tipos de vínculo "
+                 f"laboral",
+}
+_ETI_VAR = {"anios_educ": "Años de educación", "edad": "Edad",
+            "exper": "Experiencia potencial", "exper2": "Experiencia²",
+            "horas_total": "Horas semanales", "sexo": "Sexo",
+            "area": "Área de residencia", "dominio": "Dominio geográfico",
+            "rama": "Rama de actividad", "tamano_empresa": "Tamaño de empresa",
+            "categoria": "Categoría ocupacional"}
+y = titulo(s, "Las 11 variables: cuáles son y cómo quedaron elegidas",
+           "Las mismas once entradas alimentan el regresor y el clasificador; "
+           "un torneo de especificaciones decidió quedarse con ellas.")
+filas_n = [[f"Numéricas ({len(NUM)})", "Qué es"]]
+for f in NUM:
+    filas_n.append([_ETI_VAR.get(f["nombre"], f["etiqueta"]),
+                    _DESC[f["nombre"]]])
+filas_c = [[f"Categóricas ({len(CAT)})", "Qué es"]]
+for f in CAT:
+    filas_c.append([_ETI_VAR.get(f["nombre"], f["etiqueta"]),
+                    _DESC[f["nombre"]]])
+tabla(s, MARGEN, y, 5.86, 1.95, filas_n, anchos=[44, 56], tam=16, tam_cab=16,
+      cols_mono=[])
+tabla(s, 6.85, y, 5.86, 2.28, filas_c, anchos=[44, 56], tam=16, tam_cab=16,
+      cols_mono=[])
+_, tf = panel(s, MARGEN, y + 2.90, 12.09, 1.56, relleno="acento_fondo",
+              borde="acento")
+parrafo(tf, "CÓMO QUEDARON ELEGIDAS", tam=T_ETIQUETA, color="acento_alto",
+        fuente=MONO, primero=True, esp_despues=4)
+parrafo(tf, f"Un torneo de nueve especificaciones — de la consigna del curso "
+            f"(E1, S/ {d(TAB_TORNEO['E1']['MAE_cv'], 1)} de error al mes) a "
+            f"variantes más ricas — compitió con los mismos datos y "
+            f"pliegues. Ganó E9: Gradient Boosting sobre el logaritmo, con "
+            f"estas once variables y S/ {d(TAB_TORNEO['E9']['MAE_cv'], 1)} "
+            f"en validación cruzada. Nunca se eligió por el test.",
+        tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.05)
+pie_fuente(s, "models/feature_schema.json (nombre, tipo, rango y niveles de "
+              "cada variable) · models/ui_artifacts.json (torneo.tabla) · "
+              "docs/METODOLOGIA_TORNEO.md")
+notas(s, f"""QUÉ DIGO — Los dos modelos usan las mismas once variables: cinco numéricas y seis categóricas. Son cosas que cualquier persona sabe de sí misma: educación, edad, horas de trabajo, dónde vive, en qué sector trabaja y en qué tipo de empleo. No las elegimos a ojo: armamos un torneo de nueve recetas, desde la consigna del curso hasta variantes cada vez más ricas, y todas compitieron con los mismos datos y la misma regla. Ganó la novena, que usa estas once variables. El error bajó de S/ {d(TAB_TORNEO['E1']['MAE_cv'], 1)} al mes con la consigna a S/ {d(TAB_TORNEO['E9']['MAE_cv'], 1)} con la ganadora.
+
+TÉRMINOS DE ESTA LÁMINA — Variable numérica: un número que entra tal cual (años, horas). Variable categórica: una opción de una lista cerrada (región, sector); el modelo la convierte por dentro en columnas de sí/no. Especificación: una receta concreta de modelo — qué variables entran y en qué forma. Torneo: todas las recetas compiten con los mismos datos y gana la que menos se equivoca. Validación cruzada: partir los datos en cinco, entrenar con cuatro partes y probar con la quinta, rotando, para medir sin hacerse trampa.
+
+SI PREGUNTAN — ¿Por qué no está el tipo de contrato? Porque separa casi solo y se solapa con la propia definición de informalidad: el modelo aprendería la definición, no el fenómeno. Quedó fuera del clasificador y la decisión está documentada.""")
 
 # ---------------------------------------------------------------------------
 # Lámina 3 — la arquitectura, el ancla del mazo
@@ -923,20 +1057,30 @@ parrafo(tf, f"Los microdatos se quedan en la máquina: los {d(DATOS_MB, 1)} MB "
         esp_despues=0, esp_linea=1.06, alin=PP_ALIGN.CENTER)
 pie_fuente(s, "docs/arquitectura.md · .gitignore · git ls-files · tamaños "
               "medidos del disco al generar esta lámina")
-notas(s, f"Esta es la lámina que sostiene todo lo demás. El pipeline completo "
-         f"corre en local, en VS Code: los scripts numerados del 00 al 09 "
-         f"leen los microdatos del INEI, entrenan los modelos y escriben los "
-         f"artefactos: dos .joblib y los JSON de contrato con la app. Los "
-         f"microdatos son {d(DATOS_MB, 1)} megabytes que el .gitignore "
-         f"excluye por diseño: no se redistribuyen, se enlaza a la fuente. Lo "
-         f"que sale de la máquina son {d(REPO['mb'], 2)} megabytes en "
-         f"{REPO['n_archivos']} archivos, en carpetas con un rol fijo: src/ "
-         f"para el entrenamiento, models/ para los artefactos, app/ para lo "
-         f"desplegado, docs/ y reports/ para la evidencia. GitHub recibe el "
-         f"push, avisa por webhook a Streamlit Community Cloud, y la nube "
-         f"reconstruye el entorno y publica. Entre guardar en el editor y ver "
-         f"el cambio en el navegador no hay ningún paso manual: esa es la "
-         f"definición de despliegue continuo que defendemos aquí.")
+notas(s, f"QUÉ DIGO — Esta lámina sostiene todo lo demás. Entrenamos en "
+         f"nuestra computadora y de ahí sale un paquete chico: el código y "
+         f"los resultados ya calculados, {d(REPO['mb'], 2)} megas en "
+         f"{REPO['n_archivos']} archivos. Ese paquete se sube a GitHub con "
+         f"un push. GitHub le avisa a Streamlit Cloud, y la nube "
+         f"reconstruye la app y la publica sola. Entre guardar el cambio y "
+         f"verlo en el navegador no hay ningún paso manual. Y los datos "
+         f"originales del INEI, {d(DATOS_MB, 1)} megas, nunca salen de la "
+         f"máquina: el repositorio enlaza a la fuente oficial.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Dónde vive cada cosa: TODO vive en "
+         f"GitHub — el código, los modelos .joblib y los JSON viajan dentro "
+         f"del repositorio; los microdatos no. Streamlit Cloud no guarda "
+         f"nada propio: clona el repositorio, instala requirements.txt y "
+         f"ejecuta. GitHub es la fuente; Streamlit solo lo corre y le pone "
+         f"URL. Artefacto: un resultado ya calculado y guardado en un "
+         f"archivo. .joblib: el modelo entrenado guardado como archivo. "
+         f"Webhook: el aviso automático que GitHub le manda a Streamlit "
+         f"cuando el repositorio cambia («hay versión nueva, redespliega»). "
+         f"Repositorio: la carpeta versionada del proyecto, con su "
+         f"historia completa.\n\n"
+         f"SI PREGUNTAN — ¿Y si Streamlit Cloud se cae o se borra la app? "
+         f"No se pierde nada: en Streamlit no vive nada que no esté en "
+         f"GitHub. Se vuelve a conectar el repositorio y la app renace "
+         f"idéntica, porque la nube solo clona, instala y ejecuta.")
 
 # ---------------------------------------------------------------------------
 # Lámina 4 — artefactos precomputados
@@ -970,21 +1114,31 @@ parrafo_mixto(tf_flujo, [
 ], primero=True, alin=PP_ALIGN.CENTER, esp_despues=0)
 pie_fuente(s, "src/09_precomputar_ui.py · models/ui_artifacts.json · "
               "models/*.joblib · docs/presentacion/verificacion_local.py")
-notas(s, f"Este es el recorrido real de abrir la app: cero ejecuciones del "
-         f"modelo. Las curvas de umbral, los histogramas, las tablas de "
-         f"consecuencias y las dependencias parciales se calcularon una sola "
-         f"vez, en 09_precomputar_ui.py, y viajan como un JSON de "
-         f"{d(UI_KB, 1)} kilobytes. La app en producción abre ese archivo y "
-         f"dibuja: no hay nada que calcular ahí. Los .joblib solo entran "
-         f"cuando el usuario arma un perfil y pulsa «Estimar»: una llamada a "
-         f"predict, que da S/ {ING_TIPICO} para el perfil por defecto, y una "
-         f"a predict_proba. Además, cache_data y cache_resource evitan releer "
-         f"el JSON y los "
-         f"modelos en cada interacción de la sesión. Community Cloud da poca "
-         f"memoria por aplicación: mantener el trabajo pesado fuera del "
-         f"tiempo de ejecución es lo que permite que cargue rápido y no se "
-         f"quede sin memoria. Qué gana el usuario: una app que responde al "
-         f"instante; qué ganamos nosotros: una app que no se cae.")
+notas(s, f"QUÉ DIGO — Cuando alguien abre la app, el modelo no se ejecuta "
+         f"ni una vez: todos los gráficos y tablas ya estaban calculados "
+         f"desde el entrenamiento, guardados en un archivo de "
+         f"{d(UI_KB, 1)} kilobytes que la app solo lee y dibuja. El modelo "
+         f"trabaja únicamente cuando el usuario arma su perfil y pulsa "
+         f"«Estimar»: una sola predicción, que para el perfil por defecto "
+         f"da S/ {ING_TIPICO}. Por eso la app carga rápido y no se cae: la "
+         f"nube gratuita da poca memoria, y todo lo pesado quedó fuera del "
+         f"momento en que alguien la mira.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Precómputo: calcular una sola vez, al "
+         f"entrenar, lo que la app va a mostrar siempre, en vez de "
+         f"recalcularlo con cada visita. Artefacto: un resultado ya "
+         f"calculado y guardado en un archivo. .joblib: el modelo entrenado "
+         f"guardado como archivo; se carga y responde, sin reentrenar. "
+         f"JSON: un archivo de texto con datos organizados, legible por "
+         f"cualquier lenguaje. predict / predict_proba: la llamada que pide "
+         f"al modelo un número (soles) o una probabilidad. Curva de umbral, "
+         f"histograma, dependencia parcial: los gráficos de la app; los "
+         f"tres vienen del precómputo. Caché: memoria de corto plazo de la "
+         f"app para no releer archivos en cada clic.\n\n"
+         f"SI PREGUNTAN — ¿Y si el perfil que arma el usuario no estaba "
+         f"precalculado? Justo por eso los .joblib viajan con la app: el "
+         f"perfil puntual sí se predice en vivo, es la única cuenta que se "
+         f"hace en caliente y tarda milisegundos. Lo precalculado es todo "
+         f"lo que no depende del perfil.")
 
 # ---------------------------------------------------------------------------
 # Lámina 5 — versiones fijadas
@@ -1003,17 +1157,28 @@ tarjeta(s, 9.15, y + 2.26, 3.56, 2.08, "la nube apunta a", "main",
         "cada push.", color_cifra="buena", tam_cifra=30)
 pie_fuente(s, "requirements.txt · models/ui_artifacts.json (meta) · panel de "
               "Streamlit Community Cloud")
-notas(s, f"requirements.txt no deja ninguna versión suelta. scikit-learn "
-         f"queda fijado en {SKLEARN_REQ}, la misma con la que se generaron "
-         f"los .joblib, porque un modelo serializado con otra versión puede "
-         f"no cargar, o cargar y comportarse distinto, sin ningún aviso. La "
-         f"comprobación no es una promesa del archivo: el propio generador de "
-         f"esta presentación compara requirements.txt con la versión anotada "
-         f"en los artefactos y se niega a producir el .pptx si no coinciden. "
-         f"Del lado de la nube, Streamlit Cloud apunta a un archivo y una "
-         f"rama fijos —app/streamlit_app.py en main— y reconstruye ese "
-         f"entorno en cada push. La versión de pandas, {META['version_pandas']}, "
-         f"queda fijada por la misma razón.")
+notas(s, f"QUÉ DIGO — Un modelo guardado solo se puede volver a abrir con "
+         f"la misma versión de la librería que lo guardó. Si la nube "
+         f"instalara otra, el modelo podría no cargar — o peor, cargar y "
+         f"comportarse distinto sin avisar. Por eso requirements.txt fija "
+         f"cada versión exacta: scikit-learn {SKLEARN_REQ}, la misma que "
+         f"entrenó los modelos, y pandas {META['version_pandas']} por la "
+         f"misma razón. Y la comprobación no es una promesa: el programa "
+         f"que genera estas láminas compara ambos lados y se niega a "
+         f"producir la presentación si no coinciden.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Pickle / .joblib: el modelo entrenado "
+         f"guardado como archivo binario; para abrirse necesita la misma "
+         f"librería con la que se guardó. requirements.txt: la lista de "
+         f"librerías con su versión exacta; la nube instala exactamente "
+         f"eso. Entorno: el conjunto de librerías instaladas donde corre "
+         f"la app; Streamlit Cloud lo reconstruye desde cero en cada "
+         f"publicación. Artefacto: resultado ya calculado y guardado en un "
+         f"archivo — aquí, los dos modelos y los JSON que la app lee.\n\n"
+         f"SI PREGUNTAN — ¿Qué pasa si actualizan scikit-learn? Nada, "
+         f"mientras requirements.txt no cambie: la nube instala la versión "
+         f"fijada, no la última. Si algún día se quiere subir de versión, "
+         f"hay que reentrenar, regenerar los artefactos y volver a "
+         f"verificar — y el generador obliga a que todo eso pase junto.")
 
 # ---------------------------------------------------------------------------
 # Lámina 6 — el formulario por dentro
@@ -1081,40 +1246,50 @@ else:
             tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.02)
 pie_fuente(s, "captura de la app desplegada · app/streamlit_app.py "
               "(componentes realmente usados) · models/feature_schema.json")
-notas(s, "El formulario no declara ningún campo a mano: recorre "
-         "feature_schema.json y arma un control por variable, número o "
-         "selector según el tipo. Los numéricos usan number_input con su paso "
-         "y su rango; los categóricos, selectbox con las opciones que "
-         "realmente vio el codificador entrenado. Si mañana cambia una "
-         "variable en el schema, el formulario cambia solo: el schema es el "
-         "contrato entre el entrenamiento y la interfaz. El slider del umbral "
-         "vive en un st.fragment: moverlo reejecuta solo ese fragmento y no "
-         "la página entera, así que la predicción y los artefactos no se "
-         "vuelven a cargar en cada arrastre. El expander separa la lectura "
-         "llana de la técnica, el popover resuelve una pregunta puntual sin "
-         "ocupar espacio permanente, y el selector de tema es un radio que "
-         "lee sus opciones de PALETAS, la misma paleta que estás viendo en "
-         "estas láminas.")
+notas(s, "QUÉ DIGO — Este formulario no lo escribimos campo por campo: se "
+         "fabrica solo. Hay un archivo que describe cada variable — cómo "
+         "se llama, si es número u opción, su rango, sus niveles — y la "
+         "app recorre ese mapa y crea un control por variable. Si mañana "
+         "el modelo cambia una variable, el campo aparece o cambia solo, "
+         "sin tocar la interfaz. Y es imposible que el formulario y el "
+         "modelo se desincronicen, porque los dos nacen del mismo archivo. "
+         "El control del umbral, en la otra pestaña, vive en un fragmento: "
+         "moverlo redibuja solo ese bloque y no la página entera.\n\n"
+         "TÉRMINOS DE ESTA LÁMINA — Schema (feature_schema.json): el JSON "
+         "que describe cada variable — nombre, tipo, rango, niveles; la "
+         "app recorre ese mapa y fabrica un control por variable; si el "
+         "schema cambia, el campo aparece solo, y formulario y modelo no "
+         "pueden desincronizarse porque nacen del mismo archivo. "
+         "Componente: cada pieza de interfaz de Streamlit — número, "
+         "selector, botón de opciones, deslizador. Fragment: un bloque de "
+         "la página que se redibuja solo, sin recargar el resto. Expander "
+         "y popover: los pliegues donde vive la lectura técnica sin "
+         "estorbar la llana.\n\n"
+         "SI PREGUNTAN — ¿Qué pasa si el usuario mete un valor fuera de "
+         "rango? No puede: cada control nace con el rango y las opciones "
+         "del schema, que son las que el modelo vio al entrenar. El "
+         "formulario no deja escribir lo que el modelo no conoce.")
 
 # ---------------------------------------------------------------------------
 # Lámina 7 — disciplina de entrega
 # ---------------------------------------------------------------------------
 s = lamina()
-y = titulo(s, "Lo que se publica va firmado, con tests y medido sobre la app "
-              "viva",
-           "Tres controles rodean cada entrega: que la app y los archivos del "
-           "modelo digan lo mismo, quién publicó cada versión, y qué se ve "
-           "de verdad en la app.")
+y = titulo(s, "Lo que se publica lleva tests, cifras verificadas y medición "
+              "sobre la app viva",
+           "Tres controles rodean cada entrega: que la app y los archivos "
+           "del modelo digan lo mismo, que cada cifra salga de su archivo, y "
+           "qué se ve de verdad en la app.")
 filas = [["Control", "Qué garantiza", "Dónde se comprueba"],
          ["Tests de contrato",
           "Que la app no pida nada que sus archivos no tengan. Los tres "
           "fallos reales están reproducidos sin navegador: si vuelven, "
           "saltan en local y no en la nube.",
           "tests/test_contratos.py"],
-         ["Commits firmados",
-          "Cada versión publicada lleva la firma SSH del autor: se sabe quién "
-          "publicó qué.",
-          "git log --show-signature"],
+         ["Cifras verificadas",
+          "Cada número de estas láminas se comprueba contra el archivo que "
+          "lo genera; si una cifra no tiene fuente, la exposición no se "
+          "genera.",
+          "verificar_ppt.py"],
          ["QA sobre la app viva",
           "Lo que se afirma de la app desplegada se mide en su DOM con "
           "Playwright, no se mira a ojo.",
@@ -1140,23 +1315,31 @@ for _fallo in (
         "vieja desde su caché."):
     parrafo(tf, "—  " + _fallo, tam=T_CUERPO, color="texto", esp_despues=2,
             esp_linea=1.0)
-pie_fuente(s, "tests/test_contratos.py · git log --show-signature · "
-              "docs/POST_ENTREGA.md (estándares de la corrida de entrega)")
-notas(s, "Tres controles distintos, cada uno contra un tipo de fallo "
-         "distinto. Primero, los tests de contrato: un despliegue del 20 de "
-         "agosto rompió la app tres veces con la misma forma de error, la "
-         "app pedía algo que su proveedor no tenía: un tema que no estaba en "
-         "la paleta, una función de dibujo que no existía, una clave del "
-         "artefacto renombrada. Cada uno de esos fallos está hoy reproducido "
-         "como un test de pytest que corre sin navegador: si el error vuelve, "
-         "salta en local antes del push, no en producción delante del "
-         "usuario. Segundo, la autoría: cada commit va firmado con una clave "
-         "SSH y git log muestra la firma buena; en un repositorio público, "
-         "saber quién publicó qué no es un adorno. Tercero, el QA: cuando "
-         "afirmamos algo de la app desplegada, por ejemplo que un gráfico ya "
-         "no se corta, no lo miramos a ojo: se mide sobre el DOM real con "
-         "Playwright. Ese estándar quedó escrito en la guía de post-entrega "
-         "del proyecto.")
+pie_fuente(s, "tests/test_contratos.py · docs/presentacion/verificar_ppt.py "
+              "· docs/POST_ENTREGA.md (estándares de la corrida de entrega)")
+notas(s, "QUÉ DIGO — Tres controles, cada uno contra un tipo de error "
+         "distinto. Primero, los tests de contrato: un despliegue del 20 "
+         "de agosto rompió la app tres veces porque la app pedía cosas que "
+         "sus archivos no tenían; hoy cada uno de esos fallos es una "
+         "prueba automática que salta en nuestra máquina antes de "
+         "publicar. Segundo, las cifras: cada número de estas láminas se "
+         "comprueba contra el archivo que lo genera, y si un número no "
+         "tiene fuente, la presentación no se genera. Tercero, la app "
+         "viva: lo que afirmamos de ella no se mira a ojo, se mide sobre "
+         "la página real con un navegador automatizado.\n\n"
+         "TÉRMINOS DE ESTA LÁMINA — Test de contrato: una prueba de que "
+         "dos piezas siguen encajando — que la app no pida nada que sus "
+         "archivos no tengan. Caché: la memoria de corto plazo de la app; "
+         "uno de los fallos fue servir un archivo viejo desde ahí. Cifras "
+         "verificadas: cada número visible (y el de estas notas) se traza "
+         "hasta el archivo que lo produce con un script auditor. DOM: la "
+         "estructura interna de la página web ya dibujada; medir ahí es "
+         "medir lo que el usuario ve de verdad. Playwright: la herramienta "
+         "que abre la app real y la inspecciona sola.\n\n"
+         "SI PREGUNTAN — ¿Quién verifica las cifras de ESTA exposición? El "
+         "mismo estándar: la presentación se genera desde los artefactos y "
+         "un script la reabre y comprueba número por número, incluidas "
+         "estas notas. Lo que están viendo pasó esa auditoría.")
 
 # ---------------------------------------------------------------------------
 # Lámina 8 — los modelos: RF y GB en los dos problemas (guía)
@@ -1190,7 +1373,7 @@ filas_v = [["Variables de entrada",
             f"one-hot dentro del pipeline"]]
 tabla(s, MARGEN, y + 2.02, 12.09, 1.50, filas_v, anchos=[24, 76], tam=16,
       tam_cab=16, cols_mono=[])
-_, tf = panel(s, MARGEN, y + 3.86, 12.09, 0.90, relleno="acento_fondo",
+_, tf = panel(s, MARGEN, y + 3.66, 12.09, 0.90, relleno="acento_fondo",
               borde="acento")
 parrafo(tf, f"El clasificador no se corta en 0,5: el umbral operativo "
             f"{d(PUNTO['umbral'], 4)} se fijó para que la precisión llegue a "
@@ -1201,27 +1384,36 @@ parrafo(tf, f"El clasificador no se corta en 0,5: el umbral operativo "
 pie_fuente(s, "models/ui_artifacts.json (torneo.tabla, "
               "clasificador.comparacion) · models/feature_schema.json · "
               "src/04, src/06")
-notas(s, f"La guía pide comparar Random Forest y Gradient Boosting, y esta "
-         f"es la comparación en los dos problemas a la vez. En regresión, "
-         f"Gradient Boosting se equivoca de media en S/ {d(e9['MAE_cv'], 1)} "
-         f"al mes y Random Forest en S/ {d(e8['MAE_cv'], 1)}: empate "
-         f"práctico; la mejor especificación lineal, E7, queda en "
-         f"S/ {d(e7['MAE_cv'], 1)}, y ahí sí hay distancia. En clasificación "
-         f"gana también Gradient Boosting: PR-AUC de {d(gb['PRAUC_cv'], 4)} "
-         f"contra {d(rf['PRAUC_cv'], 4)} del Random Forest y "
-         f"{d(lo['PRAUC_cv'], 4)} de la logística. Contexto que conviene "
-         f"tener a mano: detrás de la fila de regresión hay un torneo de "
-         f"nueve especificaciones, de la consigna E1 con "
-         f"S/ {d(TAB_TORNEO['E1']['MAE_cv'], 1)} de error hasta E9; los "
-         f"datos vienen de un embudo documentado: {EMBUDO['crudo']} registros "
-         f"del módulo de empleo, {EMBUDO['ocupados']} ocupados de 14 años o "
-         f"más, {EMBUDO['modelado']} con ingreso positivo y "
-         f"{EMBUDO['torneo']} casos completos, partidos en {EMBUDO['train']} "
-         f"de entrenamiento y {EMBUDO['test']} de prueba con semilla fija. "
-         f"Medimos PR-AUC y no accuracy porque la prevalencia es "
-         f"{d(BASE_PR, 4)}: decir «informal» a todos ya acierta el "
-         f"{d(BASE_PR * 100, 1)} % de las veces. Y la selección es siempre "
-         f"por validación cruzada: el test se miró una sola vez, al final.")
+notas(s, f"QUÉ DIGO — Probamos las dos familias de árboles del curso en "
+         f"los dos problemas, con los mismos datos y las mismas "
+         f"particiones. En ingreso, Gradient Boosting se equivoca en "
+         f"promedio S/ {d(e9['MAE_cv'], 1)} al mes y Random Forest "
+         f"S/ {d(e8['MAE_cv'], 1)}: un empate práctico, con el mejor "
+         f"modelo lineal lejos, en S/ {d(e7['MAE_cv'], 1)}. En "
+         f"informalidad también gana Gradient Boosting por poco. Elegimos "
+         f"siempre con validación cruzada; el conjunto de prueba se miró "
+         f"una sola vez, al final. Y el corte del clasificador no es el "
+         f"0,5 por defecto: lo pusimos donde la precisión llega a "
+         f"{d(PUNTO['precision_oof'], 2)}, que es una decisión de costos, "
+         f"no del modelo.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — MAE: en cuánto se equivoca el modelo "
+         f"en promedio, en soles al mes. PR-AUC: qué tan bien separa "
+         f"informal de formal, de 0 a 1; la usamos en vez del acierto "
+         f"simple porque el {d(BASE_PR * 100, 1)} % ya es informal y "
+         f"acertar diciendo siempre «informal» sería trampa. Validación "
+         f"cruzada: partir los datos en cinco, entrenar con cuatro y "
+         f"probar con el quinto, rotando; mide sin hacerse trampa. Random "
+         f"Forest / Gradient Boosting: dos maneras de combinar muchos "
+         f"árboles de decisión — en paralelo la primera, corrigiéndose en "
+         f"cadena la segunda. Umbral: la probabilidad mínima a partir de "
+         f"la cual el clasificador señala un empleo. Semilla: el número "
+         f"fijo que hace reproducible el azar de las particiones.\n\n"
+         f"SI PREGUNTAN — ¿De dónde salen los {EMBUDO['torneo']} casos? "
+         f"Del embudo documentado: {EMBUDO['crudo']} registros del módulo "
+         f"de empleo, {EMBUDO['ocupados']} ocupados de 14 años o más, "
+         f"{EMBUDO['modelado']} con ingreso positivo y {EMBUDO['torneo']} "
+         f"completos, partidos en {EMBUDO['train']} de entrenamiento y "
+         f"{EMBUDO['test']} de prueba con semilla fija.")
 
 # ---------------------------------------------------------------------------
 # Lámina 9 — qué variables pesan (guía)
@@ -1244,53 +1436,62 @@ y = titulo(s, "Las mismas tres variables cargan los dos modelos: categoría, "
            "y medimos cuánto empeora: soles de error en el regresor, puntos "
            "de PR-AUC en el clasificador. Uso, no causa.")
 imagen_encajada(s, F_IMP, MARGEN, y, 8.00, 4.55)
-tarjeta(s, 8.86, y + 0.05, 3.85, 1.38, "categoría ocupacional",
+tarjeta(s, 8.86, y + 0.02, 3.85, 1.32, "categoría ocupacional",
         f"S/ {n(_orden[0][1])}", "Soles de error si se pierde.",
         color_cifra="acento", tam_cifra=30)
-tarjeta(s, 8.86, y + 1.53, 3.85, 1.38, "años de educación",
+tarjeta(s, 8.86, y + 1.46, 3.85, 1.32, "años de educación",
         f"S/ {n(_orden[1][1])}", "La segunda, mismo cálculo.",
         color_cifra="acento", tam_cifra=30)
-# El clasificador, con su propia métrica: cuántos puntos de PR-AUC pierde
-# al barajar cada variable. Etiquetas cortas porque en 3,85" no caben las
-# del formulario.
+# El clasificador, con su propia métrica en el propio encabezado del panel.
+# El valor va PRIMERO y en mono: así los tres quedan alineados en columna
+# en vez de dejar un borde derecho irregular.
 _ETI_CORTA = {"tamano_empresa": "tamaño de empresa",
               "categoria": "categoría ocupacional",
               "anios_educ": "años de educación",
               "horas_total": "horas semanales"}
-_, tf = panel(s, 8.86, y + 3.01, 3.85, 1.66, relleno="acento_fondo",
+# El encabezado integra la métrica en DOS líneas exactas de mono 14
+# (~30 caracteres por línea en 3,45" útiles): más largo pasaba a tres
+# líneas y empujaba la última fila fuera del panel, sobre el pie.
+_, tf = panel(s, 8.86, y + 2.90, 3.85, 1.80, relleno="acento_fondo",
               borde="acento")
-parrafo(tf, "Y EN EL CLASIFICADOR · TOP 3", tam=T_ETIQUETA,
-        color="acento_alto", fuente=MONO, primero=True, esp_despues=4)
+parrafo(tf, "CLASIFICADOR · TOP 3 — CAÍDA DE PR-AUC AL DESORDENAR",
+        tam=T_ETIQUETA, color="acento_alto", fuente=MONO,
+        primero=True, esp_despues=6, esp_linea=1.05)
 for _nom, _med in _orden_clf[:3]:
     parrafo_mixto(tf, [
-        (_ETI_CORTA.get(_nom, _nom), T_CUERPO, False, "texto", FUENTE),
-        (f"  −{d(_med, 3)}", T_CUERPO, True, "acento_alto", MONO),
-    ], esp_despues=2, esp_linea=1.0)
-parrafo(tf, "PUNTOS DE PR-AUC PERDIDOS", tam=T_ETIQUETA, color="texto_tenue",
-        fuente=MONO, esp_despues=0)
+        (f"−{d(_med, 3)}", T_CUERPO, True, "acento_alto", MONO),
+        (f"  {_ETI_CORTA.get(_nom, _nom)}", T_CUERPO, False, "texto", FUENTE),
+    ], esp_despues=5, esp_linea=1.0)
 pie_fuente(s, f"models/ui_artifacts.json (importancia_permutacion del "
               f"regresor y del clasificador): {IMP_REG['n_repeticiones']} "
               f"repeticiones sobre {n(IMP_REG['n_filas'])} filas de test en "
               f"ambos")
-notas(s, f"Tomamos una variable, desordenamos sus valores al azar entre las "
-         f"personas, y medimos cuánto empeora cada modelo ya entrenado. En "
-         f"el regresor eso se mide en soles: la categoría ocupacional sube "
-         f"el error en unos S/ {n(_orden[0][1])} al mes y los años de "
-         f"educación en unos S/ {n(_orden[1][1])}. En el clasificador, el "
-         f"mismo ejercicio se mide en puntos de PR-AUC: barajar el tamaño de "
-         f"empresa le quita {d(_orden_clf[0][1], 3)}, la categoría "
-         f"ocupacional {d(_orden_clf[1][1], 3)} y los años de educación "
-         f"{d(_orden_clf[2][1], 3)}. Es el mismo trío en los dos modelos, en "
-         f"distinto orden — y coherente con la ablación estructural: quitar "
-         f"tamaño y categoría juntas baja el PR-AUC de "
+notas(s, f"QUÉ DIGO — Con cada modelo ya entrenado hicimos el mismo "
+         f"experimento: desordenar una columna al azar y medir cuánto "
+         f"empeora. En el regresor se mide en soles: sin la categoría "
+         f"ocupacional el error sube unos S/ {n(_orden[0][1])} al mes, y "
+         f"sin la educación unos S/ {n(_orden[1][1])}. En el clasificador "
+         f"se mide en puntos de PR-AUC, y salen las mismas tres variables "
+         f"en otro orden. Importante: esto dice cuánto USA el modelo cada "
+         f"variable, no qué causa el ingreso o la informalidad en la vida "
+         f"real.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Permutación: desordenar una columna "
+         f"para ver cuánto empeora el modelo sin ella; si no la usaba, no "
+         f"pasa nada. Puntos de PR-AUC: el clasificador acierta con PR-AUC "
+         f"de {d(gb['PRAUC_cv'], 2)}; al desordenar «tamaño de empresa» "
+         f"cae {d(_orden_clf[0][1], 3)} — es el mismo experimento que los "
+         f"soles, con otra regla de medir. Y es el mismo trío de variables "
+         f"en los dos modelos, en distinto orden. PR-AUC: qué tan bien "
+         f"separa informal de formal, de 0 a 1. Uso vs. causa: que el "
+         f"modelo se apoye en una variable no significa que esa variable "
+         f"cause el resultado; la lectura causal vive en el modelo "
+         f"explicativo de la app.\n\n"
+         f"SI PREGUNTAN — ¿Esto coincide con la ablación que hicieron? Sí: "
+         f"reentrenar sin tamaño de empresa ni categoría baja el PR-AUC de "
          f"{d(float(ABLACION[0]['PRAUC_cv']), 4)} a "
-         f"{d(float(ABL_V2['PRAUC_cv']), 4)}. Ojo con la lectura: esto mide "
-         f"cuánto usa cada modelo la variable, no cuánto causa la variable "
-         f"en la realidad. Para la lectura causal está el modelo explicativo "
-         f"E6, una regresión ponderada aparte que está en la app: ahí cada "
-         f"año de educación se asocia a un "
-         f"{d(E6['efectos_pct']['anios_educ'], 1)} % más de ingreso y vivir "
-         f"en zona urbana a un {d(E6['efectos_pct']['urbano'], 1)} % más.")
+         f"{d(float(ABL_V2['PRAUC_cv']), 4)} — dos métodos distintos, "
+         f"misma conclusión: esas variables llevan la señal, coherente con "
+         f"cómo se define la informalidad.")
 
 # ---------------------------------------------------------------------------
 # Lámina 10 — verificación local = nube, los dos modelos (guía)
@@ -1336,24 +1537,36 @@ for k, (etq, cif, txt, col) in enumerate(TARJETAS):
             etq, cif, txt, color_cifra=col, tam_cifra=22)
 pie_fuente(s, "docs/presentacion/verificacion_local.py · "
               "salida_consola_verificacion.txt · capturas de la app desplegada")
-notas(s, f"Antes de dar la app por buena corrimos el mismo perfil —los once "
-         f"valores por defecto del formulario— en la consola local de VS "
-         f"Code y lo comparamos con la app ya desplegada. El regresor da "
-         f"S/ {ING_TIPICO} de ingreso típico, la mediana del Gradient "
-         f"Boosting E9, y S/ {ING_ESPERADO} de ingreso esperado, que aplica "
-         f"el factor de smearing de Duan {d(REG['smearing_duan'], 4)} sobre "
-         f"esa mediana. El clasificador da {PROBA_ES} de probabilidad de "
-         f"informalidad, y con el umbral operativo {d(PUNTO['umbral'], 4)} el "
-         f"empleo queda señalado: la consola imprime INFORMAL y la app dice "
-         f"«señalado para focalización», que es lo mismo dicho con cuidado, "
-         f"porque la señal es sobre una configuración de empleo y no sobre la "
-         f"persona. Un detalle honesto: el formulario del clasificador "
-         f"arranca con un valor de horas distinto al del regresor, así que "
-         f"los dos perfiles no son idénticos entre sí; dentro de cada fila, "
-         f"consola y app comparan exactamente el mismo perfil. Cuidado con lo "
-         f"que prueba esto: no valida que el modelo prediga bien, valida que "
-         f"la nube corre exactamente el artefacto que entrenamos, no una "
-         f"copia vieja ni un reentrenamiento distinto.")
+_horas_reg = next(f["default"] for f in REG["features"]
+                  if f["nombre"] == "horas_total")
+_horas_clf = next(f["default"] for f in CLF["features"]
+                  if f["nombre"] == "horas_total")
+notas(s, f"QUÉ DIGO — Antes de dar la app por buena corrimos el mismo "
+         f"perfil en dos lugares: la consola de nuestra computadora y la "
+         f"app ya publicada. Los números coinciden dígito a dígito: "
+         f"S/ {ING_TIPICO} de ingreso típico, S/ {ING_ESPERADO} de ingreso "
+         f"esperado y {PROBA_ES} de probabilidad de informalidad. Ojo con "
+         f"lo que prueba esto: no dice que el modelo prediga bien — eso ya "
+         f"se midió —, dice que la nube corre EXACTAMENTE el modelo que "
+         f"entrenamos, no una copia vieja ni un reentrenamiento distinto.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Mediana: el valor del medio — la "
+         f"mitad de los perfiles como este gana menos de S/ {ING_TIPICO}, "
+         f"la otra mitad más. Factor de Duan: la corrección "
+         f"({d(REG['smearing_duan'], 4)}) por haber entrenado el modelo en "
+         f"logaritmo del ingreso; convierte la mediana en el promedio "
+         f"esperado, que es más alto porque unos pocos sueldos grandes lo "
+         f"jalan. Umbral: la vara de decisión; con {d(PUNTO['umbral'], 4)} "
+         f"este perfil queda señalado. Consola: la salida de texto del "
+         f"script en la computadora, sin interfaz. Artefacto: el modelo "
+         f"guardado que viaja al repositorio — el mismo archivo en los dos "
+         f"lados, por eso los números no pueden diferir.\n\n"
+         f"SI PREGUNTAN — ¿Por qué la consola dice INFORMAL y la app "
+         f"«señalado para focalización»? Es lo mismo dicho con cuidado: la "
+         f"señal es sobre una configuración de empleo, no un juicio sobre "
+         f"la persona. Y los dos formularios arrancan con horas distintas "
+         f"({d(_horas_reg, 0)} y {d(_horas_clf, 0)}), así que las dos "
+         f"filas no comparan entre sí — cada fila compara consola contra "
+         f"app con el mismo perfil.")
 
 # ---------------------------------------------------------------------------
 # Lámina 11 — la auditoría
@@ -1403,25 +1616,35 @@ parrafo(tf, "Los de origen se corrigen y se documentan; los propios se "
         tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.04)
 pie_fuente(s, "INFORME_AUDITORIA.md · models/ui_artifacts.json (torneo.autopsia) "
               "· la sección «Qué encontró la auditoría» de la propia app")
-notas(s, f"Antes de publicar, el proyecto se auditó a sí mismo: cada cifra "
-         f"contra el script que la genera, cada cita contra su fuente "
-         f"original. Aparecieron cuatro problemas y se publicaron los cuatro, "
-         f"cada uno con la etiqueta de dónde nació. El primero venía en los "
-         f"datos: el INEI codifica «no sabe» como 999999 y ese valor se "
-         f"estaba leyendo como un ingreso real de casi un millón de soles; "
-         f"convertirlo en dato faltante subió el R² de "
+notas(s, f"QUÉ DIGO — Antes de publicar revisamos nuestro propio trabajo: "
+         f"cada cifra contra el archivo que la genera, cada cita contra su "
+         f"fuente. Encontramos cuatro errores y publicamos los cuatro, con "
+         f"la etiqueta de dónde nació cada uno. El más grave venía en los "
+         f"datos: el código «no sabe» del INEI entraba como un sueldo de "
+         f"casi un millón de soles y torcía toda la regresión. Los otros "
+         f"tres los pusimos nosotros al elegir o al resumir. Ninguno cambia "
+         f"el modelo publicado, y ninguno se borró en silencio: el valor de "
+         f"auditar no fue no tener errores, fue encontrarlos y dejarlos "
+         f"escritos. El detalle narrado de cada uno está en "
+         f"guion_hallazgos.md.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Centinela: un código que la encuesta "
+         f"usa para «no sabe» (999999); si se lee como número real, "
+         f"envenena el modelo. R²: qué parte de la variación del ingreso "
+         f"explica el modelo, de 0 a 1 — aquí saltó de "
          f"{d(_aut['corrida_sucia']['r2'], 3)} a "
-         f"{d(_aut['corrida_limpia']['r2'], 3)} y devolvió el sentido "
-         f"económico a los coeficientes. Los otros tres nacieron en nuestro "
-         f"propio trabajo. El de la rejilla merece una frase más: la rejilla "
-         f"original dejaba los tres hiperparámetros ganadores en el borde, la "
-         f"ampliada baja el error a S/ {REJILLA['nueva']}, y aun así NO se "
-         f"promovió, porque un {REJILLA['mejora_pct']} % de mejora no "
-         f"justifica invalidar la evidencia ya documentada: esa disciplina "
-         f"—separar «es mejor» de «vale la pena cambiarlo»— es parte del "
-         f"método. Ninguno de los hallazgos cambia el modelo en producción. "
-         f"El valor de auditar no fue que no hubiera errores: fue "
-         f"encontrarlos y dejarlos escritos.")
+         f"{d(_aut['corrida_limpia']['r2'], 3)} al limpiar el centinela. "
+         f"Rejilla de hiperparámetros: la lista de configuraciones que se "
+         f"prueban al ajustar el modelo; si el ganador queda en el borde, "
+         f"el óptimo puede estar fuera. Tramo: el rango de tamaño de "
+         f"empresa con el que el INEI reporta ({EXTERNA['inei_1_10']} % es "
+         f"del tramo 1-10, no de nuestra categoría «Hasta 20», que da "
+         f"{d(TASA_HASTA20, 1)} %).\n\n"
+         f"SI PREGUNTAN — ¿Por qué no promovieron la rejilla mejor si gana "
+         f"en los cinco pliegues? Porque la mejora es de "
+         f"{REJILLA['mejora_pct']} % — real pero irrelevante en la "
+         f"práctica: no justifica regenerar el modelo publicado, revalidar "
+         f"la corrección de Duan y rehacer el precómputo. Separar «es "
+         f"mejor» de «vale la pena cambiarlo» es parte del método.")
 
 # ---------------------------------------------------------------------------
 # Lámina 12 — cierre
@@ -1462,17 +1685,30 @@ parrafo(tf, "Docente: Orlando Advíncula Zeballos",
         tam=T_CUERPO, color="texto_medio", esp_despues=0, alin=PP_ALIGN.CENTER)
 pie_fuente(s, "models/feature_schema.json (métricas de test) · AUTHORS.md · "
               "CITATION.cff · LICENSE (Apache-2.0) y docs/LICENSE-DOCS.md")
-notas(s, f"Para cerrar, los límites. El regresor da un ingreso típico con un "
-         f"error medio de unos S/ {d(REG['metricas_test']['mae_mediana'], 0)} "
-         f"al mes: sirve para comparar perfiles entre sí, no para decirle a "
-         f"una persona cuánto va a cobrar. El clasificador identifica si una "
-         f"configuración laboral observable se asocia a la informalidad, con "
-         f"un PR-AUC de test de {d(CLF['metricas_test']['prauc'], 4)}; es una "
-         f"herramienta de focalización, no predice el futuro de nadie. Del "
-         f"despliegue nos llevamos dos cosas concretas: fijar las versiones "
-         f"exactas de las librerías, porque un pickle no es portable entre "
-         f"versiones, y sacar todo el cálculo pesado del tiempo de ejecución. "
-         f"Los enlaces están en la portada. Gracias.")
+notas(s, f"QUÉ DIGO — Para cerrar, los límites, que también son parte del "
+         f"trabajo. El regresor compara perfiles: dice el ingreso típico de "
+         f"gente como la del perfil, con un error promedio de unos "
+         f"S/ {d(REG['metricas_test']['mae_mediana'], 0)} al mes; no le "
+         f"dice a nadie cuánto va a cobrar. El clasificador señala "
+         f"configuraciones de empleo que se asocian a informalidad; no "
+         f"predice el futuro ni juzga personas. Del despliegue nos llevamos "
+         f"dos aprendizajes: fijar las versiones exactas, porque un modelo "
+         f"guardado no viaja entre versiones, y dejar todo lo pesado "
+         f"calculado de antemano. Los enlaces están en la portada. "
+         f"Gracias.\n\n"
+         f"TÉRMINOS DE ESTA LÁMINA — Error medio (MAE): en cuánto se "
+         f"equivoca el modelo en promedio, en soles al mes. PR-AUC de "
+         f"test ({d(CLF['metricas_test']['prauc'], 4)}): qué tan bien "
+         f"separa informal de formal, de 0 a 1, medido en datos que el "
+         f"modelo nunca vio. Focalización: usar la señal para priorizar a "
+         f"quién mirar primero, no para etiquetar personas. Precomputar: "
+         f"dejar calculado de antemano lo que la app va a mostrar "
+         f"siempre.\n\n"
+         f"SI PREGUNTAN — ¿Esto se podría usar en producción de verdad? "
+         f"Como herramienta demostrativa y de priorización, sí — es "
+         f"pública y reproducible. Para decisiones sobre personas "
+         f"concretas, no: el propio mazo dice qué se puede afirmar y qué "
+         f"no, y esa línea no se cruza.")
 
 # ---------------------------------------------------------------------------
 # Guardado
@@ -1552,12 +1788,47 @@ cifras escritas a mano que nadie vuelve a comprobar — así que el arreglo
 estructural fue sacarlas del texto y calcularlas en el precómputo.
 """, encoding="utf-8")
 
+# --- Reorden según la pauta del docente -----------------------------------
+# Las láminas se construyeron en orden de código (1 carátula · 2 datos ·
+# 3 variables · 4 push · 5 precómputo · 6 versiones · 7 formulario ·
+# 8 tests · 9 torneo · 10 importancia · 11 local=nube · 12 auditoría ·
+# 13 cierre) y se entregan en el de la pauta: la estadística sube antes del
+# bloque de despliegue. Reordenar la lista de diapositivas es mover el
+# elemento XML: re-append de un hijo existente lo desplaza al final.
+ORDEN_FINAL = [1, 2, 3, 9, 10, 4, 5, 6, 7, 8, 11, 12, 13]
+assert sorted(ORDEN_FINAL) == list(range(1, len(prs.slides._sldIdLst) + 1)), \
+    "ORDEN_FINAL no es una permutación de las láminas construidas"
+_lst = prs.slides._sldIdLst
+_ids = list(_lst)
+for _k in ORDEN_FINAL:
+    _lst.append(_ids[_k - 1])
+TITULOS = [TITULOS[_k - 1] for _k in ORDEN_FINAL]
+
+# --- Doble salida: ENTREGA (fuentes) y EXPO (guion completo) ---------------
 SALIDA = AQUI / "ENAHO_exposicion.pptx"
-prs.save(SALIDA)
-print(f"{SALIDA.relative_to(RAIZ)} · {len(prs.slides._sldIdLst)} láminas · "
-      f"{SALIDA.stat().st_size / 1e6:.2f} MB")
+SALIDA_EXPO = AQUI / "ENAHO_exposicion_EXPO.pptx"
+_ARG = sys.argv[1] if len(sys.argv) > 1 else ""
+
+
+def _volcar_notas(expo: bool):
+    for _s, _texto, _fuente in NOTAS_REG:
+        _s.notes_slide.notes_text_frame.text = (
+            _texto if expo else "Fuente: " + _fuente)
+
+
+if _ARG != "--solo-expo":
+    _volcar_notas(expo=False)
+    prs.save(SALIDA)
+    print(f"{SALIDA.relative_to(RAIZ)} · {len(prs.slides._sldIdLst)} láminas "
+          f"· {SALIDA.stat().st_size / 1e6:.2f} MB · ENTREGA (notas mínimas)")
+if _ARG != "--solo-entrega":
+    _volcar_notas(expo=True)
+    prs.save(SALIDA_EXPO)
+    print(f"{SALIDA_EXPO.relative_to(RAIZ)} · mismas láminas · EXPO (guion "
+          f"del orador)")
 print(f"{GUION.relative_to(RAIZ)} · guion de los cuatro hallazgos\n")
-print("Títulos-afirmación del mazo:")
+print("Títulos-afirmación del mazo (orden de la pauta):")
 for k, t in enumerate(TITULOS, 1):
     print(f"  {k:>2}. {t}")
-print("\nVerifícala con:  .venv/Scripts/python.exe docs/presentacion/verificar_ppt.py")
+print("\nVerifícalas con:  .venv/Scripts/python.exe "
+      "docs/presentacion/verificar_ppt.py [ruta.pptx]")

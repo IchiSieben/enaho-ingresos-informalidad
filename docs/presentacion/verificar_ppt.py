@@ -5,9 +5,11 @@
 # Licencia: Apache-2.0 (ver LICENSE)
 # ---------------------------------------------------------------------------
 """
-Audita docs/presentacion/ENAHO_exposicion.pptx después de generarla. Comprueba:
+Audita una salida de la exposición después de generarla (por defecto la
+ENTREGA; pásale otra ruta como primer argumento para auditar la EXPO:
+`verificar_ppt.py docs/presentacion/ENAHO_exposicion_EXPO.pptx`). Comprueba:
 
-  1. estructura     — 12 láminas, cada una con notas del orador y con al menos
+  1. estructura     — 13 láminas, cada una con notas del orador y con al menos
                       un elemento visual dominante (imagen o tabla);
   2. tipografía     — ninguna caja de texto con cuerpo por debajo de 18 pt,
                       salvo las dos excepciones declaradas (etiqueta de tarjeta
@@ -33,8 +35,9 @@ from pptx.util import Pt
 
 RAIZ = Path(__file__).resolve().parents[2]
 AQUI = RAIZ / "docs" / "presentacion"
-PPTX = AQUI / "ENAHO_exposicion.pptx"
-LAMINAS_ESPERADAS = 12
+PPTX = (Path(sys.argv[1]) if len(sys.argv) > 1
+        else AQUI / "ENAHO_exposicion.pptx")
+LAMINAS_ESPERADAS = 13
 MINIMO_PT = 18.0          # cuerpo en cajas de texto
 MINIMO_TABLA_PT = 16.0    # celdas de tabla: 5 columnas de prosa a 18 no caben
 
@@ -247,10 +250,11 @@ _git = lambda *a: subprocess.run(["git", *a], cwd=RAIZ, capture_output=True,
 _vers = [f for f in _git("ls-files").split("\n") if f]
 permitir(len(_vers), "git ls-files · nº de archivos versionados")
 permitir(int(_git("rev-list", "--count", "HEAD")), "git · nº de commits")
+_SALIDAS = {"docs/presentacion/ENAHO_exposicion.pptx",
+            "docs/presentacion/ENAHO_exposicion_EXPO.pptx"}
 permitir(round(sum((RAIZ / f).stat().st_size for f in _vers
-                   if (RAIZ / f).exists()
-                   and f != "docs/presentacion/ENAHO_exposicion.pptx") / 1e6, 2),
-         "disco · MB versionados (sin la propia presentación)")
+                   if (RAIZ / f).exists() and f not in _SALIDAS) / 1e6, 2),
+         "disco · MB versionados (sin las propias presentaciones)")
 _data = RAIZ / "data"
 if _data.exists():
     permitir(round(sum(x.stat().st_size for x in _data.rglob("*") if x.is_file())
