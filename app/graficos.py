@@ -676,6 +676,10 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
     Nota de implementación: los colores de los <text> van por `style=` inline
     porque las clases .et/.vs fijan `fill` por CSS y el CSS le gana al
     atributo; y SMIL solo anima los <rect> (fill/stroke inline, sin clase).
+
+    TODO(post-expo): cajas clicables para elegir estación desde el propio
+    SVG. Requiere un componente custom bidireccional — el SVG vive en un
+    iframe de components.html y no puede escribir en session_state.
     """
     n = len(titulos)
     margen, hueco = 10, 30
@@ -686,7 +690,11 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
     rotulo = (f"Viaje del dato en movimiento: un punto recorre las "
               f"{n} estaciones" if animado else
               f"Viaje del dato: {escape(titulos[activa])} activa")
-    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
+    # xMidYMin: pegado arriba. Con el «meet» centrado por defecto, darle a la
+    # caja del iframe el alto extra que garantiza ancho completo dejaba al
+    # diagrama flotando con aire simétrico arriba y abajo.
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' "
+              f"preserveAspectRatio='xMidYMin meet' role='img' "
               f"aria-label='{rotulo}'>"]
 
     w = 0.06                       # medio ancho de la ventana de iluminación
@@ -725,15 +733,15 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
                       f"stroke-width='{2 if es else 1}'>{anims}</rect>")
         cx = centros[i]
         partes.append(f"<text x='{cx:.1f}' y='{by - 10}' class='et' "
-                      f"text-anchor='middle' style='font-size:11px;"
+                      f"text-anchor='middle' style='font-size:12px;"
                       f"fill:{tinta}'>{i + 1}</text>")
         partes.append(f"<text x='{cx:.1f}' y='{by + 28}' class='et' "
-                      f"text-anchor='middle' style='font-size:11px;"
+                      f"text-anchor='middle' style='font-size:12px;"
                       f"font-weight:600;fill:"
                       f"{T['texto'] if es else T['texto_medio']}'>"
                       f"{escape(titulo)}</text>")
         partes.append(f"<text x='{cx:.1f}' y='{by + 48}' class='vs' "
-                      f"text-anchor='middle' style='font-size:12px;"
+                      f"text-anchor='middle' style='font-size:13px;"
                       f"fill:{tinta}'>{escape(sub)}</text>")
         if es:
             partes.append(f"<path d='M {cx - 6:.1f} {by + bh + 6} "

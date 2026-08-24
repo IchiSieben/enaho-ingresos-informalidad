@@ -219,6 +219,28 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
 }}
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {{ padding-top: var(--e6); }}
 
+/* Línea llana bajo cada botón de navegación: qué hace la pestaña sin entrar.
+   El margen negativo la pega a su botón (el gap por defecto la dejaba
+   huérfana a media distancia entre dos botones). */
+[data-testid="stSidebar"] .nav-desc {{
+  font-size: {F['micro']};
+  color: {T['texto_tenue']};
+  line-height: 1.35;
+  margin: -10px 2px 10px 2px;
+}}
+
+/* El selector de estaciones del viaje (control segmentado del área principal)
+   va más visible que el tamaño por defecto. Scoped a stMain a propósito: el
+   selector de tema también es un stButtonGroup, pero vive en el sidebar y ese
+   se queda como está. El font-size va sobre el <p> interno (el texto llega
+   como markdown dentro del botón y no hereda del button). */
+section[data-testid="stMain"] [data-testid="stButtonGroup"] button {{
+  padding: 8px 18px !important;
+}}
+section[data-testid="stMain"] [data-testid="stButtonGroup"] button p {{
+  font-size: {F['medio']} !important;
+}}
+
 .marca {{
   font-family: {FUENTE_MONO};
   font-size: {F['micro']};

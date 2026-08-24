@@ -119,6 +119,18 @@ SECCIONES = [
     ("ficha", "Ficha técnica"),
     ("maquinas", "⚙ Cómo se hizo"),
 ]
+# Una línea llana bajo cada botón del sidebar: qué hace esa pestaña, sin
+# tener que entrar. Aparte de SECCIONES para no cambiar su forma (clave,
+# título), que el router y el resaltado ya usan.
+DESCRIPCIONES = {
+    "ingreso": "Arma un perfil y estima su ingreso mensual típico — "
+               "regresión.",
+    "informalidad": "El mismo perfil: probabilidad de que ese empleo sea "
+                    "informal — clasificación.",
+    "torneo": "Las 9 recetas comparadas y por qué ganó Gradient Boosting.",
+    "ficha": "Datos, variables, métricas y límites, en una página.",
+    "maquinas": "El paso a paso del proyecto: datos → modelos → nube.",
+}
 DERIVADAS = {"exper", "exper2"}   # las calcula la app, no el usuario
 
 REPO = "https://github.com/IchiSieben/enaho-ingresos-informalidad"
@@ -1824,8 +1836,8 @@ def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
     tarjetas = [
         tarjeta("ingreso típico", f"S/ {n(mediana)}", color=T()["acento_alto"],
                 llano="El mismo número que da la pestaña «Estimación de "
-                      "ingreso» con este perfil: es el mismo motor, solo que "
-                      "con el capó abierto."),
+                      "ingreso» con este perfil: es el mismo cálculo, visto "
+                      "paso a paso."),
         tarjeta("ingreso esperado", f"S/ {n(media)}",
                 llano="El promedio, tras la corrección de Duan del paso "
                       "final."),
@@ -1866,12 +1878,11 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
 
     cabecera(
         "Cómo se hizo, paso a paso — de la encuesta del INEI a la app",
-        "Esta pestaña abre el capó: el recorrido de los datos desde los CSV "
-        "del INEI hasta la página que estás viendo, los filtros con sus "
-        "recortes, el motor de la predicción paso a paso y un explorador "
-        "para mover una variable. Nada de lo que ves aquí se calcula de "
-        "nuevo: sale de los mismos artefactos que alimentan las otras "
-        "pestañas.",
+        "Esta sección muestra, paso a paso, cómo se construyó el proyecto: "
+        "de dónde vienen los datos y cómo se filtraron, cómo se compararon "
+        "y entrenaron los modelos, y cómo llega todo a la app que estás "
+        "usando. Ninguna cifra se calcula aquí: todo sale de los mismos "
+        "archivos que alimentan las demás pestañas.",
         "Las cifras del embudo y los tamaños medidos viven en "
         "<code>models/ui_maquinas.json</code>, generado por "
         "<code>src/09_precomputar_ui.py</code> leyendo el embudo auditado de "
@@ -1904,6 +1915,8 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         elegido = st.radio("Estación", titulos, horizontal=True,
                            key="maq_estacion", label_visibility="collapsed")
     idx = titulos.index(elegido) if elegido in titulos else 0
+    html("<div class='sutil' style='margin:-4px 0 6px 2px'>Haz clic en una "
+         "estación para ver su detalle.</div>")
     # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. El
     # selector manual de arriba sigue mandando sobre el panel de detalle.
     animado = st.toggle("▶ Ver el viaje en movimiento", key="maq_viaje_anim",
@@ -1911,7 +1924,7 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
                              "(12 s por vuelta). El detalle de abajo lo "
                              "sigue eligiendo el selector.")
     grafico(graficos.viaje_dato(titulos, [e["sub"] for e in estaciones],
-                                idx, T(), animado=animado), 168)
+                                idx, T(), animado=animado), 185)
     est = estaciones[idx]
     c1, c2, c3 = st.columns(3, gap="medium")
     for col, rotulo, texto in ((c1, "Qué entra", est["entra"]),
@@ -1955,9 +1968,9 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
 
     # ---------- 3 · Rayos X de la predicción ----------
     html("<h2>Rayos X de la predicción</h2>")
-    html("<div class='entradilla'>El mismo formulario de la primera pestaña, "
-         "pero con el capó abierto: al estimar se ve cada paso real del "
-         "motor, con su tiempo.</div>")
+    html("<div class='entradilla'>El mismo formulario de la primera "
+         "pestaña; al estimar se ve cada paso real del cálculo, con su "
+         "tiempo.</div>")
     if st.toggle("Ver el motor", key="maq_motor",
                  help="Los pasos son los reales de esta sesión, "
                       "cronometrados al ejecutarse. No es una animación."):
@@ -1976,10 +1989,11 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
             else:
                 html("<div class='panel'><div class='panel-titulo'>Motor en "
                      "espera</div><div class='sutil'>Arma el perfil y pulsa "
-                     "«Estimar mirando el motor»: verás leer el schema, "
-                     "abrir las categorías en columnas, predecir en "
-                     "logaritmo, deshacerlo y aplicar la corrección de Duan "
-                     "— cada paso con su tiempo real.</div></div>")
+                     "«Estimar mirando el motor»: verás cargar el modelo, "
+                     "abrir las categorías en columnas de ceros y unos, "
+                     "predecir en logaritmo, deshacerlo y aplicar la "
+                     "corrección de Duan — cada paso con su tiempo "
+                     "real.</div></div>")
     with st.expander("¿Qué principio hay aquí? · motor"):
         html("<div class='sutil'>Teatro honesto: la secuencia son los pasos "
              "reales, cronometrados en tu sesión. Lo único que la app no "
@@ -2124,6 +2138,8 @@ def main() -> None:
                          type="primary" if activo else "secondary"):
                 st.session_state["seccion"] = clave
                 st.rerun()
+            if clave in DESCRIPCIONES:
+                html(f"<div class='nav-desc'>{DESCRIPCIONES[clave]}</div>")
         st.write("")
         # Las opciones salen de PALETAS: añadir un tema allí lo hace aparecer
         # aquí, y quitarlo lo hace desaparecer. No hay lista que mantener.
