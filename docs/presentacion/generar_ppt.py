@@ -247,17 +247,18 @@ def fig_arquitectura():
         ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.7",
                                     fc=fc, ec=ec, lw=1.8, zorder=3))
         ax.text(x + w / 2, y + h - 2.6, titulo, ha="center", va="top",
-                fontsize=15, fontweight="bold", color=tc or mpl("texto"), zorder=4)
-        ax.text(x + w / 2, y + h - 7.4, "\n".join(lineas), ha="center", va="top",
-                fontsize=12, color=mpl("texto_medio"), linespacing=1.6, zorder=4)
+                fontsize=16.5, fontweight="bold", color=tc or mpl("texto"),
+                zorder=4)
+        ax.text(x + w / 2, y + h - 7.6, "\n".join(lineas), ha="center", va="top",
+                fontsize=13, color=mpl("texto_medio"), linespacing=1.6, zorder=4)
 
     def flecha(x1, y1, x2, y2, texto=None, dx=0, dy=2.0, ha="center"):
         ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
-                                     mutation_scale=24, lw=2.4, color=mpl("acento"),
+                                     mutation_scale=26, lw=2.6, color=mpl("acento"),
                                      zorder=5, shrinkA=0, shrinkB=0))
         if texto:
             ax.text((x1 + x2) / 2 + dx, (y1 + y2) / 2 + dy, texto, ha=ha,
-                    va="center", fontsize=12.5, color=mpl("acento_alto"),
+                    va="center", fontsize=13.5, color=mpl("acento_alto"),
                     fontweight="bold", zorder=6,
                     bbox=dict(boxstyle="round,pad=0.22", fc=mpl("fondo"), ec="none"))
 
@@ -290,13 +291,22 @@ def fig_arquitectura():
     ax.text(58.8, 49.6,
             f"carpeta versionada · {d(REPO['mb'], 2)} MB · "
             f"{REPO['n_archivos']} archivos",
-            ha="center", va="bottom", fontsize=13, color=mpl("acento_alto"),
+            ha="center", va="bottom", fontsize=14.5, color=mpl("acento_alto"),
             fontweight="bold")
     if DATOS_MB:
+        # En positivo: los microdatos QUEDÁNDOSE en la máquina es una
+        # garantía de diseño, no una advertencia de error. Texto sin caja
+        # propia: tanto el bbox automático de ax.text (pad en unidades de
+        # fuente ya renderizada) como un FancyBboxPatch de tamaño explícito
+        # (su "pad" crece HACIA AFUERA del rectángulo dado, no lo contiene)
+        # desbordaban las cajas vecinas en este hueco angosto. El peso
+        # visual sale del color saturado y el peso de fuente, no de un
+        # contenedor.
         ax.text(13, 24.3,
-                f"NO viaja al repositorio:\n{d(DATOS_MB, 1)} MB de microdatos\n"
-                f"se enlaza a la fuente del INEI",
-                ha="center", va="center", fontsize=12, color=mpl("mala"),
+                f"Los microdatos se quedan en la máquina\n"
+                f"{d(DATOS_MB, 1)} MB · el repositorio enlaza\n"
+                f"a la fuente oficial del INEI",
+                ha="center", va="center", fontsize=12.5, color=mpl("buena"),
                 fontweight="bold", linespacing=1.45)
     return _guardar(fig, "fig_arquitectura")
 
@@ -308,13 +318,13 @@ def fig_precomputo():
     def bloque(x, w, titulo, subt, items, fc, ec, tc):
         ax.add_patch(FancyBboxPatch((x, 4), w, 32, boxstyle="round,pad=0.6",
                                     fc=fc, ec=ec, lw=1.6, zorder=3))
-        ax.text(x + w / 2, 33.6, titulo, ha="center", va="top", fontsize=14.5,
+        ax.text(x + w / 2, 33.4, titulo, ha="center", va="top", fontsize=16,
                 fontweight="bold", color=tc, zorder=4)
-        ax.text(x + w / 2, 29.8, subt, ha="center", va="top", fontsize=11.5,
+        ax.text(x + w / 2, 29.2, subt, ha="center", va="top", fontsize=12.5,
                 color=mpl("texto_medio"), zorder=4)
         for k, it in enumerate(items):
-            ax.text(x + 2.6, 25.4 - k * 3.5, "·  " + it, ha="left", va="top",
-                    fontsize=11.8, color=mpl("texto"), zorder=4)
+            ax.text(x + 2.6, 24.6 - k * 3.85, "·  " + it, ha="left", va="top",
+                    fontsize=13, color=mpl("texto"), zorder=4)
 
     n_umbral = len(CURVA["umbral"])
     n_bins = len(UA["clasificador"]["histograma_oof"]["clase_1"])
@@ -335,10 +345,10 @@ def fig_precomputo():
     ax.annotate("", xy=(52.4, 20), xytext=(47.6, 20),
                 arrowprops=dict(arrowstyle="-|>", mutation_scale=22, lw=2.2,
                                 color=mpl("texto_tenue")))
-    ax.text(24, 1.6, f"ui_artifacts.json · {d(UI_KB, 1)} KB", ha="center",
-            va="center", fontsize=12.5, fontweight="bold", color=mpl("acento_alto"))
-    ax.text(76, 1.6, f"2 modelos .joblib · {n(JOBLIB_KB)} KB", ha="center",
-            va="center", fontsize=12.5, fontweight="bold", color=mpl("buena"))
+    ax.text(24, 1.5, f"ui_artifacts.json · {d(UI_KB, 1)} KB", ha="center",
+            va="center", fontsize=14, fontweight="bold", color=mpl("acento_alto"))
+    ax.text(76, 1.5, f"2 modelos .joblib · {n(JOBLIB_KB)} KB", ha="center",
+            va="center", fontsize=14, fontweight="bold", color=mpl("buena"))
     return _guardar(fig, "fig_precomputo")
 
 
@@ -830,15 +840,10 @@ y = titulo(s, "Cada push a main redespliega la app en la nube, sin pasos "
               "manuales",
            "Del editor al navegador solo hay commits: Streamlit Cloud "
            "reconstruye y publica en cada push.")
-imagen_encajada(s, F_ARQ, MARGEN, y, 12.09, 3.55)
-_, tf = panel(s, MARGEN, y + 3.67, 12.09, 0.92, relleno="acento_fondo",
-              borde="acento")
-parrafo(tf, f"Al repositorio viajan el código y los artefactos: "
-            f"{d(REPO['mb'], 2)} MB en {REPO['n_archivos']} archivos. Los "
-            f"{d(DATOS_MB, 1)} MB de microdatos del INEI nunca salen de la "
-            f"máquina: el repositorio enlaza a la fuente oficial.",
-        tam=T_CUERPO, color="texto", primero=True, esp_despues=0,
-        esp_linea=1.06)
+# El diagrama es el protagonista de la lámina: ocupa casi toda la altura
+# del cuerpo. Lo que antes decía el panel de abajo (peso, MB de datos, INEI)
+# ya está escrito dentro del propio diagrama — repetirlo aparte era ruido.
+imagen_encajada(s, F_ARQ, MARGEN, y, 12.09, ALTO_CUERPO - 0.40)
 pie_fuente(s, "docs/arquitectura.md · .gitignore · git ls-files · tamaños "
               "medidos del disco al generar esta lámina")
 notas(s, f"Esta es la lámina que sostiene todo lo demás. El pipeline completo "
@@ -860,28 +865,49 @@ notas(s, f"Esta es la lámina que sostiene todo lo demás. El pipeline completo 
 # Lámina 4 — artefactos precomputados
 # ---------------------------------------------------------------------------
 s = lamina()
-y = titulo(s, "Nada se calcula en caliente: la app lee artefactos "
-              "precomputados y por eso carga rápido",
+y = titulo(s, "La app no calcula al abrirse: lee resultados ya guardados",
            "Curvas, histogramas y tablas se calcularon una sola vez, al "
            "entrenar. La app solo las lee y las dibuja.")
-imagen_encajada(s, F_PRECOMP, MARGEN, y, 12.09, 2.92)
-tarjeta(s, MARGEN, y + 2.98, 5.86, 1.70, "ui_artifacts.json",
-        f"{d(UI_KB, 1)} KB", "Todo lo que la app dibuja en cada visita. No "
-        "recalcula nada.", color_cifra="acento", tam_cifra=30)
-tarjeta(s, 6.85, y + 2.98, 5.86, 1.70, "los dos modelos .joblib",
-        f"{n(JOBLIB_KB)} KB", "Solo entran a trabajar cuando hay que predecir "
-        "el perfil del formulario.", color_cifra="buena", tam_cifra=30)
+DIAGRAMA_H = 3.10
+imagen_encajada(s, F_PRECOMP, MARGEN, y, 12.09, DIAGRAMA_H)
+# El recorrido real, medido, como elemento central de la lámina: números
+# grandes intercalados con el texto que los conecta, en una sola tira.
+_, tf_flujo = panel(s, MARGEN, y + DIAGRAMA_H + 0.13, 12.09,
+                    ALTO_CUERPO - DIAGRAMA_H - 0.25, relleno="acento_fondo",
+                    borde="acento")
+tf_flujo.vertical_anchor = MSO_ANCHOR.MIDDLE
+p_flujo = tf_flujo.paragraphs[0]
+p_flujo.alignment = PP_ALIGN.CENTER
+for _txt, _tam, _neg, _col, _fte in (
+        ("Abrir la app", T_CUERPO, False, "texto_medio", FUENTE),
+        ("   →   ", 26, True, "texto_tenue", MONO),
+        ("0", T_CIFRA, True, "buena", MONO),
+        (" ejecuciones del modelo", T_CUERPO, False, "texto_medio", FUENTE),
+        ("     ·     ", T_CUERPO, False, "texto_tenue", FUENTE),
+        ("Pulsar «Estimar»", T_CUERPO, False, "texto_medio", FUENTE),
+        ("   →   ", 26, True, "texto_tenue", MONO),
+        ("1", T_CIFRA, True, "acento", MONO),
+        (" llamada a predict()", T_CUERPO, False, "texto_medio", FUENTE),
+        ("   →   ", 26, True, "texto_tenue", MONO),
+        (f"S/ {ING_TIPICO}", T_CIFRA, True, "acento_alto", MONO)):
+    r_flujo = p_flujo.add_run()
+    r_flujo.text = _txt
+    r_flujo.font.name = _fte
+    r_flujo.font.size = Pt(_tam)
+    r_flujo.font.bold = _neg
+    r_flujo.font.color.rgb = rgb(_col)
 pie_fuente(s, "src/09_precomputar_ui.py · models/ui_artifacts.json · "
-              "models/*.joblib · tamaños medidos del disco")
-notas(s, f"La decisión de ingeniería que más se nota al usar la app es esta: "
-         f"nada pesado se calcula mientras alguien la mira. Las curvas de "
-         f"umbral, los histogramas, las tablas de consecuencias y las "
-         f"dependencias parciales se calculan una sola vez, en "
-         f"09_precomputar_ui.py, y viajan como un JSON de {d(UI_KB, 1)} "
-         f"kilobytes. La app en producción abre ese archivo y dibuja. Los "
-         f".joblib solo entran cuando hay que predecir el perfil puntual que "
-         f"arma el usuario: una llamada a predict y una a predict_proba. "
-         f"Además, cache_data y cache_resource evitan releer el JSON y los "
+              "models/*.joblib · docs/presentacion/verificacion_local.py")
+notas(s, f"Este es el recorrido real de abrir la app: cero ejecuciones del "
+         f"modelo. Las curvas de umbral, los histogramas, las tablas de "
+         f"consecuencias y las dependencias parciales se calcularon una sola "
+         f"vez, en 09_precomputar_ui.py, y viajan como un JSON de "
+         f"{d(UI_KB, 1)} kilobytes. La app en producción abre ese archivo y "
+         f"dibuja: no hay nada que calcular ahí. Los .joblib solo entran "
+         f"cuando el usuario arma un perfil y pulsa «Estimar»: una llamada a "
+         f"predict, que da S/ {ING_TIPICO} para el perfil por defecto, y una "
+         f"a predict_proba. Además, cache_data y cache_resource evitan releer "
+         f"el JSON y los "
          f"modelos en cada interacción de la sesión. Community Cloud da poca "
          f"memoria por aplicación: mantener el trabajo pesado fuera del "
          f"tiempo de ejecución es lo que permite que cargue rápido y no se "
@@ -931,7 +957,7 @@ imagen(s, pulir_captura(FIGS / "cloud_form.png"), MARGEN, y, w=ANCHO_IMG)
 # sueltas: si mañana cambia el tamaño de la imagen, siguen en su sitio.
 ALTO_IMG = ANCHO_IMG / 1.5
 for k, (fx, fy) in enumerate(((0.10, 0.50), (0.30, 0.42), (0.30, 0.72),
-                              (0.28, 0.22)), start=1):
+                              (0.28, 0.22), (0.095, 0.245)), start=1):
     rotulo(s, MARGEN + fx * ANCHO_IMG, y + fy * ALTO_IMG, str(k))
 # La leyenda va numerada y en una sola columna: cuatro entradas cortas caben,
 # cuatro entradas explicadas no. El desarrollo largo está en las notas.
@@ -949,10 +975,10 @@ for k, (nom, txt) in enumerate(COMPONENTES):
             esp_linea=1.02)
 _, tf = panel(s, 7.75, y + 3.06, 4.96, 1.55, relleno="acento_fondo",
               borde="acento")
-parrafo(tf, "st.slider + st.fragment", tam=T_CUERPO, color="acento_alto",
+parrafo(tf, "5 · st.slider + st.fragment", tam=T_CUERPO, color="acento_alto",
         negrita=True, fuente=MONO, primero=True, esp_despues=2)
-parrafo(tf, "El umbral vive dentro de un fragmento: moverlo reejecuta solo "
-            "ese bloque, no la página entera.",
+parrafo(tf, "El umbral vive en «Empleo informal» (marcador 5): moverlo "
+            "reejecuta solo ese fragmento, no la página entera.",
         tam=T_CUERPO, color="texto", esp_despues=0, esp_linea=1.02)
 pie_fuente(s, "captura de la app desplegada · app/streamlit_app.py "
               "(componentes realmente usados) · models/feature_schema.json")
@@ -1027,8 +1053,8 @@ e7, e8, e9 = TAB_TORNEO["E7"], TAB_TORNEO["E8"], TAB_TORNEO["E9"]
 gb = next(f for f in CLF_COMP if "Gradient" in f["algoritmo"])
 rf = next(f for f in CLF_COMP if "Random" in f["algoritmo"])
 lo = next(f for f in CLF_COMP if f not in (gb, rf))
-y = titulo(s, "Probamos Random Forest y Gradient Boosting en ambos problemas; "
-              "ganó GB por poco",
+y = titulo(s, "Elegimos Gradient Boosting: le gana a Random Forest por poco, "
+              "con las mismas 11 variables",
            "Mismos datos, mismos cinco pliegues, misma semilla; el modelo se "
            "eligió por validación cruzada, nunca por el test.")
 filas = [["", "Random Forest", "Gradient Boosting", "Referencia lineal"],
@@ -1040,7 +1066,8 @@ filas = [["", "Random Forest", "Gradient Boosting", "Referencia lineal"],
           f"{d(lo['PRAUC_cv'], 4)}  (logística)"]]
 tabla(s, MARGEN, y, 12.09, 1.60, filas, anchos=[34, 21, 24, 21],
       resaltar_col=2, cols_mono=[1, 2, 3])
-filas_v = [["Variables de entrada", "las mismas once en los dos modelos"],
+filas_v = [["Variables de entrada",
+            f"las mismas {len(NUM) + len(CAT)} variables en los dos modelos"],
            [f"Numéricas ({len(NUM)})",
             "años de educación · edad · experiencia · experiencia² · "
             "horas semanales"],
@@ -1189,7 +1216,8 @@ notas(s, f"Antes de dar la app por buena corrimos el mismo perfil —los once "
 # ---------------------------------------------------------------------------
 s = lamina()
 _aut = UA["torneo"]["autopsia"]
-y = titulo(s, "La auditoría encontró cuatro problemas y publicó los cuatro",
+y = titulo(s, "Revisamos nuestro propio trabajo: cuatro errores encontrados, "
+              "cuatro publicados",
            "Cada cifra contra el archivo que la genera, cada cita contra su "
            "fuente; cada hallazgo, con su origen.")
 filas = [["Hallazgo", "Dónde nació", "Qué pasó"],
