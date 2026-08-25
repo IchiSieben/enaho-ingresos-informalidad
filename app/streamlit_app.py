@@ -1714,7 +1714,12 @@ def _sankey_embudo(maq: dict) -> None:
     # cuántos quedan; el porcentaje dice cuánto se fue por el camino.
     base = e["crudo"]["filas"]
     def cta(v: int) -> str:
-        return f"{n(v)} · {d(v / base * 100, 0)} %" if base else n(v)
+        if not base:
+            return n(v)
+        p = v / base * 100
+        # Bajo el 1 %, el entero miente: 267 filas se convertían en «0 %»,
+        # que se lee como «no se fue nadie».
+        return f"{n(v)} · {d(p, 1 if p < 1 else 0)} %"
 
     etiquetas = [
         f"Módulo 05 crudo · {cta(e['crudo']['filas'])}",
