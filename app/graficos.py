@@ -680,6 +680,8 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
     TODO(post-expo): cajas clicables para elegir estación desde el propio
     SVG. Requiere un componente custom bidireccional — el SVG vive en un
     iframe de components.html y no puede escribir en session_state.
+    TODO(post-expo): línea de progreso uniendo los números 1→6 por encima de
+    las cajas (decorativa; hoy la secuencia ya la marcan las flechas).
     """
     n = len(titulos)
     margen, hueco = 10, 30

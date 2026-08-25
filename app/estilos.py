@@ -54,6 +54,11 @@ PALETAS: dict[str, dict[str, str]] = {
         "dato":              "#8B95A6",
         "dato_tenue":        "#3A424F",
         "rejilla":           "#222834",
+        # Tinta de titulares y sombra de tarjeta. En los temas oscuros el
+        # titular ya destaca por contraste puro y una sombra no se ve sobre
+        # fondo casi negro: ambos quedan neutros aquí y trabajan en el claro.
+        "titulo":            "#F2F5FA",
+        "sombra_tarjeta":    "none",
     },
     "claro": {
         "fondo":             "#F7F5F0",   # blanco hueso, no #FFF puro
@@ -81,6 +86,12 @@ PALETAS: dict[str, dict[str, str]] = {
         "dato":              "#5B6472",
         "dato_tenue":        "#CBD0D9",
         "rejilla":           "#E4E1D8",
+        # El claro era el más plano de los tres: titulares casi negros
+        # (15,8:1 sobre superficie) para separar la jerarquía del cuerpo, y
+        # una sombra mínima que despega la tarjeta del fondo papel.
+        "titulo":            "#12161C",
+        "sombra_tarjeta":    "0 1px 2px rgba(30,35,43,0.05), "
+                             "0 2px 8px rgba(30,35,43,0.04)",
     },
     # Tercer tema: consola. Azul (#306998) y amarillo (#FFD43B) de Python sobre
     # fondo casi negro. El azul original es demasiado oscuro para texto sobre
@@ -113,6 +124,8 @@ PALETAS: dict[str, dict[str, str]] = {
         "dato":              "#8FA68C",
         "dato_tenue":        "#39434E",
         "rejilla":           "#222A34",
+        "titulo":            "#E8F2E2",
+        "sombra_tarjeta":    "none",
     },
 }
 
@@ -207,7 +220,7 @@ body {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
   font-feature-settings: "tnum" 1;
 }}
 
-h1, h2, h3, h4 {{ color: {T['texto']}; letter-spacing: -0.02em; font-weight: 600; }}
+h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.02em; font-weight: 600; }}
 h1 {{ font-size: {F['titulo']}; margin: 0 0 var(--e1) 0; }}
 h2 {{ font-size: {F['sub']}; margin: var(--e6) 0 var(--e3) 0; }}
 h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
@@ -223,11 +236,14 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
    El margen negativo la pega a su botón (el gap por defecto la dejaba
    huérfana a media distancia entre dos botones). */
 [data-testid="stSidebar"] .nav-desc {{
-  font-size: {F['micro']};
+  font-size: {F['mini']};
   color: {T['texto_tenue']};
   line-height: 1.35;
-  margin: -10px 2px 10px 2px;
+  margin: -8px 2px var(--e3) 2px;   /* ritmo vertical en escala de 8 */
 }}
+/* El pie del sidebar es letra chica de verdad: no compite con la
+   navegación ni con las descripciones. */
+[data-testid="stSidebar"] .sutil {{ font-size: {F['micro']}; }}
 
 /* El selector de estaciones del viaje (control segmentado del área principal)
    va más visible que el tamaño por defecto. Scoped a stMain a propósito: el
@@ -236,9 +252,20 @@ h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
    como markdown dentro del botón y no hereda del button). */
 section[data-testid="stMain"] [data-testid="stButtonGroup"] button {{
   padding: 8px 18px !important;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }}
 section[data-testid="stMain"] [data-testid="stButtonGroup"] button p {{
   font-size: {F['medio']} !important;
+}}
+/* El acento aparece al pasar por encima: sin esto, el tema claro casi no
+   usaba su índigo y los controles se sentían apagados. */
+section[data-testid="stMain"] [data-testid="stButtonGroup"] button:hover {{
+  background: {T['acento_fondo']} !important;
+  border-color: {T['acento']}55 !important;
+}}
+section[data-testid="stMain"] [data-testid="stButtonGroup"] button:hover p {{
+  color: {T['acento_alto']} !important;
 }}
 
 .marca {{
@@ -276,10 +303,13 @@ section[data-testid="stMain"] [data-testid="stButtonGroup"] button p {{
   color: {T['texto']};
   border-color: {T['borde_sutil']};
 }}
+/* La pestaña activa se reconoce sin leerla: fondo suave, tinta de acento y
+   una barra de acento a la izquierda —el mismo gesto en los tres temas. */
 [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
   background: {T['acento_fondo']};
   color: {T['acento_alto']};
   border-color: {T['acento']}55;
+  border-left: 3px solid {T['acento']};
 }}
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {{
   color: {T['texto_medio']} !important;
@@ -289,6 +319,7 @@ section[data-testid="stMain"] [data-testid="stButtonGroup"] button p {{
 
 /* ---------- Tarjetas ---------- */
 .tarjeta {{
+  box-shadow: {T['sombra_tarjeta']};
   background: {T['superficie']};
   border: 1px solid {T['borde_sutil']};
   border-radius: var(--r-lg);

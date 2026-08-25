@@ -1710,16 +1710,22 @@ def _sankey_embudo(maq: dict) -> None:
         return (f"rgba({int(h[0:2], 16)},{int(h[2:4], 16)},"
                 f"{int(h[4:6], 16)},{a})")
 
+    # Cada etiqueta lleva su parte del total crudo: el conteo solo dice
+    # cuántos quedan; el porcentaje dice cuánto se fue por el camino.
+    base = e["crudo"]["filas"]
+    def cta(v: int) -> str:
+        return f"{n(v)} · {d(v / base * 100, 0)} %" if base else n(v)
+
     etiquetas = [
-        f"Módulo 05 crudo · {n(e['crudo']['filas'])}",
-        f"Ocupados · {n(e['ocupados']['filas'])}",
-        f"Dataset de modelado · {n(e['modelado']['filas'])}",
-        f"Muestra del torneo · {n(e['torneo']['filas'])}",
-        f"Train · {n(split['train'])}",
-        f"Test · {n(split['test'])}",
-        f"No ocupados · {n(e['ocupados']['recorte'])}",
-        f"Menores de 14 o sin ingreso · {n(e['modelado']['recorte'])}",
-        f"Casos incompletos · {n(e['torneo']['recorte'])}",
+        f"Módulo 05 crudo · {cta(e['crudo']['filas'])}",
+        f"Ocupados · {cta(e['ocupados']['filas'])}",
+        f"Dataset de modelado · {cta(e['modelado']['filas'])}",
+        f"Muestra del torneo · {cta(e['torneo']['filas'])}",
+        f"Train · {cta(split['train'])}",
+        f"Test · {cta(split['test'])}",
+        f"No ocupados · {cta(e['ocupados']['recorte'])}",
+        f"Menores de 14 o sin ingreso · {cta(e['modelado']['recorte'])}",
+        f"Casos incompletos · {cta(e['torneo']['recorte'])}",
     ]
     color_nodo = [Tt["acento"]] * 6 + [Tt["dato"]] * 3
     sigue, fuera = rgba(Tt["acento"], 0.30), rgba(Tt["dato"], 0.35)
@@ -1928,7 +1934,12 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
     else:
         elegido = st.radio("Estación", titulos, horizontal=True,
                            key="maq_estacion", label_visibility="collapsed")
-    idx = titulos.index(elegido) if elegido in titulos else 0
+    # st.segmented_control DESELECCIONA al pulsar la opción ya activa y
+    # devuelve None: sin esto, volver a clicar la estación abierta tiraba al
+    # usuario de vuelta a la primera. Se recuerda la última válida.
+    if elegido in titulos:
+        st.session_state["maq_estacion_ok"] = titulos.index(elegido)
+    idx = st.session_state.get("maq_estacion_ok", 0)
     html("<div class='sutil' style='margin:-4px 0 6px 2px'>Haz clic en una "
          "estación para ver su detalle.</div>")
     # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. El
