@@ -474,6 +474,12 @@ def situadores(valores: dict, features: list[dict], cohorte: dict) -> None:
                                   c["percentiles"],
                                   feat.get("etiqueta", feat["nombre"]) + " · cohorte ponderada",
                                   T()), 74)
+    # La marca vertical no se explicaba sola: quien no conoce la palabra
+    # «mediana» veía un número flotando junto a una barra.
+    if numericas:
+        html("<div class='sutil'>La marca es la mediana de la cohorte: la "
+             "mitad de los encuestados está por debajo de ese valor. Tu "
+             "perfil es el punto azul.</div>")
 
 
 # --------------------------------------------------------------------------
@@ -1578,8 +1584,9 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
                    "usa como «no sabe» se convierte en vacío) y quién "
                    "pertenece a la población de estudio — los filtros del "
                    "embudo que se ve más abajo.",
-         "sale": f"{n(muestra)} trabajadores listos para el torneo, en un "
-                 f"parquet de {_mb(tam.get('torneo_frame_bytes'))}.",
+         "sale": f"{n(muestra)} trabajadores listos para el torneo, "
+                 f"guardados en un solo archivo de tabla (formato parquet) "
+                 f"de {_mb(tam.get('torneo_frame_bytes'))}.",
          "tarjetas": [
              ("centinelas limpiados",
               n(autopsia.get("n_centinelas", 0)) if autopsia else "—",
@@ -1595,12 +1602,16 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
          "codigo": [("ver el código →", "src/03_fase1_preparacion.py"),
                     ("el embudo auditado (§4) →", "INFORME_AUDITORIA.md")]},
         {"titulo": "Torneo", "sub": f"{len(tabla)} recetas" if tabla else "—",
-         "entra": f"El train de {n(split.get('train', 0))} filas en "
-                  "validación cruzada de 5 pliegues; el test no opina.",
+         "entra": f"Las {n(split.get('train', 0))} filas de entrenamiento, "
+                  "partidas en 5 bloques: cada receta se entrena con cuatro "
+                  "y se prueba con el quinto, cinco veces (validación "
+                  "cruzada de 5 pliegues). El test no opina todavía.",
          "decide": "Qué receta gana. Nueve especificaciones E1–E9 —de la "
-                   "regresión lineal simple al gradient boosting— compiten "
-                   "por el MAE de validación cruzada: un solo número por "
-                   "receta, decidido ANTES de mirar el test.",
+                   "regresión lineal simple al <i>gradient boosting</i>, que "
+                   "encadena árboles de decisión corrigiendo cada uno el "
+                   "error del anterior— compiten por el error medio de esa "
+                   "validación cruzada: un solo número por receta, decidido "
+                   "ANTES de mirar el test.",
          "sale": (f"La receta {art.get('torneo', {}).get('desplegada', '—')} "
                   f"elegida: se equivoca S/ {d(ganador.get('MAE_cv', 0), 1)} "
                   f"al mes en promedio; la segunda ({segundo.get('ID', '—')}) "
@@ -1616,12 +1627,15 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
         {"titulo": "Entrenamiento", "sub": "2 × .joblib",
          "entra": f"La receta ganadora y las {n(split.get('train', 0))} filas "
                   "de entrenamiento.",
-         "decide": "Los últimos números propios del modelo: entrenar el "
-                   "gradient boosting definitivo y calcular la corrección de "
-                   f"Duan (× {d(float(reg['smearing_duan']), 4)}) con "
-                   "residuos out-of-fold — nunca con el test.",
-         "sale": "Dos modelos serializados (.joblib) que viajan DENTRO del "
-                 "repositorio: la nube no reentrena, solo los lee.",
+         "decide": "Los últimos números propios del modelo: entrenar la "
+                   "receta ganadora definitiva y calcular la corrección de "
+                   f"Duan (× {d(float(reg['smearing_duan']), 4)}, la "
+                   "constante que repara el promedio al deshacer el "
+                   "logaritmo) usando solo los errores medidos en esa "
+                   "validación cruzada — nunca con el test.",
+         "sale": "Dos modelos ya entrenados, guardados como archivo "
+                 "(.joblib) DENTRO del repositorio: la nube no reentrena, "
+                 "solo los lee.",
          "tarjetas": [
              ("regresor_e9.joblib", _kb(modelos.get("regresor_e9.joblib")),
               "El estimador de ingreso, listo para predecir."),
@@ -1877,7 +1891,7 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
     maq = cargar_maquinas()
 
     cabecera(
-        "Cómo se hizo, paso a paso — de la encuesta del INEI a la app",
+        "Cómo se hizo: de la encuesta del INEI a la app",
         "Esta sección muestra, paso a paso, cómo se construyó el proyecto: "
         "de dónde vienen los datos y cómo se filtraron, cómo se compararon "
         "y entrenaron los modelos, y cómo llega todo a la app que estás "
@@ -2058,31 +2072,73 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
 
         # Modo delta: dos puntos YA precomputados de la misma curva; el
         # selector no toca el modelo.
+        #
+        # Numéricas y categóricas NO comparten semántica: en una curva
+        # continua el delta es un recorrido; entre barras es una comparación,
+        # y no hay «camino». De ahí que cambien el rótulo, la línea llana y
+        # —sobre todo— los valores por defecto: arrancar ambos lados en el
+        # mismo punto producía «de Obrero a Obrero ≈ +S/ 0», una tautología
+        # con aspecto de cálculo.
         st.write("")
-        html("<div class='eyebrow'>¿Y si cambia? · el delta sobre la "
-             "curva</div>")
+        es_num = perfil["tipo"] == "numerico"
         vals = perfil["valores"]
-        etiqs = ([d(float(v), 1) for v in vals]
-                 if perfil["tipo"] == "numerico" else [str(v) for v in vals])
+        efec = [float(e) for e in perfil["efecto"]]
+        etiqs = ([d(float(v), 1) for v in vals] if es_num
+                 else [str(v) for v in vals])
+
+        if es_num:
+            rotulo = "¿Y si cambia? · el delta sobre la curva"
+            ini_de, ini_a = 0, len(vals) - 1
+        else:
+            rotulo = "¿Y si fuera otra? · la diferencia entre categorías"
+            # «de» = la categoría del perfil; si nadie estimó todavía, la más
+            # frecuente de la cohorte ponderada. «a» = la de mayor estimación.
+            actual = (st.session_state.get("valores_maq", {}).get(nombre)
+                      or st.session_state.get("valores_reg", {}).get(nombre))
+            ini_de = None
+            if actual is not None and str(actual) in etiqs:
+                ini_de = etiqs.index(str(actual))
+            if ini_de is None:
+                repartos = (art.get("regresor", {}).get("cohorte", {})
+                            .get(nombre, {}).get("participacion_pct", {}))
+                frecuente = max(repartos, key=repartos.get) if repartos else None
+                ini_de = (etiqs.index(str(frecuente))
+                          if frecuente is not None and str(frecuente) in etiqs
+                          else 0)
+            ini_a = max(range(len(efec)), key=lambda i: efec[i])
+            if ini_a == ini_de:               # el perfil ya está en la más alta
+                ini_de = min(range(len(efec)), key=lambda i: efec[i])
+
+        html(f"<div class='eyebrow'>{rotulo}</div>")
         c_de, c_a = st.columns(2)
         with c_de:
-            i_de = st.selectbox("de …", range(len(vals)), index=0,
+            i_de = st.selectbox("de …", range(len(vals)), index=ini_de,
                                 format_func=lambda i: etiqs[i],
                                 key=f"maq_delta_de_{nombre}")
         with c_a:
-            i_a = st.selectbox("a …", range(len(vals)),
-                               index=len(vals) - 1,
+            i_a = st.selectbox("a …", range(len(vals)), index=ini_a,
                                format_func=lambda i: etiqs[i],
                                key=f"maq_delta_a_{nombre}")
-        delta = float(perfil["efecto"][i_a]) - float(perfil["efecto"][i_de])
-        signo = "+" if delta >= 0 else "−"
-        html("<div class='rejilla-tarjetas'>" + tarjeta(
-            f"pasar de {escape(etiqs[i_de])} a {escape(etiqs[i_a])}",
-            f"≈ {signo}S/ {n(abs(delta))}",
-            nota="Diferencia que describe el modelo, no un efecto causal.",
-            llano="al mes, para el perfil promedio: dos puntos ya "
-                  "precomputados de la misma curva — nada se recalcula.")
-            + "</div>")
+
+        if (not es_num) and i_de == i_a:
+            html("<div class='senal senal-aviso'><div>▲</div><div>Elegiste la "
+                 "misma categoría en los dos lados: la diferencia es cero por "
+                 "definición. Elige dos distintas para comparar.</div></div>")
+        else:
+            delta = efec[i_a] - efec[i_de]
+            signo = "+" if delta >= 0 else "−"
+            llano_delta = (
+                "Dos puntos de la misma curva: cuánto cambia la estimación al "
+                "recorrer la variable de un valor a otro." if es_num else
+                "Dos alturas de barra: cuánto separa el modelo a una "
+                "categoría de otra, con el resto del perfil igual. No hay "
+                "«camino» entre categorías — solo comparación.")
+            html("<div class='rejilla-tarjetas'>" + tarjeta(
+                f"{'pasar' if es_num else 'diferencia'} de "
+                f"{escape(etiqs[i_de])} a {escape(etiqs[i_a])}",
+                f"≈ {signo}S/ {n(abs(delta))}",
+                nota="Diferencia que describe el modelo, no un efecto causal.",
+                llano=llano_delta) + "</div>")
     with st.expander("¿Qué principio hay aquí? · explorador"):
         html("<div class='sutil'>Precómputo puro: cada curva son 20 puntos "
              "que <code>src/09</code> calculó una sola vez sobre 5.000 "
