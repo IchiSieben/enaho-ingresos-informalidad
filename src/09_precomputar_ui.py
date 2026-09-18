@@ -80,7 +80,7 @@ def pctl_pond(valores: np.ndarray, pesos: np.ndarray, qs: list[float]) -> list[f
 
 
 # --------------------------------------------------------------------------
-# Curva de umbral (identica a la del SIS: sumas acumuladas, no 99 reevaluaciones)
+# Curva de umbral (identica a la del proyecto hermano: sumas acumuladas, no 99 reevaluaciones)
 # --------------------------------------------------------------------------
 def curva_umbral(y, proba, extra=(), paso=PASO_UMBRAL) -> dict:
     y = np.asarray(y).astype(np.int64)

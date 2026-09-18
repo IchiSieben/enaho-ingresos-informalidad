@@ -2,7 +2,7 @@
 # Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 """
-FASE 3 — Sistema de diseño (adaptado del proyecto SIS-diabetes).
+FASE 3 — Sistema de diseño (adaptado del proyecto hermano de salud publica).
 
 Los tokens viven en un DICCIONARIO DE PYTHON y de ahí se GENERA el CSS: los
 SVG de `graficos.py` viajan a un iframe (`st.components.v1.html`) que no ve

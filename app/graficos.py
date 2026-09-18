@@ -2,7 +2,7 @@
 # Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
 # Licencia: Apache-2.0 (ver LICENSE)
 """
-FASE 3 — Gráficos SVG construidos en Python (adaptado del proyecto SIS).
+FASE 3 — Gráficos SVG construidos en Python (adaptado del proyecto hermano de salud publica).
 
 Funciones puras: reciben datos y la paleta activa `T`, devuelven una cadena
 SVG. Ninguna toca Streamlit ni estado global. Reciben los colores como

@@ -3,7 +3,7 @@
     Corre un script de src/ dejando la salida en logs/, separando stdout y stderr.
 
 .DESCRIPTION
-    Convencion heredada del proyecto SIS-diabetes:
+    Convencion heredada del proyecto hermano de salud publica:
       1. `python -u` -> sin buffer: si la maquina se cuelga a mitad de un
          entrenamiento, el log muestra en que fase murio.
       2. Start-Process -RedirectStandard* -> escritura directa a archivo,

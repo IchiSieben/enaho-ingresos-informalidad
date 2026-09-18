@@ -4,9 +4,9 @@
 
 Dos modelos desplegados en Streamlit sobre los microdatos de la Encuesta
 Nacional de Hogares (ENAHO 2025, INEI): un **regresor del ingreso laboral
-mensual** y un **clasificador de empleo informal**. Proyecto hermano del de
-**SIS-diabetes** (predicción de adherencia al seguimiento y costo de
-atención con datos abiertos del SIS), con los mismos estándares: reproducibilidad total
+mensual** y un **clasificador de empleo informal**. Proyecto hermano de otro
+de **salud pública** (predicción de adherencia al seguimiento clínico y costo
+de atención con datos abiertos de aseguramiento), con los mismos estándares: reproducibilidad total
 (`random_state=42`), formulario dirigido por `feature_schema.json`,
 precómputo de UI, umbrales elegidos sobre probabilidades out-of-fold y
 limitaciones declaradas.
@@ -191,8 +191,8 @@ insumo inicial es un **dataset sintético de práctica**: DNIs falsos,
 menores de 2 y 10 años con ingresos de miles de soles, y estados
 PEA/ocupado inconsistentes. No se usó. Todo este proyecto — incluida la
 réplica del baseline — corre sobre los **microdatos reales** de la ENAHO
-2025 descargados del INEI (misma disciplina que la nota DM_Insumos del
-proyecto SIS).
+2025 descargados del INEI (la misma disciplina que en el proyecto hermano de
+salud pública).
 
 ## 5. Reproducción
 

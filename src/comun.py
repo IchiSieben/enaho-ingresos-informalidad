@@ -35,7 +35,7 @@ RUTA_SCHEMA = DIR_MODELS / "feature_schema.json"
 SEMILLA = 42
 N_JOBS = 20
 
-# Umbral de colapso en conteo ABSOLUTO (misma justificacion que en el SIS).
+# Umbral de colapso en conteo ABSOLUTO (misma justificacion que en el proyecto hermano).
 MIN_FRECUENCIA = 300
 MAX_CATEGORIAS = 30
 LIMITE_MB = 50.0
@@ -149,7 +149,7 @@ def rama_agrupada(p506r4: pd.Series) -> pd.Series:
 
 
 # --------------------------------------------------------------------------
-# Preprocesador (identico al SIS)
+# Preprocesador (identico al del proyecto hermano)
 # --------------------------------------------------------------------------
 def separar_columnas(X: pd.DataFrame) -> tuple[list[str], list[str]]:
     """Devuelve (columnas_numericas, columnas_categoricas)."""
@@ -178,7 +178,7 @@ def construir_preprocesador(numericas: list[str], categoricas: list[str]) -> Col
 
 
 # --------------------------------------------------------------------------
-# Contrato de features (feature_schema.json) — identico al SIS
+# Contrato de features (feature_schema.json) — identico al del proyecto hermano
 # --------------------------------------------------------------------------
 def resumen_categorias(preprocesador: ColumnTransformer) -> pd.DataFrame:
     """Tabla de categorias supervivientes y colapsadas, desde el encoder AJUSTADO."""

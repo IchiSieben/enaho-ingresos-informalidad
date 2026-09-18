@@ -189,8 +189,8 @@ trabajo futuro»**.
 
 ## Cierre — qué demuestran los dos proyectos juntos (~min 13–15)
 
-Este proyecto es hermano del de **SIS-diabetes** (adherencia al seguimiento
-y costo de atención con datos abiertos del SIS). Juntos demuestran **el
+Este proyecto es hermano de otro de **salud pública** (adherencia al seguimiento
+clínico y costo de atención con datos abiertos de aseguramiento). Juntos demuestran **el
 mismo método en dominios distintos** (salud pública y mercado laboral):
 reproducibilidad total con semilla fija, formulario dirigido por
 `feature_schema.json`, precómputo de UI, umbrales elegidos sobre

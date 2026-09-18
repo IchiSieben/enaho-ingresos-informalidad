@@ -4,7 +4,7 @@
 """
 FASE 3 — App: ingreso laboral e informalidad en el Perú (ENAHO 2025).
 
-Arquitectura heredada del proyecto SIS-diabetes:
+Arquitectura heredada del proyecto hermano de salud publica:
 - La UI la dirige `models/feature_schema.json`; ningún campo está escrito aquí.
 - Lo caro vive precomputado en `models/ui_artifacts.json`.
 - El bloque de umbral corre en un `@st.fragment`: mover el slider no reejecuta
