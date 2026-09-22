@@ -1,77 +1,330 @@
 # Ingreso laboral e informalidad en el Perú — ENAHO 2025
 
-> **Live demo:** https://enaho-ingresos-informalidad.streamlit.app
+> **Live demo / Demo en vivo:** https://enaho-ingresos-informalidad.streamlit.app
+> **Repo:** https://github.com/IchiSieben/enaho-ingresos-informalidad
+
+**[English](#english) · [Español](#español)**
 
 Two models deployed on Streamlit over Peru's 2025 National Household Survey
 (ENAHO 2025, INEI) microdata: a **monthly labor income regressor** and an
 **informal-employment classifier**. Status per the project's landing-page
 listing: `live` / `usable`.
 
-![App screenshot: income estimation form and results](docs/preview.webp)
+Dos modelos desplegados en Streamlit sobre los microdatos de la Encuesta
+Nacional de Hogares (ENAHO 2025, INEI): un **regresor del ingreso laboral
+mensual** y un **clasificador de empleo informal**. Estado según la ficha del
+proyecto en el landing: `live` / `usable`.
+
+![App screenshot: income estimation form and results · Captura de la app: formulario de estimación de ingreso y resultados](docs/preview.webp)
 
 ---
 
 ## English
 
-### What it is
+Two models deployed on Streamlit over the microdata of Peru's National
+Household Survey (ENAHO 2025, INEI): a **monthly labor income regressor**
+and an **informal-employment classifier**. Sibling project to another one in
+**public health** (predicting adherence to clinical follow-up and cost of
+care from open insurance-coverage data), built to the same standards: full
+reproducibility (`random_state=42`), a form driven by `feature_schema.json`,
+precomputed UI, thresholds chosen on out-of-fold probabilities, and declared
+limitations.
 
-A model tournament (OLS, Mincer, Lasso, Random Forest, Gradient Boosting)
-plus a separate informal-employment classifier, built to show the whole
-path — including a data bug found along the way — not just the winning
-model. Full narrative, tables and citations are in the
-[`## Español`](#español) section below; this section covers what an
-English-reading visitor needs to run or evaluate the project.
+What sets this project apart is that **it does not show only the winning
+model: it shows the path**. An initial regression with implausible
+coefficients exposed an error in the source data — INEI's missing-value code
+read as real income — and became the first entry in a tournament of nine
+specifications.
 
-### Live demo
+### 1. The autopsy: where all of this starts
 
-- **App:** https://enaho-ingresos-informalidad.streamlit.app
-- **Repo:** https://github.com/IchiSieben/enaho-ingresos-informalidad
+An early regression the group ran on this data produced the following
+equation (in levels):
 
-### Screenshot
-
-See above (`docs/preview.webp`) — the income-estimation form with a live
-prediction and its comparison bands.
-
-### How to run
-
-Verified by actually running these steps (Windows, Python 3.12.10, venv,
-`pip install -r requirements.txt` — all pinned versions, including unusual
-ones like `pandas==3.0.5` and `pyarrow==24.0.0`, resolved cleanly with no
-conflicts):
-
-```powershell
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\streamlit run app/streamlit_app.py
+```
+INCOME = 653.35 + 11.47·urban + 6.39·male + 16.11·age
+       + 691.92·primary + 1,386.35·secondary + 2,132.97·technical
+       + 2,834.57·university + 18.76·hours + 6.98·members
 ```
 
-The app reads only from the **committed** artifacts in `models/`
-(`regresor_e9.joblib`, `clasificador_gb.joblib`, `feature_schema.json`,
-`ui_artifacts.json`, `ui_maquinas.json`) — confirmed by inspection of
-`app/streamlit_app.py`. **No raw microdata is needed to run the app**; it
-booted and served `HTTP 200` on a clean venv with nothing under `data/`.
++11 soles for living in an urban area and +6 for being male are
+incompatible with the known gaps in Peru's labor market. **The problem was
+not in how it was modeled, but in the data**: INEI codes "don't know" as
+999999, and that code was being read as a real income of 999,999 soles —
+something that deforms any regression on that base. Instead of discarding
+the result it was **diagnosed**, reproducing the specification on the actual
+microdata (`reports/00_autopsia_baseline.md`). Three causes, ordered by
+damage:
 
-Raw ENAHO microdata is only needed to **reproduce the training pipeline**
-(`src/00_extraer_diccionario.py` through `src/09_precomputar_ui.py`). That
-data is not bundled here (`data/` is gitignored, per INEI's redistribution
-terms) — download it yourself from INEI's public microdata portal:
-https://proyectos.inei.gob.pe/microdatos/ (ENAHO 2025, survey 1031, modules
-02, 03 and 05), then run the pipeline steps in order (see
-[`## Español §5`](#5-reproducción) for the exact commands).
+| Cause | Measured evidence |
+|---|---|
+| **The 999999 sentinel.** INEI codes "don't know" as 999999 in monetary variables (documented in the dictionary). It affects 2.28% of the population through P530A (4.6% of self-employed earnings). | With the sentinel: R² 0.023, urban **−27,141**, technical **−12,959**. Sentinel → NaN: R² 0.248, urban **+235**, university **+2,201**. Every sign becomes plausible on a single change. |
+| **Educational collinearity.** Years of schooling and detailed educational level are the same variable coded twice. | Together: VIF 15–20, and the dummies **flip sign** (secondary +588 → −761) without improving fit. They do not coexist in any specification. |
+| **Levels vs log.** Income has skewness 3.98 (median S/ 750, p99 S/ 7,000). | The main family works on `log(income)` (Mincer) and returns to soles with Duan's (1983) smearing correction. |
 
-### Data sources and licenses
+The "welfare index" called for in the assignment turned out to be
+**conceptual leakage**: its real counterpart (household income/expenditure)
+contains individual income itself as one of its addends (ρ = 0.58, mechanical
+circularity). Excluded from every model.
 
-- **ENAHO 2025** — Peru's National Household Survey, Instituto Nacional de
-  Estadística e Informática (INEI). Public microdata, used and cited here,
-  **not redistributed** in this repository; obtain it directly from INEI
-  under its own terms of use.
-- **Code** (`src/`, `app/`, `run.ps1`) and `models/` artifacts:
-  [Apache-2.0](LICENSE). Derivatives must state changes and retain
-  [`NOTICE`](NOTICE) (§4d).
-- **Documentation, `reports/*.md` and figures**: [CC BY-NC 4.0](docs/LICENSE-DOCS.md)
-  — attribution required, no commercial use.
-- Citation metadata: [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this
-  repository" button).
+### 2. The tournament (same 80/20 split, same 5-fold CV, unweighted)
+
+Selection by **cross-validation MAE** — choosing on test after comparing
+nine specifications would mean selecting on the evaluation set. MAE in soles
+with median-based inversion; the log specifications additionally report the
+mean with Duan smearing (out-of-fold residuals from train).
+
+| ID | Specification | CV MAE | Test MAE | Test R² (soles) | Interpretab. |
+|---|---|---|---|---|---|
+| **E9** | **Gradient Boosting (log) · deployed** | **610.9** | 610.8 | 0.420 | low |
+| E8 | Random Forest (log) | 613.0 | 613.0 | 0.422 | low |
+| E7 | Post-Lasso OLS (Belloni et al. 2014) | 686.9 | 686.9 | 0.262 | medium |
+| E6 | Cleaned · **explanatory** | 690.1 | 691.2 | 0.273 | high |
+| E4 | Extended Mincer | 729.3 | 733.6 | 0.250 | high |
+| E3 | Classic Mincer (educ + exp + exp²) | 823.2 | 834.2 | 0.270 | high |
+| E5 | Baseline replica (levels, sentinel now removed) | 830.3 | 837.1 | 0.243 | high |
+| E2 | log(income) ~ years of schooling | 847.3 | 862.4 | 0.234 | high |
+| E1 | Income ~ years of schooling (the assignment) | 900.6 | 906.4 | 0.172 | high |
+
+Full detail (RMSE, R² on each model's own scale, smearing factors, VIF,
+Breusch-Pagan, residual plots): `reports/torneo_regresion.md` and
+`reports/comparacion_torneo.csv`.
+
+**The gap is interpreted, not just reported**: E9 beats E6 by S/ 79 of MAE
+(+11.5%). That difference estimates the contribution of the
+non-linearities and interactions the linear functional form does not capture
+(Athey & Imbens 2019). Note that no R² exceeds 0.5 in soles. For context:
+the Mincer equation typically explains between 25% and 35% of the variance
+of the **logarithm of the wage** — Mincer (1974), table 5.1: R² = 0.285;
+Card (1999), table 1: 0.247–0.328 [1][3]. Neither Lemieux (2006) nor Heckman
+et al. (2006) report an R², so they cannot be cited for this. And mind the
+scale: E9's 0.42 is **in soles**, while those figures are **in logs** (this
+tournament's Mincer, E3, gives 0.27). That values equal to or lower than
+those are to be expected in a market with high informality is our reading,
+not a published result.
+
+#### The two readings
+
+- **Predictive (E9, the one in the app):** test MAE S/ 611 against a median
+  of S/ 1,101. The app shows the conditional median with the median/mean
+  warning (smearing ×1.401) in the results panel.
+- **Explanatory (E6 weighted with FAC500A, HC3 errors,
+  `reports/modelo_explicativo.md`):** return to education **4.8%/year**;
+  male **+43%**; urban **+32%**; self-employed **−50%**; firm of ≤20 people
+  **−33%** (vs >500); mining **+74%** (vs commerce); Sierra Norte **−31%**
+  (vs Metropolitan Lima). Consistent with the Peruvian literature on returns
+  to education (Yamada).
+
+#### Measured robustness: income in kind
+
+The target is monetary only, but 24.6% of employed workers receive payment
+in kind or self-consumption (concentrated in rural agriculture) — and
+excluding it could inflate precisely the urban coefficient that carries the
+narrative. It was measured: urban premium 54.6% (monetary only) vs 52.0%
+(with in-kind). The exclusion is **validated as robust and declared**, not
+hidden.
+
+### 3. The informal-employment classifier
+
+`OCUPINF` does not ship with the 2025 release, so the target was **derived**
+using INEI's operational rule: self-employed workers and employers →
+informal if the unit is not registered with SUNAT (P510A1=3); wage earners →
+informal if not affiliated to any pension system (P558A5=5).
+
+**External validation of the derivation** (using the FAC500A expansion
+factor):
+
+| Contrast | Derived | Official INEI 2025 |
+|---|---|---|
+| National (all employed, unpaid family workers included) | 67.3% | 70.2% |
+| Urban | 61.3% | 64.5% |
+| Rural | 91.6% | 94.8% |
+
+A uniform bias of ~3 points, and explainable: pension affiliation includes
+self-financed affiliations. The model's firm-size gradient also runs in the
+same direction as the official pattern: INEI reports 88.6% informality in
+firms of **1 to 10 workers** and 15.6% in those with more than 50 [8]. That
+publication's brackets are not this project's (here, "Up to 20" gives 81.1%
+weighted), so what matches is the direction and magnitude of the gradient,
+not each individual figure.
+
+**Benchmark** (selection by cross-validation PR-AUC; baseline = prevalence
+0.678):
+
+| Algorithm | CV PR-AUC | CV ROC-AUC | Test PR-AUC | Brier |
+|---|---|---|---|---|
+| **Gradient Boosting · deployed** | **0.9626** | 0.9289 | 0.9605 | 0.097 |
+| Random Forest | 0.9619 | 0.9279 | 0.9589 | 0.098 |
+| Logistic regression (baseline) | 0.9553 | 0.9164 | 0.9526 | 0.105 |
+
+The logistic model is the obligatory reference point, and its odds ratios
+tell the known story of the Peruvian market: firm of ≤20 people **OR 16.7**,
+self-employed OR 5.2, urban OR 0.56, each year of education OR 0.82
+(`reports/clasificador_informalidad.md`).
+
+**Operating point** (chosen on out-of-fold probabilities from train, never
+on test): **precision ≥ 0.90 for the informal class**, threshold 0.605 →
+recall 0.893, lift 1.33×. The honest number for the presentation: *of every
+1,000 workers flagged, 900 are actually informal, against 678 if they were
+flagged at random.* Test confirms the point (0.900 / 0.893).
+
+**Framing — read this before being impressed by the PR-AUC:** the
+classifier is NOT a forward-looking prediction tool. Informality is
+determined by the configuration of the job (firm size, occupational
+category, industry), which is known at the same time as the status itself.
+Its usefulness is **targeting**: identifying segments where formalization
+programs should be concentrated, starting from variables observable in
+administrative records, without verifying pension affiliation case by case.
+The **structural ablation** bounds it: without firm size, PR-AUC 0.957;
+without size or category, 0.942 — education, area, industry and hours carry
+the remaining signal. `categoria` (P507) additionally **branches the target
+definition itself** (self-employed→RUC, wage earner→pensions): its high
+importance is by construction, not a finding.
+
+### 4. Declared design decisions
+
+- **Weighting.** The tournament and training run **unweighted** (they are
+  comparison and in-sample predictive accuracy); the descriptives,
+  prevalences, cohort medians in the app and the explanatory model run
+  **weighted with FAC500A** (population reading). Each table declares which
+  one it is. Technical detail: FAC500A arrives with a **decimal comma** in
+  INEI's CSV.
+- **Income target.** Sum of INEI's imputed/deflated/**annualized** versions
+  (I524A1, I530A, I538A1, I541A) ÷ 12: a **smoothed** income, not the
+  reference month's, and free of the sentinel and of P524A1's periodicity
+  trap (it is the "amount of the last payment", not a monthly figure).
+- **Hours.** P520 is only asked for atypical weeks (~10% coverage); I513T +
+  I518 are used instead (main + secondary jobs, 100% coverage).
+- **Population.** Employed aged 14+ with income > 0 (47,899 after a
+  documented cascade). The 6,500 unpaid family workers fall outside because
+  their income is zero — a population restriction, not an error.
+- **Anti-circularity.** Barred as classifier predictors: the columns that
+  define the target (P510A1, P510B, P558A*, P517B1) and P511A (contract,
+  univariate AUC 0.846 — almost definitional for wage earners). Income is
+  not a predictor of informality either.
+- **Potential experience** = age − years of schooling − 6, truncated at 0
+  (0.2% negative). At low education levels it overestimates actual
+  experience (Heckman, Lochner & Todd 2006). The app derives it; the user
+  does not type it in.
+
+#### A quality note on the course material
+
+The file `INEI_ENAHO_500registrosML_inicialsol1.xlsx` distributed as the
+initial input is a **synthetic practice dataset**: fake national ID numbers,
+children aged 2 and 10 with incomes of thousands of soles, and inconsistent
+labor-force/employed states. It was not used. This entire project —
+including the baseline replica — runs on the **real microdata** of ENAHO
+2025 downloaded from INEI (the same discipline as in the sibling public
+health project).
+
+### 5. Reproduction
+
+Execution verified on Windows with Python 3.12.10: the `pip install` of
+every pinned version (including the unusual ones, `pandas==3.0.5` and
+`pyarrow==24.0.0`) resolved with no conflicts, and
+`streamlit run app/streamlit_app.py` came up and answered `HTTP 200` using
+only the artifacts versioned in `models/` — **without needing the raw
+microdata**, which is only required to reproduce the training pipeline
+(the steps that follow):
+
+```
+python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
+# place ENAHO 2025 (survey 1031) modules 02, 03 and 05 in data/raw/
+.venv\Scripts\python src/00_extraer_diccionario.py
+.venv\Scripts\python src/00_inventario.py
+.venv\Scripts\python src/01_fase0_poblacion.py
+.venv\Scripts\python src/02_fase0_autopsia.py
+.venv\Scripts\python src/03_fase1_preparacion.py
+.venv\Scripts\python src/04_torneo_regresion.py
+.venv\Scripts\python src/05_modelo_explicativo.py
+.venv\Scripts\python src/06_entrenar_clasificador.py
+.venv\Scripts\python src/07_guardar_regresor.py
+.venv\Scripts\python src/08_ablacion_clasificador.py
+.venv\Scripts\python src/09_precomputar_ui.py
+streamlit run app/streamlit_app.py
+```
+
+The microdata is **not redistributed** in this repository (`data/` is in
+`.gitignore`); it is downloaded from INEI's public microdata
+(https://proyectos.inei.gob.pe/microdatos/, ENAHO 2025, survey 1031, modules
+02, 03 and 05).
+
+### 6. Documentation
+
+- [User manual](docs/manual_usuario.md) — for someone opening the app
+  without knowing the project: what it is (and what it is not), how to fill
+  in the form, how to read each output, and frequently asked questions.
+- [Architecture](docs/arquitectura.md) — for developers: the full flow with
+  a diagram, a file-by-file map, the design decisions with their rationale,
+  how to reproduce everything, and how a new variable would be added.
+- [Guide to interpreting the metrics](docs/interpretacion_metricas.md) —
+  every metric in the project (MAE, R², smearing, PR-AUC, calibration, odds
+  ratios, VIF…) with what it is, how it is computed here, the value
+  obtained, how to read it, and what is reasonable to expect according to
+  the literature.
+- [Presentation script](docs/guion_exposicion.md) — the narrative in three
+  acts for a 10–15 minute presentation, the numbers to keep at hand, and
+  the anticipated questions with their answers.
+- [Tournament methodology](docs/METODOLOGIA_TORNEO.md) — what varies between
+  E1 and E9, the verification that all nine were compared on the same sample
+  and the same folds, the hyperparameter grids with their re-optimization,
+  E7's Lasso, and the stability of variable importance.
+- [Audit report](INFORME_AUDITORIA.md) — internal review of the repository:
+  findings classified by severity, the data funnel with the N at each step,
+  the sentinel sweep, the reconciliation of the informality rate against
+  INEI, and the list of what was left unverified.
+
+### 7. What you can reuse
+
+| Part | Licence | Condition |
+|---|---|---|
+| Code (`src/`, `app/`, `run.ps1`) and `models/` artifacts | [Apache-2.0](LICENSE) | Derivatives must state their changes and retain the contents of [`NOTICE`](NOTICE) (section 4d). |
+| Documentation, `reports/*.md` and figures | [CC BY-NC 4.0](docs/LICENSE-DOCS.md) | Attribution required; no commercial use. |
+| ENAHO 2025 microdata | INEI's, **not redistributed here** | Download from the [official source](https://proyectos.inei.gob.pe/microdatos/) under its own terms of use. |
+
+To cite the project, GitHub generates the citation from
+[`CITATION.cff`](CITATION.cff) ("Cite this repository" button).
+
+### 8. Credits
+
+Project produced within the **Machine Learning** course at the **ENEI**
+(Escuela Nacional de Estadística e Informática, INEI), with instructor
+**Orlando Advíncula Zeballos**. Group: **Alan Nestor Cañazaca Mamani**,
+**Magdalena Quico de la Cruz**, **Yoichi Palacios Tanaka** and **Edgar
+Delgado Ortega**. Detailed authorship and CRediT roles in
+[`AUTHORS.md`](AUTHORS.md).
+
+**Author (citable software):** Yoichi Palacios Tanaka (IchiSieben) ·
+ichisieben.dev
+
+### 9. Bibliographic framework
+
+- Mincer, J. (1974). *Schooling, Experience, and Earnings*. NBER. — E3 is
+  literally this equation.
+- Heckman, J., Lochner, L. & Todd, P. (2006). "Earnings Functions, Rates of
+  Return and Treatment Effects: The Mincer Equation and Beyond". *Handbook of
+  the Economics of Education*. — Why exp and exp², and the limits of
+  potential experience.
+- Lemieux, T. (2006). "The 'Mincer Equation' Thirty Years After". — How the
+  specification holds up, and its extensions.
+- Duan, N. (1983). "Smearing Estimate: A Nonparametric Retransformation
+  Method". *JASA* 78(383). — The tournament's retransformation correction.
+- Athey, S. & Imbens, G. (2019). "Machine Learning Methods That Economists
+  Should Know About". *Annual Review of Economics* 11. — The framework for
+  reading the OLS vs trees gap.
+- Belloni, A., Chernozhukov, V. & Hansen, C. (2014). "High-Dimensional
+  Methods and Inference on Structural and Treatment Effects". *JEP* 28(2). —
+  The grounding (and the cautions) for post-Lasso (E7).
+- Sohnesen, T. P. & Stender, N. (2016). "Is Random Forest a Superior
+  Methodology for Predicting Poverty? An Empirical Assessment". World Bank
+  Policy Research WP **7612** (7970 is a different paper). — ML vs
+  regression benchmark on household surveys.
+- Yamada, G. (2007). *Retornos a la educación superior en el mercado laboral:
+  ¿vale la pena el esfuerzo?* CIES / U. del Pacífico. — Returns by segment in
+  Peru: 12.5% a year for wage earners against 6.5% for the self-employed
+  (2004), the gap this project finds again.
+- INEI — ENAHO 2025 technical sheet and dictionary; 2025 technical reports on
+  employment and informality (prevalence contrast).
 
 ### Status / maturity
 
@@ -80,20 +333,6 @@ Per the landing-page listing (`Landing/src/content/projects/{es,en}/predictor-in
 standalone HTML page with a Streamlit `?embed=true` iframe, retest cold-start
 behavior after long idle periods, and publish the explanatory model's
 weighted coefficients as a second view.
-
-### Author
-
-Yoichi Palacios Tanaka (IchiSieben) · ichisieben.dev
-
-Software authorship (citable, CRediT roles) belongs to Yoichi Palacios
-Tanaka; the project was built and presented as part of an ENEI Machine
-Learning course group — see [`AUTHORS.md`](AUTHORS.md) for classmates and
-instructor credit, and [`§8`](#8-créditos) below.
-
-### License
-
-[Apache-2.0](LICENSE) for code and model artifacts; [CC BY-NC 4.0](docs/LICENSE-DOCS.md)
-for documentation and reports. See [`NOTICE`](NOTICE).
 
 ---
 
@@ -399,7 +638,20 @@ ichisieben.dev
 - INEI — Ficha técnica y diccionario de la ENAHO 2025; informes técnicos de
   empleo e informalidad 2025 (contraste de prevalencias).
 
+### Estado / madurez
+
+Según la ficha del proyecto en el landing (`Landing/src/content/projects/{es,en}/predictor-ingresos.md`):
+`status: live`, `maturity: usable`, tier A. Próximos pasos declarados:
+publicar una página HTML propia con un iframe de Streamlit `?embed=true`,
+volver a probar el arranque en frío tras periodos largos de inactividad, y
+publicar los coeficientes ponderados del modelo explicativo como segunda
+vista.
+
 ---
+
+*Demonstration tool, for academic purposes, built on public microdata. It is
+not a labor-enforcement instrument and it does not certify any person's
+situation.*
 
 *Herramienta demostrativa con fines académicos sobre microdatos públicos.
 No es un instrumento de fiscalización laboral ni certifica la situación de
