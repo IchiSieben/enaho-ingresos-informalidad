@@ -1,6 +1,103 @@
-> **▶ Demo en vivo:** https://enaho-ingresos-informalidad.streamlit.app
-
 # Ingreso laboral e informalidad en el Perú — ENAHO 2025
+
+> **Live demo:** https://enaho-ingresos-informalidad.streamlit.app
+
+Two models deployed on Streamlit over Peru's 2025 National Household Survey
+(ENAHO 2025, INEI) microdata: a **monthly labor income regressor** and an
+**informal-employment classifier**. Status per the project's landing-page
+listing: `live` / `usable`.
+
+![App screenshot: income estimation form and results](docs/preview.webp)
+
+---
+
+## English
+
+### What it is
+
+A model tournament (OLS, Mincer, Lasso, Random Forest, Gradient Boosting)
+plus a separate informal-employment classifier, built to show the whole
+path — including a data bug found along the way — not just the winning
+model. Full narrative, tables and citations are in the
+[`## Español`](#español) section below; this section covers what an
+English-reading visitor needs to run or evaluate the project.
+
+### Live demo
+
+- **App:** https://enaho-ingresos-informalidad.streamlit.app
+- **Repo:** https://github.com/IchiSieben/enaho-ingresos-informalidad
+
+### Screenshot
+
+See above (`docs/preview.webp`) — the income-estimation form with a live
+prediction and its comparison bands.
+
+### How to run
+
+Verified by actually running these steps (Windows, Python 3.12.10, venv,
+`pip install -r requirements.txt` — all pinned versions, including unusual
+ones like `pandas==3.0.5` and `pyarrow==24.0.0`, resolved cleanly with no
+conflicts):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\streamlit run app/streamlit_app.py
+```
+
+The app reads only from the **committed** artifacts in `models/`
+(`regresor_e9.joblib`, `clasificador_gb.joblib`, `feature_schema.json`,
+`ui_artifacts.json`, `ui_maquinas.json`) — confirmed by inspection of
+`app/streamlit_app.py`. **No raw microdata is needed to run the app**; it
+booted and served `HTTP 200` on a clean venv with nothing under `data/`.
+
+Raw ENAHO microdata is only needed to **reproduce the training pipeline**
+(`src/00_extraer_diccionario.py` through `src/09_precomputar_ui.py`). That
+data is not bundled here (`data/` is gitignored, per INEI's redistribution
+terms) — download it yourself from INEI's public microdata portal:
+https://proyectos.inei.gob.pe/microdatos/ (ENAHO 2025, survey 1031, modules
+02, 03 and 05), then run the pipeline steps in order (see
+[`## Español §5`](#5-reproducción) for the exact commands).
+
+### Data sources and licenses
+
+- **ENAHO 2025** — Peru's National Household Survey, Instituto Nacional de
+  Estadística e Informática (INEI). Public microdata, used and cited here,
+  **not redistributed** in this repository; obtain it directly from INEI
+  under its own terms of use.
+- **Code** (`src/`, `app/`, `run.ps1`) and `models/` artifacts:
+  [Apache-2.0](LICENSE). Derivatives must state changes and retain
+  [`NOTICE`](NOTICE) (§4d).
+- **Documentation, `reports/*.md` and figures**: [CC BY-NC 4.0](docs/LICENSE-DOCS.md)
+  — attribution required, no commercial use.
+- Citation metadata: [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this
+  repository" button).
+
+### Status / maturity
+
+Per the landing-page listing (`Landing/src/content/projects/{es,en}/predictor-ingresos.md`):
+`status: live`, `maturity: usable`, tier A. Next declared steps: ship a
+standalone HTML page with a Streamlit `?embed=true` iframe, retest cold-start
+behavior after long idle periods, and publish the explanatory model's
+weighted coefficients as a second view.
+
+### Author
+
+Yoichi Palacios Tanaka (IchiSieben) · ichisieben.dev
+
+Software authorship (citable, CRediT roles) belongs to Yoichi Palacios
+Tanaka; the project was built and presented as part of an ENEI Machine
+Learning course group — see [`AUTHORS.md`](AUTHORS.md) for classmates and
+instructor credit, and [`§8`](#8-créditos) below.
+
+### License
+
+[Apache-2.0](LICENSE) for code and model artifacts; [CC BY-NC 4.0](docs/LICENSE-DOCS.md)
+for documentation and reports. See [`NOTICE`](NOTICE).
+
+---
+
+## Español
 
 Dos modelos desplegados en Streamlit sobre los microdatos de la Encuesta
 Nacional de Hogares (ENAHO 2025, INEI): un **regresor del ingreso laboral
@@ -17,7 +114,7 @@ destapó un error en los datos de origen —el código de faltante del INEI leí
 como un ingreso real— y se convirtió en la primera pieza de un torneo de
 nueve especificaciones.
 
-## 1. La autopsia: de dónde parte todo
+### 1. La autopsia: de dónde parte todo
 
 Una primera regresión del grupo sobre estos datos produjo esta ecuación (en
 niveles):
@@ -48,7 +145,7 @@ su contraparte real (ingreso/gasto del hogar) contiene al propio ingreso
 individual como sumando (ρ = 0,58, circularidad mecánica). Excluido de todo
 modelo.
 
-## 2. El torneo (mismo split 80/20, misma CV de 5 pliegues, sin ponderar)
+### 2. El torneo (mismo split 80/20, misma CV de 5 pliegues, sin ponderar)
 
 Selección por **MAE de validación cruzada** — elegir por test tras comparar
 nueve especificaciones sería seleccionar sobre el conjunto de evaluación.
@@ -84,7 +181,7 @@ logaritmo** (la Mincer de este torneo, E3, da 0,27). Que en un mercado con
 alta informalidad quepa esperar valores iguales o menores es lectura nuestra,
 no un resultado publicado.
 
-### Las dos lecturas
+#### Las dos lecturas
 
 - **Predictiva (E9, en la app):** MAE test S/ 611 sobre una mediana de
   S/ 1.101. La app muestra la mediana condicional con la advertencia
@@ -96,7 +193,7 @@ no un resultado publicado.
   **−31 %** (vs Lima Metropolitana). Coherente con la literatura peruana de
   retornos a la educación (Yamada).
 
-### Robustez medida: el ingreso en especie
+#### Robustez medida: el ingreso en especie
 
 El target es solo monetario, pero el 24,6 % de los ocupados recibe pago en
 especie o autoconsumo (concentrado en el agro rural) — y su exclusión podría
@@ -104,7 +201,7 @@ inflar justo el coeficiente urbano que protagoniza la narrativa. Se midió:
 premio urbano 54,6 % (solo monetario) vs 52,0 % (con especie). La exclusión
 queda **validada como robusta y declarada**, no escondida.
 
-## 3. El clasificador de empleo informal
+### 3. El clasificador de empleo informal
 
 `OCUPINF` no viene en la entrega 2025, así que el target se **derivó** con la
 regla operativa del INEI: independientes y empleadores → informal si la
@@ -160,7 +257,7 @@ categoría, 0,942 — educación, área, rama y horas sostienen la señal restan
 (independiente→RUC, dependiente→pensiones): su importancia alta es por
 construcción, no un hallazgo.
 
-## 4. Decisiones de diseño declaradas
+### 4. Decisiones de diseño declaradas
 
 - **Ponderación.** El torneo y el entrenamiento van **sin ponderar** (son
   comparación y precisión predictiva intramuestral); los descriptivos,
@@ -184,7 +281,7 @@ construcción, no un hallazgo.
   (0,2 % de negativos). En baja educación sobreestima la experiencia real
   (Heckman, Lochner & Todd 2006). La app la deriva; el usuario no la digita.
 
-### Nota de calidad sobre el material del curso
+#### Nota de calidad sobre el material del curso
 
 El archivo `INEI_ENAHO_500registrosML_inicialsol1.xlsx` distribuido como
 insumo inicial es un **dataset sintético de práctica**: DNIs falsos,
@@ -194,7 +291,14 @@ réplica del baseline — corre sobre los **microdatos reales** de la ENAHO
 2025 descargados del INEI (la misma disciplina que en el proyecto hermano de
 salud pública).
 
-## 5. Reproducción
+### 5. Reproducción
+
+Ejecución verificada en Windows con Python 3.12.10: el `pip install` de
+todas las versiones fijadas (incluidas las inusuales, `pandas==3.0.5` y
+`pyarrow==24.0.0`) resolvió sin conflictos, y `streamlit run app/streamlit_app.py`
+levantó y respondió `HTTP 200` usando solo los artefactos versionados en
+`models/` — **sin necesitar los microdatos crudos**, que solo hacen falta
+para reproducir el pipeline de entrenamiento (pasos siguientes):
 
 ```
 python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
@@ -218,7 +322,7 @@ Los microdatos **no se redistribuyen** en este repositorio (`data/` está en
 (https://proyectos.inei.gob.pe/microdatos/, ENAHO 2025, encuesta 1031,
 módulos 02, 03 y 05).
 
-## 6. Documentación
+### 6. Documentación
 
 - [Manual de usuario](docs/manual_usuario.md) — para quien abre la app sin
   conocer el proyecto: qué es (y qué no), cómo llenar el formulario, cómo
@@ -243,7 +347,7 @@ módulos 02, 03 y 05).
   el N de cada paso, el barrido de centinelas, la reconciliación de la tasa
   de informalidad con el INEI y la lista de lo que quedó sin verificar.
 
-## 7. Qué puedes reutilizar
+### 7. Qué puedes reutilizar
 
 | Parte | Licencia | Condición |
 |---|---|---|
@@ -254,7 +358,7 @@ módulos 02, 03 y 05).
 Para citar el proyecto, GitHub genera la cita desde [`CITATION.cff`](CITATION.cff)
 (botón «Cite this repository»).
 
-## 8. Créditos
+### 8. Créditos
 
 Proyecto elaborado en el marco del curso de **Machine Learning** de la
 **ENEI** (Escuela Nacional de Estadística e Informática, INEI), con el
@@ -263,7 +367,10 @@ Mamani**, **Magdalena Quico de la Cruz**, **Yoichi Palacios Tanaka** y
 **Edgar Delgado Ortega**. Autoría detallada y roles CRediT en
 [`AUTHORS.md`](AUTHORS.md).
 
-## 9. Marco bibliográfico
+**Autor (software citable):** Yoichi Palacios Tanaka (IchiSieben) ·
+ichisieben.dev
+
+### 9. Marco bibliográfico
 
 - Mincer, J. (1974). *Schooling, Experience, and Earnings*. NBER. — E3 es
   literalmente esta ecuación.

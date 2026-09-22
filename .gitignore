@@ -10,6 +10,10 @@ docs/referencia/
 __pycache__/
 *.pyc
 
+# Secretos: credenciales de Streamlit y variables de entorno.
+.streamlit/secrets.toml
+.env
+
 # Logs de corridas (solo evidencia renombrada a mano se versiona)
 logs/
 
