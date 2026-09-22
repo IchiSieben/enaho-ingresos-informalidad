@@ -12,6 +12,8 @@ authors:
     given-names: Yoichi
     alias: IchiSieben
     email: yoichi.palacios@gmail.com
+    orcid: ""
+    website: "https://ichisieben.dev"
 version: 1.0.0
 date-released: "2026-08-14"
 license: Apache-2.0
