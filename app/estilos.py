@@ -25,6 +25,39 @@ para interacción, nunca significa condición laboral.
 from __future__ import annotations
 
 PALETAS: dict[str, dict[str, str]] = {
+    "claro": {
+        # v1.1: más nítido y más «ejecutivo». Tarjetas blancas sobre un gris
+        # azulado muy claro (antes: papel hueso sobre papel), tinta casi
+        # negra y un índigo más saturado. Todos los pares de texto ≥ 4,5:1.
+        "fondo":             "#F3F5F9",
+        "superficie":        "#FFFFFF",
+        "superficie_alta":   "#EEF1F6",
+        "superficie_hover":  "#E5E9F1",
+        "borde":             "#D3D9E3",
+        "borde_sutil":       "#E3E7EE",
+        "texto":             "#111A2C",   # 16,9:1 sobre superficie
+        "texto_medio":       "#3E4A5E",   # 9,0:1
+        "texto_tenue":       "#586377",   # 6,1:1 — AA en texto pequeño
+        "acento":            "#3446D4",   # 7,0:1 sobre blanco
+        "acento_alto":       "#2733AE",
+        "acento_fondo":      "#E8EBFD",
+        "boton_texto":       "#FFFFFF",
+        "senal_buena":       "#127A4A",
+        "senal_media":       "#8A5A06",
+        "senal_mala":        "#B42A2F",
+        "senal_buena_fondo": "#E3F4EA",
+        "senal_media_fondo": "#FBF0DA",
+        "senal_mala_fondo":  "#FBE4E5",
+        "senal_buena_texto": "#0B5433",
+        "senal_media_texto": "#6A4608",
+        "senal_mala_texto":  "#8A1F23",
+        "dato":              "#556076",
+        "dato_tenue":        "#C5CDDA",
+        "rejilla":           "#E5E8EE",
+        "titulo":            "#0A1222",
+        "sombra_tarjeta":    "0 1px 2px rgba(17,26,44,0.04), "
+                             "0 6px 20px rgba(17,26,44,0.06)",
+    },
     "oscuro": {
         "fondo":             "#0D0F12",
         "superficie":        "#14181F",
@@ -59,39 +92,6 @@ PALETAS: dict[str, dict[str, str]] = {
         # fondo casi negro: ambos quedan neutros aquí y trabajan en el claro.
         "titulo":            "#F2F5FA",
         "sombra_tarjeta":    "none",
-    },
-    "claro": {
-        "fondo":             "#F7F5F0",   # blanco hueso, no #FFF puro
-        "superficie":        "#FCFBF8",
-        "superficie_alta":   "#F1EFE8",
-        "superficie_hover":  "#ECE9E1",
-        "borde":             "#D5D1C6",
-        "borde_sutil":       "#E5E2D9",
-        "texto":             "#1E232B",
-        "texto_medio":       "#49525F",   # 7,9:1 sobre superficie — AA holgado
-        "texto_tenue":       "#5F6875",   # 5,9:1 — AA en texto pequeño
-        "acento":            "#4353CC",   # índigo oscurecido: 6,3:1 sobre fondo
-        "acento_alto":       "#3542B8",
-        "acento_fondo":      "#E6E8FA",
-        "boton_texto":       "#FFFFFF",
-        "senal_buena":       "#177A4C",
-        "senal_media":       "#8A5D0B",
-        "senal_mala":        "#B92F33",
-        "senal_buena_fondo": "#E2F2E9",
-        "senal_media_fondo": "#F6ECD6",
-        "senal_mala_fondo":  "#F9E3E4",
-        "senal_buena_texto": "#0E5636",
-        "senal_media_texto": "#6B4A0C",
-        "senal_mala_texto":  "#8C2226",
-        "dato":              "#5B6472",
-        "dato_tenue":        "#CBD0D9",
-        "rejilla":           "#E4E1D8",
-        # El claro era el más plano de los tres: titulares casi negros
-        # (15,8:1 sobre superficie) para separar la jerarquía del cuerpo, y
-        # una sombra mínima que despega la tarjeta del fondo papel.
-        "titulo":            "#12161C",
-        "sombra_tarjeta":    "0 1px 2px rgba(30,35,43,0.05), "
-                             "0 2px 8px rgba(30,35,43,0.04)",
     },
     # Tercer tema: consola. Azul (#306998) y amarillo (#FFD43B) de Python sobre
     # fondo casi negro. El azul original es demasiado oscuro para texto sobre
@@ -134,16 +134,23 @@ TEMAS_MONO = {"terminal"}
 
 E = {"1": "4px", "2": "8px", "3": "12px", "4": "16px",
      "6": "24px", "8": "32px", "12": "48px"}
-F = {"micro": "11px", "mini": "12px", "cuerpo": "13px", "medio": "15px",
-     "sub": "18px", "titulo": "24px", "cifra": "32px", "cifra_xl": "44px"}
+# v1.1: un escalón más grande en todo el cuerpo. 12-13 px se leía bien en
+# la exposición (proyector, de cerca) pero apretado en un portafolio.
+F = {"micro": "11px", "mini": "13px", "cuerpo": "14.5px", "medio": "16px",
+     "sub": "21px", "titulo": "32px", "cifra": "30px", "cifra_xl": "50px",
+     "hero": "56px"}
 R = {"sm": "4px", "md": "6px", "lg": "10px"}
 
-FUENTE_UI = "'Inter Tight', system-ui, -apple-system, sans-serif"
+# Cuerpo en Inter (más legible en tamaños chicos) y titulares en Inter Tight
+# (misma familia, más compacta): jerarquía sin mezclar estilos.
+FUENTE_UI = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif"
+FUENTE_TITULO = "'Inter Tight', 'Inter', system-ui, sans-serif"
 FUENTE_MONO = "'IBM Plex Mono', ui-monospace, 'Cascadia Code', monospace"
 
 IMPORT_FUENTES = (
     "@import url('https://fonts.googleapis.com/css2?"
-    "family=Inter+Tight:wght@400;500;600;700&"
+    "family=Inter:wght@400;500;600;700&"
+    "family=Inter+Tight:wght@500;600;700;800&"
     "family=IBM+Plex+Mono:wght@400;500&display=swap');"
 )
 
@@ -162,6 +169,7 @@ def css(T: dict[str, str]) -> str:
     esquema = "light" if tema == "claro" else "dark"
     # En Terminal el cuerpo entero va en monoespaciada, no solo las cifras.
     fuente_cuerpo = FUENTE_MONO if tema in TEMAS_MONO else FUENTE_UI
+    fuente_titulo = FUENTE_MONO if tema in TEMAS_MONO else FUENTE_TITULO
     return f"""<style>
 {IMPORT_FUENTES}
 
@@ -221,9 +229,21 @@ body {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
 }}
 
 h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.02em; font-weight: 600; }}
-h1 {{ font-size: {F['titulo']}; margin: 0 0 var(--e1) 0; }}
-h2 {{ font-size: {F['sub']}; margin: var(--e6) 0 var(--e3) 0; }}
-h3 {{ font-size: {F['medio']}; margin: var(--e4) 0 var(--e2) 0; }}
+[data-testid="stAppViewContainer"] h1,
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3,
+.marca-titulo, .kpi-valor, .hero-rel {{ font-family: {fuente_titulo}; }}
+[data-testid="stAppViewContainer"] h1 {{ font-size: {F['titulo']} !important; }}
+[data-testid="stAppViewContainer"] h2 {{ font-size: {F['sub']} !important; padding: 0 !important;
+                                        margin: 40px 0 12px 0 !important; }}
+[data-testid="stAppViewContainer"] h3 {{ font-size: {F['medio']} !important; padding: 0 !important;
+                                        margin: 24px 0 8px 0 !important; }}
+h1 {{ font-size: {F['titulo']}; font-weight: 700 !important; line-height: 1.12;
+      letter-spacing: -0.03em; margin: 0 0 var(--e2) 0; max-width: 30ch;
+      animation: aparecer 520ms cubic-bezier(.2,.7,.2,1) both; }}
+h2 {{ font-size: {F['sub']}; font-weight: 650 !important; line-height: 1.25;
+      margin: var(--e8) 0 var(--e3) 0; max-width: 46ch; }}
+h3 {{ font-size: {F['medio']}; margin: var(--e6) 0 var(--e2) 0; }}
 
 /* ---------- Barra lateral ---------- */
 [data-testid="stSidebar"] {{
@@ -310,6 +330,17 @@ section[data-testid="stMain"] [data-testid="stButtonGroup"] button:hover p {{
   color: {T['acento_alto']};
   border-color: {T['acento']}55;
   border-left: 3px solid {T['acento']};
+}}
+/* El hover genérico del primario (más abajo) oscurecía la pestaña activa y
+   dejaba su texto ilegible: en el sidebar el activo no cambia al pasar. */
+[data-testid="stSidebar"] .stButton > button[kind="primary"]:hover,
+[data-testid="stSidebar"] .stButton > button[kind="primary"]:focus {{
+  background: {T['acento_fondo']};
+  color: {T['acento_alto']};
+}}
+[data-testid="stSidebar"] .stButton > button[kind="primary"] p,
+[data-testid="stSidebar"] .stButton > button[kind="primary"] [data-testid="stIconMaterial"] {{
+  color: {T['acento_alto']} !important; font-weight: 600;
 }}
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {{
   color: {T['texto_medio']} !important;
@@ -431,6 +462,29 @@ section[data-testid="stMain"] [data-testid="stButtonGroup"] button:hover p {{
   font-size: {F['cuerpo']} !important;
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }}
+/* Streamlit 1.6x cambió el selectbox a un ComboBox de react-aria: ya no hay
+   data-baseweb que pintar. Sin esto quedaba blanco sobre negro en los
+   temas oscuros. */
+[data-testid="stSelectbox"] [role="group"] {{
+  background: {T['superficie_alta']} !important;
+  border: 1px solid {T['borde']} !important;
+  border-radius: var(--r-md) !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}}
+[data-testid="stSelectbox"] [role="group"]:focus-within {{
+  border-color: {T['acento']} !important;
+  box-shadow: 0 0 0 3px {T['acento']}22 !important;
+}}
+[data-testid="stSelectbox"] input, [data-testid="stSelectbox"] button {{
+  color: {T['texto']} !important; background: transparent !important;
+  font-size: {F['cuerpo']} !important;
+}}
+[role="listbox"] {{ background: {T['superficie_alta']} !important;
+                   border: 1px solid {T['borde']} !important; }}
+[role="listbox"] [role="option"] {{ color: {T['texto']} !important; }}
+[role="listbox"] [role="option"][data-focused], [role="listbox"] [role="option"]:hover {{
+  background: {T['acento_fondo']} !important; color: {T['acento_alto']} !important;
+}}
 [data-baseweb="input"]:focus-within,
 [data-baseweb="select"] > div:focus-within {{
   border-color: {T['acento']} !important;
@@ -534,6 +588,7 @@ section[data-testid="stMain"] [data-testid="stButtonGroup"] button:hover p {{
   border-bottom: 1px solid {T['borde']};
 }}
 .tabla th:first-child, .tabla td:first-child {{ text-align: left; }}
+.tabla th.izq {{ text-align: left; }}
 .tabla td {{
   padding: var(--e2) var(--e3);
   border-bottom: 1px solid {T['borde_sutil']};
@@ -767,6 +822,181 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 
 [data-testid="stIFrame"] {{ background: transparent !important; color-scheme: {esquema}; }}
 
+/* ==========================================================================
+   v1.1 — capa de presentación del portafolio
+   ========================================================================== */
+
+/* Movimiento: una sola curva de entrada para todo. Suave y corta: la página
+   se «asienta» en vez de saltar. Se apaga entera con reduced-motion (abajo). */
+@keyframes aparecer {{
+  from {{ opacity: 0; transform: translateY(8px); }}
+  to   {{ opacity: 1; transform: none; }}
+}}
+@keyframes crecer-x {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
+@keyframes pulso {{
+  0%, 100% {{ box-shadow: 0 0 0 0 {T['acento']}33; }}
+  50%      {{ box-shadow: 0 0 0 6px {T['acento']}00; }}
+}}
+.entradilla, .tarjeta, .panel, .kpi, .hero-cifra, .tres-numeros > div,
+.porque, .hallazgo, .fila-veredicto, .paso-viaje, .estacion-cab {{
+  animation: aparecer 460ms cubic-bezier(.2,.7,.2,1) both;
+}}
+.rejilla-tarjetas > .tarjeta:nth-child(2) {{ animation-delay: 60ms; }}
+.rejilla-tarjetas > .tarjeta:nth-child(3) {{ animation-delay: 120ms; }}
+.rejilla-tarjetas > .tarjeta:nth-child(4) {{ animation-delay: 180ms; }}
+.tarjeta {{ transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }}
+.tarjeta:hover {{ transform: translateY(-2px); border-color: {T['acento']}55; }}
+
+.eyebrow-seccion {{ color: {T['acento_alto']}; margin-bottom: var(--e2); }}
+.entradilla {{ font-size: {F['medio']}; max-width: 70ch; color: {T['texto_medio']}; }}
+
+/* Franja de cifras clave: la portada ejecutiva */
+.franja-kpi {{
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px; background: {T['borde_sutil']};
+  border: 1px solid {T['borde_sutil']}; border-radius: var(--r-lg);
+  overflow: hidden; margin: var(--e4) 0 var(--e6) 0;
+  box-shadow: {T['sombra_tarjeta']};
+}}
+.kpi {{ background: {T['superficie']}; padding: var(--e4) var(--e4) var(--e3); }}
+.kpi-valor {{
+  font-size: 28px; font-weight: 700; letter-spacing: -0.03em;
+  color: {T['titulo']}; line-height: 1.1; font-variant-numeric: tabular-nums;
+}}
+.kpi-rotulo {{ font-size: {F['mini']}; color: {T['texto']}; margin-top: 4px; font-weight: 500; }}
+.kpi-nota {{ font-family: {FUENTE_MONO}; font-size: {F['micro']}; color: {T['texto_tenue']};
+            letter-spacing: 0.04em; margin-top: 2px; }}
+
+/* Cifra protagonista del ingreso */
+.hero-cifra {{
+  background: linear-gradient(135deg, {T['acento_fondo']} 0%, {T['superficie']} 70%);
+  border: 1px solid {T['acento']}33; border-radius: 14px;
+  padding: var(--e6) var(--e6) var(--e8); margin-bottom: var(--e4);
+  box-shadow: {T['sombra_tarjeta']};
+}}
+.hero-fila {{ display: flex; align-items: baseline; gap: var(--e4); flex-wrap: wrap;
+             margin: var(--e2) 0 var(--e6) 0; }}
+.hero-valor {{
+  font-family: {FUENTE_MONO}; font-size: {F['hero']}; font-weight: 500;
+  letter-spacing: -0.04em; line-height: 1; color: {T['acento_alto']};
+  font-variant-numeric: tabular-nums;
+}}
+.hero-rel {{ font-size: {F['sub']}; font-weight: 600; color: {T['texto']}; letter-spacing: -0.01em; }}
+.hero-barra {{ position: relative; height: 10px; border-radius: 999px;
+              background: {T['dato_tenue']}66; }}
+.hero-relleno {{
+  position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+  background: linear-gradient(90deg, {T['acento']}, {T['acento_alto']});
+  transform-origin: left; animation: crecer-x 700ms cubic-bezier(.2,.7,.2,1) both;
+  transition: width 400ms cubic-bezier(.2,.7,.2,1);
+}}
+.hero-marca {{ position: absolute; top: -6px; bottom: -6px; width: 2px;
+              background: {T['texto']}; border-radius: 2px; }}
+.hero-marca-der span {{ left: auto !important; right: -2px; transform: none !important; }}
+.hero-marca span {{
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-family: {FUENTE_MONO}; font-size: {F['micro']};
+  letter-spacing: 0.06em; text-transform: uppercase; color: {T['texto_tenue']};
+}}
+
+/* Los tres porcentajes distintos del clasificador, uno por fila */
+.tres-numeros {{ display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+                gap: var(--e3); margin: 0 0 var(--e3) 0; }}
+.tres-numeros > div {{
+  background: {T['superficie']}; border: 1px solid {T['borde_sutil']};
+  border-radius: var(--r-md); padding: var(--e3); display: flex;
+  flex-direction: column; gap: 2px;
+}}
+.tres-numeros b {{ font-family: {FUENTE_MONO}; font-size: 22px; font-weight: 500; }}
+.tres-numeros span {{ font-size: {F['mini']}; color: {T['texto_medio']}; line-height: 1.4; }}
+
+/* Cajas con borde (formulario): superficie blanca y sombra suave */
+.st-key-caja_form_reg, .st-key-caja_form_clf, .st-key-caja_form_maq {{
+  background: {T['superficie']} !important;
+  border: 1px solid {T['borde_sutil']} !important;
+  border-radius: 14px !important;
+  box-shadow: {T['sombra_tarjeta']};
+}}
+.derivada {{ padding: var(--e2) var(--e3); background: {T['superficie_alta']};
+            border-radius: var(--r-md); margin-bottom: var(--e2); }}
+
+/* Pills (perfiles de ejemplo) */
+[data-testid="stPills"] button, [data-testid="stButtonGroup"] button[kind^="pills"] {{
+  border-radius: 999px !important;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}}
+[data-testid="stPills"] button:hover {{ transform: translateY(-1px); }}
+
+/* Slider: pista de acento y pulgar con halo al tocarlo */
+[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]:focus,
+[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]:hover {{
+  animation: pulso 1.2s ease-out infinite;
+}}
+
+/* Tablas: envoltura con scroll horizontal en móvil y fila con hover */
+.tabla-envoltura {{
+  overflow-x: auto; border: 1px solid {T['borde_sutil']};
+  border-radius: var(--r-lg); background: {T['superficie']};
+  box-shadow: {T['sombra_tarjeta']};
+}}
+.tabla-envoltura .tabla th {{ background: {T['superficie_alta']}; }}
+.tabla tbody tr {{ transition: background 120ms ease; }}
+.tabla tbody tr:hover {{ background: {T['superficie_hover']}; }}
+
+.lista-limites {{ display: flex; flex-direction: column; gap: 14px;
+                 font-size: {F['cuerpo']}; line-height: 1.65; color: {T['texto_medio']}; }}
+
+/* Sala de máquinas: cabecera de estación y los tres pasos */
+.estacion-cab {{ display: flex; align-items: center; gap: var(--e3);
+                font-size: {F['sub']}; font-weight: 650; color: {T['titulo']};
+                margin: var(--e2) 0 var(--e3) 0; }}
+.estacion-num {{
+  display: inline-grid; place-items: center; width: 34px; height: 34px;
+  border-radius: 50%; background: {T['acento']}; color: {T['boton_texto']};
+  font-family: {FUENTE_MONO}; font-size: 15px;
+}}
+.paso-viaje {{ border-top: 2px solid {T['acento']}; padding-top: var(--e3);
+              height: 100%; }}
+.paso-viaje .sutil {{ font-size: {F['cuerpo']}; color: {T['texto']}; margin-top: var(--e2); }}
+
+/* Firma: pie de página y sidebar */
+.pie {{
+  margin-top: var(--e12); padding-top: var(--e6);
+  border-top: 1px solid {T['borde_sutil']};
+  font-size: {F['mini']}; color: {T['texto_tenue']}; line-height: 1.8;
+}}
+.pie-autor {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
+.pie a {{ color: {T['acento_alto']}; text-decoration: none; }}
+.pie a:hover {{ text-decoration: underline; }}
+.sidebar-firma {{
+  margin-top: var(--e4); padding-top: var(--e3);
+  border-top: 1px solid {T['borde_sutil']};
+  font-size: {F['mini']}; color: {T['texto_medio']}; line-height: 1.5;
+}}
+.sidebar-firma b {{ color: {T['texto']}; }}
+
+@media (max-width: 900px) {{
+  /* En móvil el sidebar tapa todo: ahí SÍ hace falta poder cerrarlo. */
+  [data-testid="stSidebarCollapseButton"],
+  [data-testid="stSidebarCollapsedControl"],
+  [data-testid="stExpandSidebarButton"],
+  [data-testid="stHeader"] {{ display: flex !important; }}
+  [data-testid="stHeader"] {{ background: transparent !important; }}
+  /* El botón para reabrir el sidebar vive DENTRO de stToolbar: se muestra la
+     barra y se esconde todo lo demás que trae. */
+  [data-testid="stToolbar"] {{ display: flex !important; }}
+  [data-testid="stToolbarActions"], [data-testid="stMainMenu"],
+  [data-testid="stAppDeployButton"], #MainMenu {{ display: none !important; }}
+  [data-testid="stExpandSidebarButton"] {{
+    background: {T['superficie']} !important; border: 1px solid {T['borde']};
+    border-radius: var(--r-md); color: {T['texto']} !important;
+  }}
+  .franja-kpi {{ grid-template-columns: repeat(2, minmax(0,1fr)); }}
+  .tres-numeros {{ grid-template-columns: 1fr; }}
+  .hero-valor {{ font-size: 40px; }}
+  h1 {{ font-size: 26px; }}
+}}
+
 @media (prefers-reduced-motion: reduce) {{
   *, *::before, *::after {{
     animation-duration: 0.001ms !important;
@@ -815,7 +1045,24 @@ svg {{ display: block; width: 100%; height: 100%; overflow: visible; }}
        text-transform: uppercase; fill: {T['texto_tenue']}; }}
 .vl {{ font-size: 12px; fill: {T['texto']}; font-variant-numeric: tabular-nums; }}
 .vs {{ font-size: 11px; fill: {T['texto_medio']}; font-variant-numeric: tabular-nums; }}
+/* Entradas de los gráficos: barras que crecen, trazos que se dibujan. Los
+   hooks (clases) los pone graficos.py; aquí solo el movimiento. */
+.anim-barra {{ transform-box: fill-box; transform-origin: left center;
+              animation: g-crecer-x 620ms cubic-bezier(.2,.7,.2,1) both; }}
+.anim-columna {{ transform-box: fill-box; transform-origin: center bottom;
+                animation: g-crecer-y 620ms cubic-bezier(.2,.7,.2,1) both; }}
+.anim-trazo {{ stroke-dasharray: 1; stroke-dashoffset: 1;
+              animation: g-trazo 1100ms cubic-bezier(.4,0,.2,1) 120ms forwards; }}
+.anim-celda {{ animation: g-aparecer 500ms ease both; }}
+.anim-punto {{ transform-box: fill-box; transform-origin: center;
+              animation: g-pop 480ms cubic-bezier(.3,1.5,.5,1) both; }}
+@keyframes g-crecer-x {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
+@keyframes g-crecer-y {{ from {{ transform: scaleY(0); }} to {{ transform: scaleY(1); }} }}
+@keyframes g-trazo {{ to {{ stroke-dashoffset: 0; }} }}
+@keyframes g-aparecer {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+@keyframes g-pop {{ from {{ transform: scale(0); }} to {{ transform: scale(1); }} }}
 @media (prefers-reduced-motion: reduce) {{
   * {{ animation: none !important; transition: none !important; }}
+  .anim-trazo {{ stroke-dasharray: none; stroke-dashoffset: 0; }}
 }}
 """

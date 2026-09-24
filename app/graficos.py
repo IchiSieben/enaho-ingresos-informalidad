@@ -1,5 +1,6 @@
 # graficos.py — gráficos SVG puros para la app
 # Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Grupo ENEI: Alan Nestor Cañazaca Mamani · Magdalena Quico de la Cruz · Edgar Delgado Ortega
 # Licencia: Apache-2.0 (ver LICENSE)
 """
 FASE 3 — Gráficos SVG construidos en Python (adaptado del proyecto hermano de salud publica).
@@ -18,6 +19,8 @@ from __future__ import annotations
 import math
 from html import escape
 
+from i18n import L, n as _n_i18n, pc, tr
+
 
 def envolver(svg: str, css_iframe: str) -> str:
     """Empaqueta un SVG como documento para `st.components.v1.html`."""
@@ -26,9 +29,8 @@ def envolver(svg: str, css_iframe: str) -> str:
 
 
 def _n(x: float, dec: int = 2) -> str:
-    """Formato español: punto para miles, coma para decimales."""
-    s = f"{x:,.{dec}f}"
-    return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+    """Miles y decimales según el idioma activo (1.234,5 / 1,234.5)."""
+    return _n_i18n(x, dec)
 
 
 def _pt(cx: float, cy: float, radio: float, frac: float) -> tuple[float, float]:
@@ -67,8 +69,11 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
     color = T["senal_media"] if senalado else T["senal_buena"]
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Probabilidad de empleo informal {proba:.1%}, "
-              f"umbral {umbral:.3f}'>"]
+              f"aria-label='"
+              + L(f"Probabilidad de empleo informal {pc(proba * 100, 1)}, "
+                  f"umbral {_n(umbral, 3)}",
+                  f"Probability of informal employment {pc(proba * 100, 1)}, "
+                  f"threshold {_n(umbral, 3)}") + "'>"]
 
     if hist and hist.get("bordes"):
         bordes = hist["bordes"]
@@ -95,7 +100,8 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
         partes.append(f"<rect x='6' y='{ly - 8}' width='9' height='9' rx='2' "
                       f"fill='{T['dato_tenue']}' opacity='0.55'/>")
         partes.append(f"<text x='20' y='{ly}' class='et' text-anchor='start'>"
-                      f"distribución de la cohorte</text>")
+                      + L("distribución de la cohorte", "cohort distribution")
+                      + "</text>")
 
     partes.append(f"<path d='{_arco(cx, cy, radio, 0, 1)}' fill='none' "
                   f"stroke='{T['dato_tenue']}' stroke-width='{grosor}' "
@@ -112,7 +118,8 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
                   f"stroke='{T['texto']}' stroke-width='2.5' stroke-linecap='round'/>")
     tx, ty = _pt(cx, cy, radio + grosor / 2 + 22, umbral)
     partes.append(f"<text x='{tx:.1f}' y='{ty:.1f}' class='et' "
-                  f"text-anchor='middle'>umbral {_n(umbral, 3)}</text>")
+                  f"text-anchor='middle'>{L('umbral', 'threshold')} "
+                  f"{_n(umbral, 3)}</text>")
 
     partes.append(
         f"<text x='{cx}' y='{cy - 34}' text-anchor='middle' fill='{T['texto']}' "
@@ -121,12 +128,13 @@ def medidor(proba: float, umbral: float, hist: dict | None, T: dict,
         f"style='font-size:24px;fill:{T['texto_medio']}'>%</tspan></text>")
     partes.append(
         f"<text x='{cx}' y='{cy - 12}' text-anchor='middle' class='vs'>"
-        f"probabilidad de empleo informal</text>")
+        + L("probabilidad de empleo informal",
+            "probability of informal employment") + "</text>")
 
     partes.append(f"<text x='{cx - radio:.0f}' y='{cy + 26:.0f}' class='et' "
-                  f"text-anchor='middle'>0%</text>")
+                  f"text-anchor='middle'>{pc(0)}</text>")
     partes.append(f"<text x='{cx + radio:.0f}' y='{cy + 26:.0f}' class='et' "
-                  f"text-anchor='middle'>100%</text>")
+                  f"text-anchor='middle'>{pc(100)}</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -153,8 +161,11 @@ def franja_probabilidad(proba: float, umbral: float, hist: dict | None, T: dict,
     senalado = proba >= umbral
     color = T["senal_media"] if senalado else T["senal_buena"]
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='El perfil tiene una probabilidad de "
-              f"{proba:.1%}; el umbral está en {umbral:.3f}'>"]
+              f"aria-label='"
+              + L(f"El perfil tiene una probabilidad de {pc(proba * 100, 1)}; "
+                  f"el umbral está en {_n(umbral, 3)}",
+                  f"The profile has a probability of {pc(proba * 100, 1)}; "
+                  f"the threshold is at {_n(umbral, 3)}") + "'>"]
 
     # Zonas: a la derecha del umbral se señala, a la izquierda no.
     partes.append(f"<rect x='{m['i']}' y='{m['s']}' width='{x(umbral) - m['i']:.1f}' "
@@ -186,26 +197,30 @@ def franja_probabilidad(proba: float, umbral: float, hist: dict | None, T: dict,
     partes.append(f"<line x1='{ux:.1f}' y1='{m['s'] - 6}' x2='{ux:.1f}' "
                   f"y2='{base + 4}' stroke='{T['texto']}' stroke-width='2'/>")
     partes.append(f"<text x='{ux:.1f}' y='{m['s'] - 11}' class='et' "
-                  f"text-anchor='middle'>umbral {_n(umbral, 3)}</text>")
+                  f"text-anchor='middle'>{L('umbral', 'threshold')} "
+                  f"{_n(umbral, 3)}</text>")
 
     # El caso
     px = x(proba)
-    partes.append(f"<circle cx='{px:.1f}' cy='{base - iy * 0.55:.1f}' r='9' "
+    partes.append(f"<circle class='anim-punto' cx='{px:.1f}' "
+                  f"cy='{base - iy * 0.55:.1f}' r='9' "
                   f"fill='{color}' stroke='{T['fondo']}' stroke-width='2.5'/>")
     lado = "end" if px > m["i"] + ix * 0.72 else "start"
     dx = -14 if lado == "end" else 14
     partes.append(f"<text x='{px + dx:.1f}' y='{base - iy * 0.55 + 4:.1f}' "
                   f"class='vl' text-anchor='{lado}' fill='{color}' "
-                  f"style='font-weight:600'>tu perfil: {_n(proba * 100, 1)} %"
-                  f"</text>")
+                  f"style='font-weight:600'>{L('tu perfil', 'your profile')}: "
+                  f"{pc(proba * 100, 1)}</text>")
 
-    for v, txt in ((0.0, "0 %"), (0.5, "50 %"), (1.0, "100 %")):
+    for v, txt in ((0.0, pc(0)), (0.5, pc(50)), (1.0, pc(100))):
         anc = "start" if v == 0 else "end" if v == 1 else "middle"
         partes.append(f"<text x='{x(v):.1f}' y='{base + 16:.0f}' class='et' "
                       f"text-anchor='{anc}'>{txt}</text>")
     partes.append(f"<text x='{m['i']}' y='{alto - 3}' class='et'>"
-                  f"cada barra: trabajadores del entrenamiento con esa "
-                  f"probabilidad estimada</text>")
+                  + L("cada barra: trabajadores del entrenamiento con esa "
+                      "probabilidad estimada",
+                      "each bar: training-set workers with that estimated "
+                      "probability") + "</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -219,29 +234,42 @@ def matriz_confusion(tp: int, fp: int, tn: int, fn: int, T: dict,
     # Cada celda lleva el nombre llano Y el técnico: quien ya sabe qué es un
     # falso negativo lo encuentra, y quien no, aprende cuál es cuál.
     celdas = [
-        (tp, "Informales señalados", "verdaderos positivos",
-         "señalado y es informal", T["senal_buena"], 0, 0),
-        (fp, "Señalados innecesarios", "falsos positivos (falsa alarma)",
-         "señalado pero es formal", T["senal_media"], 1, 0),
-        (fn, "Informales sin señalar", "falsos negativos (se escapan)",
-         "no señalado y es informal", T["senal_mala"], 0, 1),
-        (tn, "Formales sin señalar", "verdaderos negativos",
-         "no señalado y es formal", T["dato"], 1, 1),
+        (tp, L("Informales señalados", "Informal, flagged"),
+         L("verdaderos positivos", "true positives"),
+         L("señalado y es informal", "flagged and informal"),
+         T["senal_buena"], 0, 0),
+        (fp, L("Señalados innecesarios", "Unnecessary flags"),
+         L("falsos positivos (falsa alarma)", "false positives (false alarm)"),
+         L("señalado pero es formal", "flagged but formal"),
+         T["senal_media"], 1, 0),
+        (fn, L("Informales sin señalar", "Informal, not flagged"),
+         L("falsos negativos (se escapan)", "false negatives (missed)"),
+         L("no señalado y es informal", "not flagged and informal"),
+         T["senal_mala"], 0, 1),
+        (tn, L("Formales sin señalar", "Formal, not flagged"),
+         L("verdaderos negativos", "true negatives"),
+         L("no señalado y es formal", "not flagged and formal"),
+         T["dato"], 1, 1),
     ]
     total = max(tp + fp + tn + fn, 1)
     cw, ch, gap = 246, 116, 10
     x0, y0 = 6, 34
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Matriz de resultados operativos'>"]
-    partes.append(f"<text x='{x0}' y='16' class='et'>por cada 1.000 evaluados</text>")
+              f"aria-label='"
+              + L("Matriz de resultados operativos", "Operational outcome matrix")
+              + "'>"]
+    partes.append(f"<text x='{x0}' y='16' class='et'>"
+                  + L("por cada 1.000 evaluados", "per 1,000 screened")
+                  + "</text>")
 
     for valor, titulo, tecnico, sub, color, col, fila in celdas:
         x = x0 + col * (cw + gap)
         y = y0 + fila * (ch + gap)
         intensidad = min(valor / total * 2.2, 0.3)
         partes.append(
-            f"<rect x='{x}' y='{y}' width='{cw}' height='{ch}' rx='8' "
+            f"<rect class='anim-celda' x='{x}' y='{y}' width='{cw}' "
+            f"height='{ch}' rx='8' "
             f"fill='{color}' fill-opacity='{intensidad:.3f}' "
             f"stroke='{color}' stroke-opacity='0.35'/>")
         partes.append(
@@ -281,15 +309,19 @@ def curva_roc(fpr, tpr, auc: float, punto: tuple | None, T: dict,
               ancho: int = 380, alto: int = 320) -> str:
     m = {"i": 44, "d": 14, "s": 28, "b": 34}
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Curva ROC, AUC {auc}'>"]
-    ix, iy = _marco(ancho, alto, m, T, "tasa de falsos positivos",
-                    "tasa de verdaderos positivos", partes)
+              f"aria-label='" + L("Curva ROC", "ROC curve")
+              + f", AUC {_n(auc, 4)}'>"]
+    ix, iy = _marco(ancho, alto, m, T,
+                    L("tasa de falsos positivos", "false positive rate"),
+                    L("tasa de verdaderos positivos", "true positive rate"),
+                    partes)
     x = lambda v: m["i"] + v * ix
     y = lambda v: m["s"] + (1 - v) * iy
 
     partes.append(f"<line x1='{x(0)}' y1='{y(0)}' x2='{x(1)}' y2='{y(1)}' "
                   f"stroke='{T['dato_tenue']}' stroke-dasharray='4 4'/>")
-    partes.append(f"<path d='{_ruta(list(zip(fpr, tpr)), x, y)}' fill='none' "
+    partes.append(f"<path class='anim-trazo' pathLength='1' "
+                  f"d='{_ruta(list(zip(fpr, tpr)), x, y)}' fill='none' "
                   f"stroke='{T['acento']}' stroke-width='2'/>")
     if punto:
         partes.append(f"<circle cx='{x(punto[0]):.1f}' cy='{y(punto[1]):.1f}' r='5' "
@@ -297,7 +329,7 @@ def curva_roc(fpr, tpr, auc: float, punto: tuple | None, T: dict,
     partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + 18}' class='vl'>"
                   f"AUC {_n(auc, 4)}</text>")
     partes.append(f"<text x='{ancho - m['d']}' y='16' class='et' text-anchor='end'>"
-                  f"azar = diagonal</text>")
+                  + L("azar = diagonal", "chance = diagonal") + "</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -306,16 +338,22 @@ def curva_pr(recall, precision, auc: float, base: float, punto: tuple | None,
              T: dict, ancho: int = 380, alto: int = 320) -> str:
     m = {"i": 44, "d": 14, "s": 28, "b": 34}
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Curva precisión-recall, AUC {auc}'>"]
-    ix, iy = _marco(ancho, alto, m, T, "recall (clase informal)", "precisión", partes)
+              f"aria-label='"
+              + L("Curva precisión-recall", "Precision-recall curve")
+              + f", AUC {_n(auc, 4)}'>"]
+    ix, iy = _marco(ancho, alto, m, T,
+                    L("recall (clase informal)", "recall (informal class)"),
+                    L("precisión", "precision"), partes)
     x = lambda v: m["i"] + v * ix
     y = lambda v: m["s"] + (1 - v) * iy
 
     partes.append(f"<line x1='{x(0)}' y1='{y(base)}' x2='{x(1)}' y2='{y(base)}' "
                   f"stroke='{T['dato_tenue']}' stroke-dasharray='4 4'/>")
     partes.append(f"<text x='{x(1) - 4:.0f}' y='{y(base) - 6:.0f}' class='et' "
-                  f"text-anchor='end'>base {_n(base, 4)}</text>")
-    partes.append(f"<path d='{_ruta(list(zip(recall, precision)), x, y)}' fill='none' "
+                  f"text-anchor='end'>{L('base', 'baseline')} "
+                  f"{_n(base, 4)}</text>")
+    partes.append(f"<path class='anim-trazo' pathLength='1' "
+                  f"d='{_ruta(list(zip(recall, precision)), x, y)}' fill='none' "
                   f"stroke='{T['acento']}' stroke-width='2'/>")
     if punto:
         partes.append(f"<circle cx='{x(punto[0]):.1f}' cy='{y(punto[1]):.1f}' r='5' "
@@ -339,15 +377,23 @@ def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
     """
     m = {"i": 52, "d": 96, "s": 30, "b": 38}
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Curva precisión contra cobertura; el umbral activo "
-              f"señala una precisión de {punto[1]:.2f} y una cobertura de "
-              f"{punto[0]:.2f}'>"]
-    ix, iy = _marco(ancho, alto, m, T, "cobertura: informales que sí se señalan",
-                    "acierto de lo señalado", partes)
+              f"aria-label='"
+              + L(f"Curva precisión contra cobertura; el umbral activo "
+                  f"señala una precisión de {_n(punto[1], 2)} y una cobertura "
+                  f"de {_n(punto[0], 2)}",
+                  f"Precision versus coverage curve; the active threshold "
+                  f"gives a precision of {_n(punto[1], 2)} and a coverage of "
+                  f"{_n(punto[0], 2)}") + "'>"]
+    ix, iy = _marco(ancho, alto, m, T,
+                    L("cobertura: informales que sí se señalan",
+                      "coverage (recall): informal workers actually flagged"),
+                    L("acierto de lo señalado", "precision of flagged"),
+                    partes)
     x = lambda v: m["i"] + v * ix
     y = lambda v: m["s"] + (1 - v) * iy
 
-    partes.append(f"<path d='{_ruta(list(zip(recall, precision)), x, y)}' "
+    partes.append(f"<path class='anim-trazo' pathLength='1' "
+                  f"d='{_ruta(list(zip(recall, precision)), x, y)}' "
                   f"fill='none' stroke='{T['acento']}' stroke-width='2'/>")
 
     # Los preajustes caen cerca unos de otros y sus etiquetas se pisaban
@@ -368,8 +414,9 @@ def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
         for _, px, py in grupo:
             partes.append(f"<circle cx='{px:.1f}' cy='{py:.1f}' r='3.5' "
                           f"fill='{T['dato']}' opacity='0.85'/>")
-        nombre = (" · ".join(g[0] for g in grupo) if len(grupo) <= 2
-                  else f"{len(grupo)} preajustes casi en el mismo punto")
+        nombre = (" · ".join(tr(g[0]) for g in grupo) if len(grupo) <= 2
+                  else L(f"{len(grupo)} preajustes casi en el mismo punto",
+                         f"{len(grupo)} presets at almost the same point"))
         px, py = grupo[0][1], sum(g[2] for g in grupo) / len(grupo)
         dy = -8 if k % 2 == 0 else 14           # alterna para no encadenar choques
         # si la etiqueta no cabe a la derecha, se ancla a la izquierda del punto
@@ -387,8 +434,10 @@ def curva_precision_cobertura(recall, precision, punto, presets, curva, T: dict,
                   f"fill='{T['fondo']}' stroke='{T['texto']}' stroke-width='2.5'/>")
     partes.append(f"<text x='{m['i'] + 8}' y='{m['s'] + iy - 10:.0f}' "
                   f"class='vl' style='font-weight:600'>"
-                  f"acierto {_n(punto[1] * 100, 1)} % · cobertura "
-                  f"{_n(punto[0] * 100, 1)} %</text>")
+                  + L(f"acierto {pc(punto[1] * 100, 1)} · cobertura "
+                      f"{pc(punto[0] * 100, 1)}",
+                      f"precision {pc(punto[1] * 100, 1)} · coverage "
+                      f"{pc(punto[0] * 100, 1)}") + "</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -400,18 +449,22 @@ def curva_calibracion(bins: list[dict], T: dict,
                       ancho: int = 380, alto: int = 320) -> str:
     m = {"i": 44, "d": 14, "s": 28, "b": 34}
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Curva de calibración'>"]
-    ix, iy = _marco(ancho, alto, m, T, "probabilidad predicha",
-                    "frecuencia observada", partes)
+              f"aria-label='" + L("Curva de calibración", "Calibration curve")
+              + "'>"]
+    ix, iy = _marco(ancho, alto, m, T,
+                    L("probabilidad predicha", "predicted probability"),
+                    L("frecuencia observada", "observed frequency"), partes)
     x = lambda v: m["i"] + v * ix
     y = lambda v: m["s"] + (1 - v) * iy
 
     partes.append(f"<line x1='{x(0)}' y1='{y(0)}' x2='{x(1)}' y2='{y(1)}' "
                   f"stroke='{T['dato_tenue']}' stroke-dasharray='4 4'/>")
     partes.append(f"<text x='{x(1) - 4:.0f}' y='{y(1) + 16:.0f}' class='et' "
-                  f"text-anchor='end'>calibración perfecta</text>")
+                  f"text-anchor='end'>"
+                  + L("calibración perfecta", "perfect calibration") + "</text>")
     pares = [(b["proba_media"], b["frecuencia_observada"]) for b in bins]
-    partes.append(f"<path d='{_ruta(pares, x, y)}' fill='none' "
+    partes.append(f"<path class='anim-trazo' pathLength='1' "
+                  f"d='{_ruta(pares, x, y)}' fill='none' "
                   f"stroke='{T['acento']}' stroke-width='2'/>")
     for px, py in pares:
         partes.append(f"<circle cx='{x(px):.1f}' cy='{y(py):.1f}' r='3.5' "
@@ -450,10 +503,10 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
     # «Horas trabajadas por semana (todas las ocupaciones)» se cortaban, y con
     # 16 px a la derecha se cortaba el valor («13…» en vez de 131,2).
     tope_izq = ancho * 0.42          # más allá, la barra se queda sin sitio
-    textos_izq = [_truncar(str(etiquetas.get(v, v)), tope_izq - 18)
+    textos_izq = [_truncar(tr(etiquetas.get(v, v)), tope_izq - 18)
                   for v in variables]
     izq = min(max([_ancho_texto(t) for t in textos_izq] + [90]) + 18, tope_izq)
-    textos_der = [_n(m, 3) if abs(m) < 100 else _n(m, 1) for m in media]
+    textos_der = [_n(m, 3) if abs(m) < 1 else _n(m, 1) for m in media]
     der = max([_ancho_texto(t, 11) for t in textos_der] + [40]) + 14
     ix = ancho - izq - der
     techo = max([m + d for m, d in zip(media, desviacion)] + [1e-9])
@@ -462,7 +515,9 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
     cero = izq + (0 - piso) / span * ix
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Importancia por permutación'>"]
+              f"aria-label='"
+              + L("Importancia por permutación", "Permutation importance")
+              + "'>"]
     if unidad:
         partes.append(f"<text x='{ancho - der}' y='16' class='et' "
                       f"text-anchor='end'>{escape(unidad)}</text>")
@@ -475,7 +530,9 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
         despreciable = abs(mu) <= sd
         color = T["dato_tenue"] if despreciable else T["acento"]
         x_ini = min(cero, cero + largo)
-        partes.append(f"<rect x='{x_ini:.1f}' y='{y:.1f}' width='{abs(largo):.1f}' "
+        partes.append(f"<rect class='anim-barra' "
+                      f"style='animation-delay:{i * 40}ms' "
+                      f"x='{x_ini:.1f}' y='{y:.1f}' width='{abs(largo):.1f}' "
                       f"height='15' rx='2' fill='{color}'/>")
         e0 = cero + (mu - sd) / span * ix
         e1 = cero + (mu + sd) / span * ix
@@ -484,11 +541,11 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
         for ex in (e0, e1):
             partes.append(f"<line x1='{ex:.1f}' y1='{y + 3:.1f}' x2='{ex:.1f}' "
                           f"y2='{y + 12:.1f}' stroke='{T['texto_medio']}' stroke-width='1.5'/>")
-        completa = str(etiquetas.get(v, v))
+        completa = tr(etiquetas.get(v, v))
         partes.append(f"<text x='{izq - 12}' y='{y + 12:.1f}' class='vs' "
                       f"text-anchor='end'>{escape(textos_izq[i])}"
                       f"<title>{escape(completa)}</title></text>")
-        txt = _n(mu, 3) if abs(mu) < 100 else _n(mu, 1)
+        txt = _n(mu, 3) if abs(mu) < 1 else _n(mu, 1)
         anclaje_x = max(e1, cero + abs(largo)) + 8
         partes.append(f"<text x='{anclaje_x:.1f}' y='{y + 12:.1f}' class='vs' "
                       f"fill='{T['texto_tenue'] if despreciable else T['texto']}'>"
@@ -496,8 +553,10 @@ def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
     # Al pie y pegado al borde izquierdo: con `izq` calculado puede ser ancho y
     # esta nota se saldria del lienzo.
     partes.append(f"<text x='4' y='{alto - 4}' class='et'>"
-                  f"barra atenuada = indistinguible de cero (media dentro de "
-                  f"±1 desviación)</text>")
+                  + L("barra atenuada = indistinguible de cero (media dentro "
+                      "de ±1 desviación)",
+                      "faded bar = indistinguishable from zero (mean within "
+                      "±1 std. dev.)") + "</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -516,20 +575,23 @@ def situador(valor: float, percentiles: dict, etiqueta: str, T: dict,
     yb = 38
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='{escape(etiqueta)}: {valor} frente a la cohorte'>"]
-    partes.append(f"<text x='{izq}' y='14' class='et'>{escape(etiqueta)}</text>")
+              f"aria-label='{escape(tr(etiqueta))}: {_n(valor, 1)} "
+              + L("frente a la cohorte", "versus the cohort") + "'>"]
+    partes.append(f"<text x='{izq}' y='14' class='et'>{escape(tr(etiqueta))}</text>")
     partes.append(f"<line x1='{x(p5):.1f}' y1='{yb}' x2='{x(p95):.1f}' y2='{yb}' "
                   f"stroke='{T['dato_tenue']}' stroke-width='3' stroke-linecap='round'/>")
     partes.append(f"<rect x='{x(p25):.1f}' y='{yb - 5}' width='{x(p75) - x(p25):.1f}' "
                   f"height='10' rx='3' fill='{T['dato_tenue']}' opacity='0.9'/>")
     partes.append(f"<line x1='{x(p50):.1f}' y1='{yb - 8}' x2='{x(p50):.1f}' "
                   f"y2='{yb + 8}' stroke='{T['dato']}' stroke-width='2'/>")
-    partes.append(f"<circle cx='{x(valor):.1f}' cy='{yb}' r='6' fill='{T['acento']}' "
+    partes.append(f"<circle class='anim-punto' cx='{x(valor):.1f}' cy='{yb}' "
+                  f"r='6' fill='{T['acento']}' "
                   f"stroke='{T['fondo']}' stroke-width='2'/>")
     partes.append(f"<text x='{x(valor):.1f}' y='{yb - 14}' class='vs' "
                   f"text-anchor='middle' fill='{T['acento_alto']}'>{_n(valor, 1)}</text>")
     partes.append(f"<text x='{x(p50):.1f}' y='{alto - 2}' class='et' "
-                  f"text-anchor='middle'>mediana {_n(p50, 1)}</text>")
+                  f"text-anchor='middle'>{L('mediana', 'median')} "
+                  f"{_n(p50, 1)}</text>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -551,18 +613,20 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
     y = lambda v: m["s"] + (1 - (v - lo) / (hi - lo)) * iy
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Dependencia parcial de {escape(etiqueta)}'>"]
+              f"aria-label='"
+              + L("Dependencia parcial de", "Partial dependence on")
+              + f" {escape(tr(etiqueta))}'>"]
     # Cuando la app ya puso un título-oración encima, repetir aquí la etiqueta
     # de la variable es ruido: dos títulos para un solo gráfico.
     if mostrar_etiqueta:
         partes.append(f"<text x='{m['i']}' y='14' class='et'>"
-                      f"{escape(etiqueta)}</text>")
+                      f"{escape(tr(etiqueta))}</text>")
     for f in (0, 0.5, 1.0):
         vy = m["s"] + f * iy
         partes.append(f"<line x1='{m['i']}' y1='{vy:.1f}' x2='{m['i'] + ix}' "
                       f"y2='{vy:.1f}' stroke='{T['rejilla']}' stroke-dasharray='2 4'/>")
         val = hi - f * (hi - lo)
-        txt = f"{_n(val * 100, 1)} %" if formato_y == "prob" else _n(val, 0)
+        txt = pc(val * 100, 1) if formato_y == "prob" else _n(val, 0)
         partes.append(f"<text x='{m['i'] - 8}' y='{vy + 4:.1f}' class='vs' "
                       f"text-anchor='end'>{txt}</text>")
 
@@ -570,7 +634,8 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
         vlo, vhi = float(min(valores)), float(max(valores))
         span = (vhi - vlo) or 1.0
         x = lambda v: m["i"] + (float(v) - vlo) / span * ix
-        partes.append(f"<path d='{_ruta(list(zip(valores, efecto)), x, y)}' fill='none' "
+        partes.append(f"<path class='anim-trazo' pathLength='1' "
+                      f"d='{_ruta(list(zip(valores, efecto)), x, y)}' fill='none' "
                       f"stroke='{T['acento']}' stroke-width='2'/>")
         for v in (vlo, (vlo + vhi) / 2, vhi):
             partes.append(f"<text x='{x(v):.1f}' y='{alto - 22}' class='vs' "
@@ -582,7 +647,8 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
                               f"y2='{m['s'] + iy}' stroke='{T['texto']}' "
                               f"stroke-width='1.5' stroke-dasharray='3 3'/>")
                 partes.append(f"<text x='{mx:.1f}' y='{alto - 6}' class='et' "
-                              f"text-anchor='middle'>este caso</text>")
+                              f"text-anchor='middle'>"
+                              + L("este caso", "this case") + "</text>")
             except (TypeError, ValueError):
                 pass
     else:
@@ -597,27 +663,38 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
             # El texto depende de la escala: probabilidad (clasificador) o
             # soles (regresor, sala de maquinas).
             pico = max(efecto)
+            # se muestra traducido; la comparación con `marca` usa el crudo
+            v_txt = escape(tr(v))
+            mas_alto = L("es el valor más alto del gráfico",
+                         "highest value in the chart")
+            tuyo = (L(" · es el valor de tu perfil", " · your profile's value")
+                    if es_marca else "")
             if formato_y == "prob":
-                relacion = ("es el valor más alto del gráfico"
-                            if e >= pico - 1e-9 else
-                            f"queda {_n((pico - e) * 100, 0)} puntos por debajo del "
-                            f"valor más alto")
-                tip = (f"{escape(str(v))}: {_n(e * 100, 1)} % de probabilidad estimada\n"
-                       f"{relacion}"
-                       + (" · es el valor de tu perfil" if es_marca else ""))
+                relacion = (mas_alto if e >= pico - 1e-9 else
+                            L(f"queda {_n((pico - e) * 100, 0)} puntos por "
+                              f"debajo del valor más alto",
+                              f"{_n((pico - e) * 100, 0)} points below the "
+                              f"highest value"))
+                tip = (v_txt + ": "
+                       + L(f"{pc(e * 100, 1)} de probabilidad estimada",
+                           f"{pc(e * 100, 1)} estimated probability")
+                       + f"\n{relacion}{tuyo}")
             else:
-                relacion = ("es el valor más alto del gráfico"
-                            if e >= pico - 1e-9 else
-                            f"queda S/ {_n(pico - e, 0)} por debajo del "
-                            f"valor más alto")
-                tip = (f"{escape(str(v))}: S/ {_n(e, 0)} de ingreso típico estimado\n"
-                       f"{relacion}"
-                       + (" · es el valor de tu perfil" if es_marca else ""))
-            partes.append(f"<rect x='{bx + bw * 0.15:.1f}' y='{y(e):.1f}' "
+                relacion = (mas_alto if e >= pico - 1e-9 else
+                            L(f"queda S/ {_n(pico - e, 0)} por debajo del "
+                              f"valor más alto",
+                              f"S/ {_n(pico - e, 0)} below the highest value"))
+                tip = (v_txt + ": "
+                       + L(f"S/ {_n(e, 0)} de ingreso típico estimado",
+                           f"S/ {_n(e, 0)} estimated typical income")
+                       + f"\n{relacion}{tuyo}")
+            partes.append(f"<rect class='anim-columna' "
+                          f"style='animation-delay:{i * 40}ms' "
+                          f"x='{bx + bw * 0.15:.1f}' y='{y(e):.1f}' "
                           f"width='{bw * 0.7:.1f}' height='{m['s'] + iy - y(e):.1f}' "
                           f"rx='2' fill='{color}'><title>{tip}</title></rect>")
             if n <= 12 or es_marca:
-                corta = str(v)[:14]
+                corta = tr(v)[:14]
                 partes.append(f"<text x='{bx + bw / 2:.1f}' y='{alto - 24}' class='et' "
                               f"text-anchor='end' transform='rotate(-40 "
                               f"{bx + bw / 2:.1f} {alto - 24})'>{escape(corta)}</text>")
@@ -639,9 +716,13 @@ def barras_mae(ids: list[str], maes: list[float], destacado: str, T: dict,
     techo = max(maes) * 1.02
 
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='MAE por especificación del torneo'>"]
+              f"aria-label='"
+              + L("MAE por especificación del torneo",
+                  "MAE by tournament specification") + "'>"]
     partes.append(f"<text x='{ancho - der}' y='14' class='et' text-anchor='end'>"
-                  f"MAE de validación cruzada (S/) — menor es mejor</text>")
+                  + L("MAE de validación cruzada (S/) — menor es mejor",
+                      "cross-validated MAE (S/) — lower is better")
+                  + "</text>")
     for i, (id_, mae) in enumerate(zip(ids, maes)):
         y = arriba + i * fila
         largo = mae / techo * ix
@@ -650,9 +731,11 @@ def barras_mae(ids: list[str], maes: list[float], destacado: str, T: dict,
         partes.append(f"<text x='{izq - 10}' y='{y + 15}' class='vl' "
                       f"text-anchor='end' fill='{T['texto'] if es else T['texto_medio']}'"
                       f">{escape(id_)}</text>")
-        partes.append(f"<rect x='{izq}' y='{y}' width='{largo:.1f}' height='18' "
+        partes.append(f"<rect class='anim-barra' "
+                      f"style='animation-delay:{i * 40}ms' "
+                      f"x='{izq}' y='{y}' width='{largo:.1f}' height='18' "
                       f"rx='3' fill='{color}'/>")
-        etiqueta = _n(mae, 0) + (" · desplegada" if es else "")
+        etiqueta = _n(mae, 0) + (L(" · desplegada", " · deployed") if es else "")
         partes.append(f"<text x='{izq + largo + 8:.1f}' y='{y + 14}' class='vs' "
                       f"fill='{T['acento_alto'] if es else T['texto_medio']}'>"
                       f"{etiqueta}</text>")
@@ -689,9 +772,12 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
     by, bh = 42, 66
     cy = by + bh / 2
     centros = [margen + i * (bw + hueco) + bw / 2 for i in range(n)]
-    rotulo = (f"Viaje del dato en movimiento: un punto recorre las "
-              f"{n} estaciones" if animado else
-              f"Viaje del dato: {escape(titulos[activa])} activa")
+    rotulo = (L(f"Viaje del dato en movimiento: un punto recorre las "
+                f"{n} estaciones",
+                f"Journey of a data point, animated: a dot travels through "
+                f"the {n} stations") if animado else
+              L(f"Viaje del dato: {escape(titulos[activa])} activa",
+                f"Journey of a data point: {escape(titulos[activa])} active"))
     # xMidYMin: pegado arriba. Con el «meet» centrado por defecto, darle a la
     # caja del iframe el alto extra que garantiza ancho completo dejaba al
     # diagrama flotando con aire simétrico arriba y abajo.
@@ -760,12 +846,29 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
         # El dato viaja en línea recta por los centros; como van equiespaciados,
         # la fracción de llegada a la estación i es exactamente i/(n−1) — de ahí
         # salen los keyTimes de las cajas.
+        # v1.1: el punto viaja por un riel BAJO las cajas (antes cruzaba el
+        # texto de cada estación) y deja una estela que se va llenando.
+        ry = by + bh + 16
+        x0, x1 = centros[0], centros[-1]
+        partes.append(f"<line x1='{x0:.1f}' y1='{ry}' x2='{x1:.1f}' y2='{ry}' "
+                      f"stroke='{T['dato_tenue']}' stroke-width='3' "
+                      f"stroke-linecap='round'/>")
         partes.append(
-            f"<circle r='6' fill='{T['acento_alto']}' stroke='{T['fondo']}' "
-            f"stroke-width='1.5'><animateMotion dur='{dur}' "
+            f"<line x1='{x0:.1f}' y1='{ry}' x2='{x0:.1f}' y2='{ry}' "
+            f"stroke='{T['acento']}' stroke-width='3' stroke-linecap='round'>"
+            f"<animate attributeName='x2' values='{x0:.1f};{x1:.1f}' "
+            f"dur='{dur}' repeatCount='indefinite'/></line>")
+        for c in centros:
+            partes.append(f"<circle cx='{c:.1f}' cy='{ry}' r='3.5' "
+                          f"fill='{T['superficie']}' stroke='{T['dato']}' "
+                          f"stroke-width='1.5'/>")
+        partes.append(
+            f"<circle r='7' fill='{T['acento_alto']}' stroke='{T['fondo']}' "
+            f"stroke-width='2'><animateMotion dur='{dur}' "
             f"repeatCount='indefinite' "
-            f"path='M {centros[0]:.1f} {cy} L {centros[-1]:.1f} {cy}'/>"
-            f"</circle>")
+            f"path='M {x0:.1f} {ry} L {x1:.1f} {ry}'/>"
+            f"<animate attributeName='r' values='6;8;6' dur='1.2s' "
+            f"repeatCount='indefinite'/></circle>")
     partes.append("</svg>")
     return "".join(partes)
 
@@ -782,12 +885,14 @@ def miniatura_pd(valores, efecto, tipo: str, T: dict,
         lo, hi = lo - 0.01, hi + 0.01
     y = lambda v: m + (1 - (v - lo) / (hi - lo)) * (alto - 2 * m)
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
-              f"aria-label='Miniatura de la curva'>"]
+              f"aria-label='"
+              + L("Miniatura de la curva", "Curve thumbnail") + "'>"]
     if tipo == "numerico":
         vlo, vhi = float(min(valores)), float(max(valores))
         span = (vhi - vlo) or 1.0
         x = lambda v: m + (float(v) - vlo) / span * (ancho - 2 * m)
-        partes.append(f"<path d='{_ruta(list(zip(valores, efecto)), x, y)}' "
+        partes.append(f"<path class='anim-trazo' pathLength='1' "
+                      f"d='{_ruta(list(zip(valores, efecto)), x, y)}' "
                       f"fill='none' stroke='{T['acento']}' stroke-width='2'/>")
     else:
         # Piso bajo el mínimo: normalizar entre min y max deja la barra más
@@ -798,7 +903,9 @@ def miniatura_pd(valores, efecto, tipo: str, T: dict,
         bwm = (ancho - 2 * m) / max(k, 1)
         for i, e in enumerate(efecto):
             bx = m + i * bwm
-            partes.append(f"<rect x='{bx + bwm * 0.18:.1f}' y='{yb(e):.1f}' "
+            partes.append(f"<rect class='anim-columna' "
+                          f"style='animation-delay:{i * 40}ms' "
+                          f"x='{bx + bwm * 0.18:.1f}' y='{yb(e):.1f}' "
                           f"width='{bwm * 0.64:.1f}' "
                           f"height='{alto - m - yb(e):.1f}' rx='1.5' "
                           f"fill='{T['dato_tenue']}'/>")

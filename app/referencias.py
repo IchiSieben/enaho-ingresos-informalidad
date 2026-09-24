@@ -1,5 +1,6 @@
 # referencias.py — bibliografía verificada y afirmaciones canónicas
 # Proyecto ENAHO 2025 · Yoichi Palacios Tanaka · https://github.com/IchiSieben/enaho-ingresos-informalidad
+# Grupo ENEI: Alan Nestor Cañazaca Mamani · Magdalena Quico de la Cruz · Edgar Delgado Ortega
 # Licencia: Apache-2.0 (ver LICENSE)
 """
 Fuente ÚNICA de la bibliografía y de las afirmaciones que dependen de ella.
@@ -22,6 +23,8 @@ se conserva el DOI como ancla estable.
 
 from __future__ import annotations
 
+from i18n import L, en
+
 # El orden de esta lista ES la numeración [1], [2]… que ve el lector.
 REFERENCIAS: list[dict] = [
     {
@@ -32,6 +35,10 @@ REFERENCIAS: list[dict] = [
         "url": "https://www.nber.org/system/files/chapters/c1767/c1767.pdf",
         "acceso": "abierto",
         "nota": "Capítulo 5, cuadro 5.1: la ecuación canónica y su R².",
+        "cita_en": "Mincer, J. (1974). <i>Schooling, Experience, and Earnings</i>. "
+                   "Human Behavior and Social Institutions no. 2. NBER / Columbia "
+                   "University Press.",
+        "nota_en": "Chapter 5, table 5.1: the canonical equation and its R².",
     },
     {
         "id": "card1999",
@@ -43,6 +50,11 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Versión abierta del autor (Berkeley CLE WP n.º 2). "
                 "Cuadro 1: R² de la ecuación sobre CPS 1994-96.",
+        "cita_en": "Card, D. (1999). “The Causal Effect of Education on Earnings”. "
+                   "In Ashenfelter and Card (eds.), <i>Handbook of Labor "
+                   "Economics</i>, vol. 3A, ch. 30, pp. 1801-1863. Elsevier.",
+        "nota_en": "Author's open version (Berkeley CLE WP no. 2). Table 1: R² of "
+                   "the equation on CPS 1994-96.",
     },
     {
         "id": "lemieux2006",
@@ -57,6 +69,13 @@ REFERENCIAS: list[dict] = [
         "nota": "Versión abierta del autor (UBC). Vigencia y límites de la "
                 "especificación; discute el ajuste en términos de forma "
                 "funcional, no de R².",
+        "cita_en": "Lemieux, T. (2006). “The ‘Mincer Equation’ Thirty Years After "
+                   "<i>Schooling, Experience, and Earnings</i>”. In Grossbard (ed.),"
+                   " <i>Jacob Mincer: A Pioneer of Modern Labor Economics</i>, ch. "
+                   "11, pp. 127-145. Springer.",
+        "nota_en": "Author's open version (UBC). Relevance and limits of the "
+                   "specification; discusses fit in terms of functional form, not "
+                   "R².",
     },
     {
         "id": "heckman2006",
@@ -69,6 +88,12 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Versión abierta (NBER WP 11544). Qué interpreta cada "
                 "especificación y los límites de la experiencia potencial.",
+        "cita_en": "Heckman, J., Lochner, L. and Todd, P. (2006). “Earnings "
+                   "Functions, Rates of Return and Treatment Effects: The Mincer "
+                   "Equation and Beyond”. <i>Handbook of the Economics of "
+                   "Education</i>, vol. 1, ch. 7, pp. 307-458. Elsevier.",
+        "nota_en": "Open version (NBER WP 11544). What each specification identifies"
+                   " and the limits of potential experience.",
     },
     {
         "id": "duan1983",
@@ -82,6 +107,12 @@ REFERENCIAS: list[dict] = [
                 "existe versión abierta legal, así que el enlace es el DOI: "
                 "resuelve en navegador aunque el editor bloquee las "
                 "peticiones automáticas.",
+        "cita_en": "Duan, N. (1983). “Smearing Estimate: A Nonparametric "
+                   "Retransformation Method”. <i>Journal of the American Statistical"
+                   " Association</i> 78(383), pp. 605-610.",
+        "nota_en": "The retransformation correction the model uses. There is no "
+                   "legal open version, so the link is the DOI: it resolves in a "
+                   "browser even though the publisher blocks automated requests.",
     },
     {
         "id": "belloni2014",
@@ -93,6 +124,11 @@ REFERENCIAS: list[dict] = [
         "doi": "10.1257/jep.28.2.29",
         "acceso": "abierto",
         "nota": "Sustento y cautelas del post-Lasso (especificación E7).",
+        "cita_en": "Belloni, A., Chernozhukov, V. and Hansen, C. (2014). "
+                   "“High-Dimensional Methods and Inference on Structural and "
+                   "Treatment Effects”. <i>Journal of Economic Perspectives</i> "
+                   "28(2), pp. 29-50.",
+        "nota_en": "Rationale and caveats for post-Lasso (specification E7).",
     },
     {
         "id": "athey2019",
@@ -104,6 +140,11 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Versión abierta (arXiv). El marco para leer la brecha entre "
                 "regresión lineal y árboles.",
+        "cita_en": "Athey, S. and Imbens, G. (2019). “Machine Learning Methods That "
+                   "Economists Should Know About”. <i>Annual Review of Economics</i>"
+                   " 11(1), pp. 685-725.",
+        "nota_en": "Open version (arXiv). The framework for reading the gap between "
+                   "linear regression and trees.",
     },
     {
         "id": "sohnesen2016",
@@ -117,6 +158,12 @@ REFERENCIAS: list[dict] = [
         "nota": "Comparación entre aprendizaje automático y regresión en "
                 "encuestas de hogares. El DOI corresponde a la versión de "
                 "revista (Poverty & Public Policy 9(1), 2017), de pago.",
+        "cita_en": "Sohnesen, T. P. and Stender, N. (2016). <i>Is Random Forest a "
+                   "Superior Methodology for Predicting Poverty? An Empirical "
+                   "Assessment</i>. Policy Research Working Paper 7612. World Bank.",
+        "nota_en": "Comparison of machine learning and regression on household "
+                   "surveys. The DOI points to the journal version (Poverty & Public"
+                   " Policy 9(1), 2017), which is paywalled.",
     },
     {
         "id": "psacharopoulos2018",
@@ -129,6 +176,11 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "1.120 estimaciones en 139 países: retorno privado global "
                 "≈ 9 % anual; América Latina y el Caribe, 11,0 %.",
+        "cita_en": "Psacharopoulos, G. and Patrinos, H. A. (2018). <i>Returns to "
+                   "Investment in Education: A Decennial Review of the Global "
+                   "Literature</i>. Policy Research Working Paper 8402. World Bank.",
+        "nota_en": "1,120 estimates across 139 countries: global private return ≈ 9%"
+                   " per year; Latin America and the Caribbean, 11.0%.",
     },
     {
         "id": "yamada2007",
@@ -140,6 +192,11 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Retornos por segmento en Perú: 12,5 % anual para asalariados "
                 "frente a 6,5 % para independientes (2004).",
+        "cita_en": "Yamada, G. (2007). <i>Retornos a la educación superior en el "
+                   "mercado laboral: ¿vale la pena el esfuerzo?</i> CIES / "
+                   "Universidad del Pacífico.",
+        "nota_en": "Returns by segment in Peru: 12.5% per year for wage earners "
+                   "versus 6.5% for the self-employed (2004).",
     },
     {
         "id": "inei_informal",
@@ -152,6 +209,11 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Las tasas oficiales de empleo informal contra las que se "
                 "valida la regla del target.",
+        "cita_en": "INEI (2025). <i>Producción y empleo informal en el Perú: Cuenta "
+                   "Satélite de la Economía Informal 2022-2024</i>. National "
+                   "Institute of Statistics and Informatics (INEI), Lima.",
+        "nota_en": "The official informal-employment rates against which the target "
+                   "rule is validated.",
     },
     {
         "id": "oit_17ciet",
@@ -166,6 +228,14 @@ REFERENCIAS: list[dict] = [
                 "puesto de trabajo), que es la que usa este proyecto. No "
                 "confundir con la 15.ª CIET (1993), que define el SECTOR "
                 "informal por características de la empresa.",
+        "cita_en": "ILO (2003). <i>Guidelines concerning a statistical definition of"
+                   " informal employment</i>. 17th International Conference of "
+                   "Labour Statisticians, Geneva. Updated by Resolution I of the "
+                   "21st ICLS (2023).",
+        "nota_en": "The international definition of informal EMPLOYMENT (a job-based"
+                   " criterion), which is the one this project uses. Not to be "
+                   "confused with the 15th ICLS (1993), which defines the informal "
+                   "SECTOR by enterprise characteristics.",
     },
     {
         "id": "saito2015",
@@ -179,6 +249,12 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Por qué se mira PR-AUC y no solo ROC-AUC con clases "
                 "desbalanceadas.",
+        "cita_en": "Saito, T. and Rehmsmeier, M. (2015). “The Precision-Recall Plot "
+                   "Is More Informative than the ROC Plot When Evaluating Binary "
+                   "Classifiers on Imbalanced Datasets”. <i>PLOS ONE</i> 10(3), "
+                   "e0118432.",
+        "nota_en": "Why we look at PR-AUC and not only ROC-AUC with imbalanced "
+                   "classes.",
     },
     {
         "id": "loayza2008",
@@ -189,6 +265,10 @@ REFERENCIAS: list[dict] = [
                "Revista-Estudios-Economicos/15/Estudios-Economicos-15-3.pdf",
         "acceso": "abierto",
         "nota": "Contexto económico de la informalidad peruana.",
+        "cita_en": "Loayza, N. (2008). “Causas y consecuencias de la informalidad en"
+                   " el Perú”. <i>Revista Estudios Económicos</i> no. 15, pp. 43-64."
+                   " Central Reserve Bank of Peru.",
+        "nota_en": "Economic context of informality in Peru.",
     },
     {
         "id": "perry2007",
@@ -200,6 +280,11 @@ REFERENCIAS: list[dict] = [
         "acceso": "abierto",
         "nota": "Marco de informalidad por exclusión frente a informalidad "
                 "por elección.",
+        "cita_en": "Perry, G. E., Maloney, W. F., Arias, O. S., Fajnzylber, P., "
+                   "Mason, A. D. and Saavedra-Chanduvi, J. (2007). <i>Informality: "
+                   "Exit and Exclusion</i>. World Bank.",
+        "nota_en": "Framework of informality as exclusion versus informality as "
+                   "choice.",
     },
 ]
 
@@ -213,27 +298,32 @@ def ref(*ids: str) -> str:
         n = INDICE.get(i)
         if n:
             partes.append(f"<a class='ref-llamada' href='#ref-{n}' "
-                          f"title='Ver referencia {n}'>[{n}]</a>")
+                          f"title='{L('Ver referencia', 'See reference')} "
+                          f"{n}'>[{n}]</a>")
     return "".join(partes)
 
 
 def lista_html() -> str:
     """La sección «Referencias», numerada igual que las llamadas."""
     filas = []
+    ingles = en()
     for i, r in enumerate(REFERENCIAS, 1):
         abierto = r["acceso"] == "abierto"
         marca = (f"<span class='ref-acceso "
                  f"{'ref-abierto' if abierto else 'ref-pago'}'>"
-                 f"{'acceso abierto' if abierto else 'de pago'}</span>")
+                 + (L("acceso abierto", "open access") if abierto
+                    else L("de pago", "paywalled")) + "</span>")
         enlace = (f"<a href='{r['url']}' target='_blank' rel='noopener'>"
                   f"{r['url']}</a>")
         doi = (f"<br>DOI: <a href='https://doi.org/{r['doi']}' target='_blank' "
                f"rel='noopener'>{r['doi']}</a>" if r.get("doi") else "")
-        nota = f"<br><i>{r['nota']}</i>" if r.get("nota") else ""
+        cita = r.get("cita_en", r["cita"]) if ingles else r["cita"]
+        texto_nota = r.get("nota_en", r.get("nota")) if ingles else r.get("nota")
+        nota = f"<br><i>{texto_nota}</i>" if texto_nota else ""
         filas.append(
             f"<div class='ref-item' id='ref-{i}'>"
             f"<span class='ref-num'>[{i}]</span>"
-            f"<span>{r['cita']}{marca}<br>{enlace}{doi}{nota}</span></div>")
+            f"<span>{cita}{marca}<br>{enlace}{doi}{nota}</span></div>")
     return f"<div class='ref-lista'>{''.join(filas)}</div>"
 
 
@@ -273,3 +363,45 @@ RETORNO_EDUCACION = (
     "segmento, con una brecha grande entre asalariados (12,5 %) e "
     "independientes (6,5 %) en 2004{ref_yamada}."
 )
+
+
+# Versiones en inglés: mismos marcadores {ref_…}, cifras en formato inglés.
+R2_MINCER_CANONICO_EN = (
+    "The Mincer equation typically explains between 25% and 35% of the "
+    "variance of log wages. This is not a figure the literature states as a "
+    "rule: it is what the benchmark exercises report —Mincer (1974), table "
+    "5.1: R² = 0.285 for the canonical specification{ref_mincer}; Card "
+    "(1999), table 1: R² between 0.247 and 0.328 on the 1994-96 "
+    "CPS{ref_card}—. When Mincer adds weeks worked, the R² rises to 0.525, "
+    "but the equation then no longer measures human capital alone: it also "
+    "captures labor supply."
+)
+
+R2_ADVERTENCIA_CONTEXTO_EN = (
+    "Those figures come from US surveys. In a market with high informality "
+    "and a large share of self-employment —where income is measured with "
+    "more error— one should expect an equal or lower R², not a higher one. "
+    "Extrapolating the range to Peru is our own reading, not a published "
+    "result."
+)
+
+RETORNO_EDUCACION_EN = (
+    "The average global private return to one more year of schooling is "
+    "around 9% per year, and 11.0% in Latin America and the "
+    "Caribbean{ref_psa}. For Peru, estimates range from 8.6% to 12.5% "
+    "depending on the year and the segment, with a wide gap between wage "
+    "earners (12.5%) and the self-employed (6.5%) in 2004{ref_yamada}."
+)
+
+
+def r2_mincer() -> str:
+    """Plantilla del R² canónico en el idioma activo (sin formatear)."""
+    return L(R2_MINCER_CANONICO, R2_MINCER_CANONICO_EN)
+
+
+def r2_advertencia() -> str:
+    return L(R2_ADVERTENCIA_CONTEXTO, R2_ADVERTENCIA_CONTEXTO_EN)
+
+
+def retorno_educacion() -> str:
+    return L(RETORNO_EDUCACION, RETORNO_EDUCACION_EN)
