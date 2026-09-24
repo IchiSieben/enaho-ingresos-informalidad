@@ -1,6 +1,7 @@
 # Ingreso laboral e informalidad en el Perú — ENAHO 2025
 
 > **Live demo / Demo en vivo:** https://enaho-ingresos-informalidad.streamlit.app
+> **English UI:** https://enaho-ingresos-informalidad.streamlit.app/?lang=en · **Interfaz en español:** https://enaho-ingresos-informalidad.streamlit.app/?lang=es
 > **Repo:** https://github.com/IchiSieben/enaho-ingresos-informalidad
 
 **[English](#english) · [Español](#español)**

@@ -195,3 +195,35 @@ def test_el_embudo_publicado_cuadra():
             f"de «{previa['clave']}» a «{actual['clave']}» las cuentas no "
             f"cuadran")
     assert emb["split"]["train"] + emb["split"]["test"] == etapas[-1]["filas"]
+
+
+# --------------------------------------------------------------------------
+# Bilingüe (v1.1): ningún texto de datos se queda en español en la versión EN
+# --------------------------------------------------------------------------
+def _schema() -> dict:
+    return json.loads((RAIZ / "models" / "feature_schema.json")
+                      .read_text(encoding="utf-8"))
+
+
+def test_toda_categoria_y_etiqueta_tiene_traduccion():
+    """Una opción nueva en el schema sin traducir saldría en español en EN."""
+    import i18n
+    faltan = set()
+    for bloque in ("regresor", "clasificador"):
+        for f in _schema()[bloque]["features"]:
+            faltan |= {x for x in [f.get("etiqueta")] + f.get("opciones", [])
+                       if x and x not in i18n.VALORES}
+    assert not faltan, f"sin traducción en i18n.VALORES: {sorted(faltan)}"
+
+
+def test_perfiles_de_ejemplo_son_validos():
+    """Un perfil con un valor fuera del schema se ignoraría en silencio."""
+    from streamlit_app import PERFILES
+    feats = {f["nombre"]: f for f in _schema()["regresor"]["features"]}
+    for p in PERFILES:
+        for nombre, v in p["valores"].items():
+            f = feats[nombre]
+            if f["tipo"] == "numerico":
+                assert float(f["min"]) <= float(v) <= float(f["max"]), (p["id"], nombre)
+            else:
+                assert v in f["opciones"], (p["id"], nombre, v)
