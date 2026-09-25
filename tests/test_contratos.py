@@ -318,3 +318,41 @@ def test_cifras_texto_publicadas():
     assert cif["experiencia_negativa"]["casos"] > 0
     for bloque in cif.values():
         assert (RAIZ / bloque["fuente"].split(" §")[0]).exists()
+
+
+# --------------------------------------------------------------------------
+# API de Streamlit retirada: cientos de avisos en los logs de la v1.1
+# --------------------------------------------------------------------------
+# `st.components.v1.html` se retiró después del 2026-06-01 y
+# `use_container_width` está obsoleto. Se busca en el árbol sintáctico, no con
+# grep: los comentarios y docstrings que los mencionan no cuentan.
+def _usos_obsoletos(codigo: str) -> list[str]:
+    import ast
+    usos = []
+    for nodo in ast.walk(ast.parse(codigo)):
+        if isinstance(nodo, ast.Attribute) and nodo.attr == "components":
+            usos.append(f"línea {nodo.lineno}: .components")
+        elif isinstance(nodo, ast.ImportFrom) and (nodo.module or "").startswith("streamlit.components"):
+            usos.append(f"línea {nodo.lineno}: from {nodo.module}")
+        elif isinstance(nodo, ast.Import) and any(a.name.startswith("streamlit.components") for a in nodo.names):
+            usos.append(f"línea {nodo.lineno}: import streamlit.components")
+        elif isinstance(nodo, ast.keyword) and nodo.arg == "use_container_width":
+            usos.append(f"línea {nodo.value.lineno}: use_container_width=")
+    return usos
+
+
+@pytest.mark.parametrize("codigo", [
+    "import streamlit as st\nst.components.v1.html('<p>x</p>')",
+    "import streamlit.components.v1 as components",
+    "from streamlit.components.v1 import html",
+    "st.dataframe(df, use_container_width=True)",
+])
+def test_el_detector_de_api_obsoleta_la_encuentra(codigo):
+    assert _usos_obsoletos(codigo)
+
+
+def test_la_app_no_usa_api_obsoleta_de_streamlit():
+    hallazgos = [f"{ruta.name} {u}"
+                 for ruta in sorted((RAIZ / "app").glob("*.py"))
+                 for u in _usos_obsoletos(ruta.read_text(encoding="utf-8"))]
+    assert not hallazgos, "API de Streamlit retirada u obsoleta:\n" + "\n".join(hallazgos)
