@@ -1,0 +1,99 @@
+OK             eje_1 hart1973: The distinction between formal and informal income opportunities is based essentially on t
+NO_ENCONTRADA  eje_1 hart1973:  para actividades de generación de ingresos fuera del empleo asalariado regulado; el crite
+OK             eje_1 oit1972kenya: ...omitting a range of wage earners and self-employed persons, male as well as female, in 
+OK             eje_1 oit1972kenya: ...the bulk of employment in the informal sector, far from being only marginally productiv
+OK             eje_1 oit1972kenya: informal sector
+NO_ENCONTRADA  eje_1 oit1972kenya: informal = residual/improductivo
+OK             eje_1 chen2012: Kenya Mission stressed the potential of the informal sector to create employment and reduc
+OK             eje_1 chen2012: unincorporated small or unregistered enterprises (1993 ICLS); informal employment refers t
+OK             eje_1 oit2018_mujeres_hombres: In the case of employees, informal employment is defined in terms of the employment relati
+OK             eje_1 oit_17ciet: informal sector, adopted by the 15th ICLS (1993), and the Guidelines concerning a statisti
+OK             eje_1 oit_17ciet: of informal employment, endorsed by the 17th ICLS (2003),
+NO_ENCONTRADA  eje_1 oit_17ciet: Resolución I
+OK             eje_1 oit_17ciet: resolution concerning statistics on the informal economy
+NO_ENCONTRADA  eje_1 oit_17ciet:  explícitamente en el pasaje que leí. Sí confirmé que el 21.º CIET (2023) revisa y amplía 
+NO_ENCONTRADA  eje_1 oit_17ciet:  cosméticamente) los estándares de 1993 y 2003: agrega cobertura de 
+NO_ENCONTRADA  eje_1 oit_17ciet: , no solo empleo, e introduce un marco de indicadores más amplio (icls21_2023.txt líneas 9
+NO_ENCONTRADA  eje_1 oit_17ciet: Revisada y ampliada por la resolución sobre estadísticas de la economía informal adoptada 
+OK             eje_2 ncla: The Dualist school sees the informal sector of the economy as comprising marginal activiti
+OK             eje_2 ncla: The Structuralist school sees the informal economy as subordinated economic units (micro-e
+OK             eje_2 ncla: The Legalist school sees the informal sector as comprised of "plucky" micro-entrepreneurs 
+OK             eje_2 ncla: The Voluntarists argue that informal operators choose to operate informally—after weighing
+OK_EN:laportashleifer2014.txt eje_2 scuela: The evidence appears most consistent with Lewis's dual view of informality, which sees the
+OK_EN:golteadams1987.txt eje_2 scuela: sector informal
+OK_EN:laportashleifer2014.txt eje_2 scuela: Others follow the development tradition of Lewis (1954), Harris-Todaro (1970) and more rec
+OK             eje_2 scuela: An Exploration into the Nature of the Informal-Formal Sector Relationship
+NO_ENCONTRADA  eje_2 scuela: Tokman/PREALC, verificar la obra exacta
+OK_FRAG(3seg)  eje_2 existentes: driven by exclusion from state benefits and on voluntary exit decisions resulting from pri
+SIN_RAW        eje_2 rrores: verificar la obra exacta
+OK             eje_3 matosmar1984: Se produce el crecimiento de una economía popular contestataria a la que la opinión públic
+OK             eje_3 matosmar1984: La vida social de la ciudad acepta hoy y difunde, como parte de sus estrategias de supervi
+NO_ENCONTRADA  eje_3 matosmar1984: circuito popular contestatario
+OK             eje_3 golteadams1987: en sus asociaciones empresariales y en el reclutamiento de personal, recurren a relaciones
+OK             eje_3 rodriguez2011: Los resultados sugieren la existencia de segmentación entre estos dos tipos de puestos de 
+OK             eje_3 rodriguez2011: los dos métodos empleados muestran diferencias en 22 y 31% con el método de las diferencia
+OK             eje_3 kamichi2023: es porque "no lo consideran necesario" (53 %), porque su "negocio es pequeño" (32,5 %) y p
+OK             eje_3 kamichi2023: no lo considera necesario
+OK_FRAG(2seg)_EN:golteadams1987.txt eje_3 kamichi2023: el negocio es pequeño
+OK             eje_4 eferencias: Wage Discrimination: Reduced Form and Structural Estimates
+OK             eje_4 eferencias: Blinder, Allan (1973). 'Wage Discrimination: Reduced Form and Structural Estimates.' The J
+NO_ENCONTRADA  eje_4 eferencias: , mismo volumen). Contenido verificado: no, no pude abrir el texto de Blinder mismo. **3. 
+OK             eje_4 eferencias: Using data for Peru in the period 1986-2000, I found that this problem of non-comparabilit
+NO_ENCONTRADA  eje_4 eferencias: soporte no común
+OK             eje_4 eferencias: This paper surveys gender and ethnic wage gaps in 18 Latin American countries, decomposing
+NO_ENCONTRADA  eje_4 eferencias:  con esa numeración exacta (ver Descartadas / Errores de la semilla). **5. `blaukahn2017`*
+NO_ENCONTRADA  eje_4 eferencias: provide empirical evidence on the levels and trends in the gender wage gap, which declined
+OK             eje_4 eferencias: unexplained gap—from 0.341 log points in 1980 to 0.197 log points in 2010.
+OK             eje_4 eferencias: A Grand Gender Convergence: Its Last Chapter
+OK_FRAG(2seg)  eje_4 eferencias: The gender gap in pay would be considerably reduced and might even vanish if firms did not
+OK             eje_4 eferencias: Ethnicity and Earnings in a Mixed-Race Labor Market
+OK_FRAG(2seg)  eje_4 eferencias: Our approach to the concept of ethnicity involves the usage of instruments in many of its 
+NO_ENCONTRADA  eje_4 eferencias:  (tras controlar características) aparece en los asalariados pero NO en los independientes
+OK             eje_4 eferencias: descomponiendo mediante el método de Blinder-Oaxaca (1973), se obtiene que la diferencia e
+OK             eje_4 eferencias: discriminación
+OK             eje_4 eferencias: los ingresos laborales de los trabajadores informales vienen creciendo con mayor velocidad
+OK             eje_4 eferencias: IZA DP No. 3151
+OK             eje_4 eferencias: we find that there is a gross wage penalty of a little over 18 per cent for working in the
+NO_ENCONTRADA  eje_4 eferencias: resultados mixtos
+OK_EN:bls_extract.txt eje_4 eferencias: Analyzing wage gaps between male and female workers in Peru: a novel decomposition methodo
+OK_FRAG(2seg)_EN:heckman2006.txt eje_4 escartadas: IZA DP No. 3151
+SIN_RAW        eje_4 escartadas: resultados mixtos
+NO_ENCONTRADA  eje_5 mincer1974: P(1) ln Y=6.20+.107s+.081t—.0012t2 .285
+NO_ENCONTRADA  eje_5 mincer1974: P(3) ln Y= f(D3) + .068t— .0009t2 + 1.207 ln W .525
+OK             eje_5 card1999: R-squared 0.328 0.182 0.136 0.222 0.403
+OK             eje_5 card1999: R-squared 0.247 0.071 0.074 0.105 0.247
+NO_ENCONTRADA  eje_5 card1999: 0,247 y 0,328
+OK_FRAG(2seg)  eje_5 lemieux2006: Though Mincer (1974) considered several functional forms for the earnings equation, the mo
+OK             eje_5 heckman2006: experience: Potential experience is measured by Age − Years of Education − 6.
+NO_ENCONTRADA  eje_5 heckman2006: potential experience = edad − años de educación − 6
+OK             eje_5 heckman2006: measurement error… experience
+OK_EN:blaukahn2017_nber.txt eje_5 heckman2006: discontinuous
+OK_FRAG(2seg)  eje_5 psacharopoulos2018: the private average global rate of return to one extra year of schooling is about 9 percen
+OK             eje_5 psacharopoulos2018: Latin America and Caribbean 11.0 7.3
+OK             eje_5 psacharopoulos2018: overall rate of return
+NO_ENCONTRADA  eje_5 psacharopoulos2018: por año adicional de escolaridad
+NO_ENCONTRADA  eje_5 psacharopoulos2018: 11,0 % anual
+OK             eje_5 psacharopoulos2018: overall rate of return (%)
+OK             eje_5 yamada2007: En el año 2004, el retorno promedio por año de educación para los asalariados fue de 12.5%
+NO_ENCONTRADA  eje_6 reiman: Statistical Modeling: The Two Cultures / Author(s): Leo Breiman / Source: Statistical Scie
+NO_ENCONTRADA  eje_6 reiman: cultura del modelado de datos
+NO_ENCONTRADA  eje_6 reiman: cultura algorítmica
+OK             eje_6 hmueli: Conflation between explanation and prediction is common, yet the distinction must be under
+OK             eje_6 arocas: What if we simply withhold gender from the data? Is that a sufficient response to concerns
+OK             eje_6 arocas: In real datasets, most attributes tend to be proxies for demographic variables, and droppi
+NO_ENCONTRADA  eje_6 arocas: codificaciones redundantes
+OK             eje_6 iken: Relative to the geographic targeting options considered by the Government of Togo, the mac
+SIN_RAW        eje_6 escartadas: candidatos nuevos
+OK             eje_6 sohnesen2016: Comparing out-of-sample predictions in surveys for same year in six countries shows that r
+OK             eje_6 sohnesen2016: None of the methods consistently provides accurate predictions of poverty over time.
+NO_ENCONTRADA  eje_6 sohnesen2016: Comparación entre aprendizaje automático y regresión en encuestas de hogares
+OK             eje_6 saito2015: PRC plots, on the other hand, can provide the viewer with an accurate prediction of future
+OK             eje_6 saito2015: one can ask whether ROC plots could be misleading when applied in imbalanced classificatio
+OK_EN:inei_q4_2025.txt eje_7 nforme: Según resultados de la Encuesta Permanente de Empleo Nacional (EPEN) del año 2025, en el p
+OK_EN:inei_q4_2025.txt eje_7 nforme: el 94,8% de la población ocupada del área rural tenía empleo informal, en tanto en el área
+OK_EN:inei_q4_2025.txt eje_7 nforme: El 88,6% de la población ocupada en empresas de 1 a 10 trabajadores tenían empleo informal
+OK_EN:inei_csei_2022_2024.txt eje_7 inei_informal: Los datos de la informalidad se han obtenido en base a la reciente información de las Cuen
+OK_EN:inei_csei_2022_2024.txt eje_7 inei_informal: Tres de cada cuatro trabajadores de la PEA ocupada se desempeñaban en un empleo informal (
+SIN_RAW        eje_7 inei_informal: el 70,2 % que publica el INEI para 2025
+SIN_RAW        eje_7 inei_informal: Las tasas oficiales de empleo informal contra las que se valida la regla del target
+problemas: 31
