@@ -33,7 +33,9 @@ DIR_FIGURAS = DIR_REPORTS / "figuras"
 RUTA_SCHEMA = DIR_MODELS / "feature_schema.json"
 
 SEMILLA = 42
-N_JOBS = 20
+# Tope 8 y nunca más que los núcleos: con 20 en una máquina de 6 se cayó una
+# corrida de 70 min (AC-4). No cambia resultados: todo lleva random_state.
+N_JOBS = min(8, os.cpu_count() or 1)
 
 # Umbral de colapso en conteo ABSOLUTO (misma justificacion que en el proyecto hermano).
 MIN_FRECUENCIA = 300

@@ -26,7 +26,7 @@ from comun import (DIR_MODELS, DIR_PROCESSED, DIR_REPORTS, RUTA_CACHE_PARAMS,
                    escribir_json_atomico, extraer_features, formato_md,
                    guardar_con_limite)
 
-N_JOBS = 8
+from comun import N_JOBS  # min(8, núcleos)
 KF = KFold(n_splits=5, shuffle=True, random_state=SEMILLA)
 NUMERICAS = ["anios_educ", "edad", "exper", "exper2", "horas_total"]
 CATEGORICAS = ["sexo", "area", "dominio", "rama", "tamano_empresa", "categoria"]

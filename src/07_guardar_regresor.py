@@ -21,7 +21,7 @@ from comun import (DIR_MODELS, DIR_PROCESSED, RUTA_CACHE_PARAMS, SEMILLA,
 from importlib import import_module
 torneo = import_module("04_torneo_regresion")
 
-N_JOBS = 8
+from comun import N_JOBS  # min(8, núcleos)
 
 
 def main() -> None:

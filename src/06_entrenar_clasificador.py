@@ -46,7 +46,7 @@ from comun import (DIR_FIGURAS, DIR_MODELS, DIR_PROCESSED, DIR_REPORTS,
 from importlib import import_module
 torneo = import_module("04_torneo_regresion")
 
-N_JOBS = 8                       # regimen conservador para esta corrida
+from comun import N_JOBS         # min(8, núcleos): regimen conservador
 KF = KFold(n_splits=5, shuffle=True, random_state=SEMILLA)
 COLS = ["anios_educ", "edad", "exper", "exper2", "horas_total",
         "sexo", "area", "dominio", "rama", "tamano_empresa", "categoria"]
@@ -201,7 +201,7 @@ def main() -> None:
 
         pipe = pipeline_arbol(estimador)
         pipe.set_params(**params)
-        # RF queda con n_jobs=1: cross_val_predict ya paraleliza con N_JOBS=8
+        # RF queda con n_jobs=1: cross_val_predict ya paraleliza con N_JOBS
         # y anidar paralelismo (8x8 hilos) es lo que colgo la maquina antes.
         r = evaluar(clave, pipe, X_tr, y_tr, X_te, y_te)
         resultados.append(r)

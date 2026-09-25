@@ -46,7 +46,7 @@ RUTA_OOF = DIR_MODELS / "_oof_clasificador.npy"
 # mide con stat(); ese archivo no puede crecer ni un byte sin romper el PPT.
 RUTA_MAQUINAS = DIR_MODELS / "ui_maquinas.json"
 
-N_JOBS = 8
+from comun import N_JOBS  # min(8, núcleos)
 N_PD = 5_000
 N_PERM = 9_000
 GRID_PD = 20
