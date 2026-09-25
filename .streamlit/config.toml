@@ -2,13 +2,13 @@
 # (app/estilos.py); estos valores son los que Streamlit usa para pintar los
 # widgets nativos ANTES de que ese CSS entre, y para el chrome que no
 # alcanzamos a estilar. Deben coincidir con PALETAS["claro"] o se ve un
-# parpadeo al cargar.
+# parpadeo al cargar (tests/test_color.py lo comprueba).
 [theme]
 base = "light"
-primaryColor = "#3446D4"
-backgroundColor = "#F3F5F9"
+primaryColor = "#0F766E"
+backgroundColor = "#EEF4F3"
 secondaryBackgroundColor = "#FFFFFF"
-textColor = "#111A2C"
+textColor = "#0E1A19"
 
 [server]
 headless = true

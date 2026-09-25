@@ -493,6 +493,38 @@ def _truncar(txt: str, ancho_max: float, px: float = 11.0) -> str:
     return txt[:cabe].rstrip() + "…"
 
 
+def _partir_lineas(txt: str, ancho_max: float, px: float = 11.0,
+                   max_lineas: int = 3) -> list[str]:
+    """
+    Parte un texto en líneas que quepan en `ancho_max`. SVG no hace saltos de
+    línea solo; si sobra texto, la última línea lleva elipsis y el texto
+    completo queda en el <title> del grupo.
+    """
+    lineas, actual = [], ""
+    for palabra in str(txt).split():
+        prueba = f"{actual} {palabra}".strip()
+        if actual and _ancho_texto(prueba, px) > ancho_max:
+            lineas.append(actual)
+            actual = palabra
+        else:
+            actual = prueba
+    if actual:
+        lineas.append(actual)
+    if len(lineas) > max_lineas:
+        lineas = lineas[:max_lineas]
+        lineas[-1] = _truncar(lineas[-1] + " …", ancho_max, px)
+    return lineas
+
+
+def proporcion(svg: str) -> tuple[float, float]:
+    """Ancho y alto del viewBox: deja que el contenedor reserve el alto justo."""
+    i = svg.find("viewBox='")
+    if i < 0:
+        raise ValueError("SVG sin viewBox")
+    _, _, w, h = svg[i + 9:svg.index("'", i + 9)].split()
+    return float(w), float(h)
+
+
 def barras_importancia(variables, media, desviacion, T: dict, unidad: str = "",
                        ancho: int = 520, etiquetas: dict | None = None) -> str:
     etiquetas = etiquetas or {}
@@ -909,5 +941,139 @@ def miniatura_pd(valores, efecto, tipo: str, T: dict,
                           f"width='{bwm * 0.64:.1f}' "
                           f"height='{alto - m - yb(e):.1f}' rx='1.5' "
                           f"fill='{T['dato_tenue']}'/>")
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+# --------------------------------------------------------------------------
+# 12. Embudo de datos (sala de máquinas) — reemplaza al Sankey de plotly
+# --------------------------------------------------------------------------
+def _cuota(v: int, base: int) -> str:
+    """Filas y su parte del total crudo; bajo el 1 % el entero diría «0 %»."""
+    if not base:
+        return _n_i18n(v)
+    p = v / base * 100
+    return f"{_n_i18n(v)} · {pc(p, 1 if p < 1 else 0)}"
+
+
+def embudo(etapas: list[tuple[str, int]],
+           cortes: list[tuple[str, int, str]],
+           particion: list[tuple[str, int, str]],
+           T: dict, ancho: int = 960) -> str:
+    """
+    Embudo vertical: cada etapa es una barra proporcional al total crudo y,
+    entre dos etapas, el recorte aparece como el trozo que se desprende del
+    extremo derecho de la barra anterior, con su motivo en texto visible.
+
+    Por qué no un Sankey: el Sankey escondía el «por qué» en un hover que en
+    táctil casi no se ve y costaba 4,7 MB de plotly en el primer uso. Aquí el
+    motivo se lee sin interactuar y el texto completo también va en <title>.
+
+    etapas    [(nombre, filas)], la primera es la base de los porcentajes.
+    cortes    [(nombre, filas, motivo)], cortes[i] va entre etapas[i] y i+1.
+    particion [(nombre, filas, motivo)], cómo se reparte la última etapa.
+    """
+    if len(cortes) != len(etapas) - 1:
+        raise ValueError("debe haber un corte entre cada par de etapas")
+    base = etapas[0][1]
+    izq = 220                       # columna de rótulos
+    bx, bw = izq + 16, ancho - izq - 16 - 4
+    px = 11.5
+    esc = lambda v: v / base * bw if base else 0.0
+
+    # Primera pasada: alto de cada fila, que depende de cuántas líneas ocupa
+    # el motivo del recorte.
+    filas: list[tuple] = []
+    y = 22
+    for i, (nombre, v) in enumerate(etapas):
+        filas.append(("etapa", y, nombre, v))
+        y += 40
+        if i < len(cortes):
+            c_nom, c_v, motivo = cortes[i]
+            ini = esc(etapas[i + 1][1])          # donde empieza lo que se cae
+            libre = ini - 14
+            # Con sitio a la izquierda del trozo, el motivo va a su lado; si
+            # no, debajo y a todo lo ancho.
+            al_lado = libre >= 300
+            # Sin tope de líneas: el motivo es el contenido, no un adorno.
+            lineas = _partir_lineas(motivo, libre if al_lado else bw, px,
+                                    max_lineas=99)
+            ty = 12 if al_lado else 28
+            filas.append(("corte", y, c_nom, c_v, motivo, lineas, ty,
+                          etapas[i + 1][1], etapas[i][1]))
+            y += max(40, ty + 16 * (len(lineas) - 1) + 8) + 6
+    y_part = y
+    lineas_part = [_partir_lineas(f"{nom} · {_cuota(v, base)} — {mot}",
+                                  bw - 18, px, max_lineas=99)
+                   for nom, v, mot in particion]
+    alto = y_part + 30 + sum(16 * len(l) + 4 for l in lineas_part) + 8
+
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' aria-label='"
+              + escape(L("Embudo de datos: de las filas crudas a la muestra "
+                         "del torneo, con el motivo de cada recorte",
+                         "Data funnel: from raw rows to the tournament "
+                         "sample, with the reason for each cut"), quote=True)
+              + "'>"]
+    partes.append(f"<text x='{bx}' y='12' class='et'>"
+                  + L("filas · % del total crudo", "rows · % of raw total")
+                  + "</text>")
+    for f in filas:
+        if f[0] == "etapa":
+            _, fy, nombre, v = f
+            partes.append(
+                f"<g><title>{escape(nombre)}: {_cuota(v, base)}</title>"
+                f"<text x='{izq}' y='{fy + 12}' class='vl' text-anchor='end' "
+                f"style='font-weight:600'>{escape(nombre)}</text>"
+                f"<text x='{izq}' y='{fy + 27}' class='vs' text-anchor='end'>"
+                f"{_cuota(v, base)}</text>"
+                f"<rect class='anim-barra' x='{bx}' y='{fy + 2}' "
+                f"width='{max(esc(v), 1.5):.1f}' height='24' rx='3' "
+                f"fill='{T['acento']}'/></g>")
+        else:
+            _, fy, c_nom, c_v, motivo, lineas, ty, sigue, antes = f
+            x0, x1 = bx + esc(sigue), bx + esc(antes)
+            partes.append(f"<g><title>{escape(c_nom)} "
+                          f"({_cuota(c_v, base)}): {escape(motivo)}</title>")
+            partes.append(
+                f"<text x='{izq}' y='{fy + 12}' class='vl' text-anchor='end' "
+                f"fill='{T['texto_medio']}'>− {escape(c_nom)}</text>"
+                f"<text x='{izq}' y='{fy + 27}' class='vs' text-anchor='end'>"
+                f"{_cuota(c_v, base)}</text>")
+            # El trozo que se cae, alineado bajo el extremo de la barra
+            # anterior: se ve de dónde sale sin flechas.
+            partes.append(
+                f"<rect class='anim-celda' x='{x0:.1f}' y='{fy + 2}' "
+                f"width='{max(x1 - x0, 1.5):.1f}' height='10' rx='2' "
+                f"fill='{T['dato_tenue']}'/>")
+            for k, linea in enumerate(lineas):
+                partes.append(f"<text x='{bx}' y='{fy + ty + k * 16}' class='vs'>"
+                              f"{escape(linea)}</text>")
+            partes.append("</g>")
+
+    # Partición final: una sola barra repartida, con el motivo debajo.
+    total = sum(v for _, v, _ in particion) or 1
+    ancho_ult = esc(etapas[-1][1])
+    tonos = [T["acento"], T["acento_alto"], T["dato"], T["dato_tenue"]]
+    x = bx
+    partes.append(f"<text x='{izq}' y='{y_part + 16}' class='vl' "
+                  f"text-anchor='end' style='font-weight:600'>"
+                  + L("Partición", "Split") + "</text>")
+    for k, (nom, v, _) in enumerate(particion):
+        w = ancho_ult * v / total
+        partes.append(f"<rect class='anim-barra' x='{x:.1f}' y='{y_part + 2}' "
+                      f"width='{max(w - 2, 1.5):.1f}' height='20' rx='3' "
+                      f"fill='{tonos[k % len(tonos)]}'/>")
+        x += w
+    yy = y_part + 42
+    for k, ((nom, v, mot), lineas) in enumerate(zip(particion, lineas_part)):
+        partes.append(f"<g><title>{escape(nom)} ({_cuota(v, base)}): "
+                      f"{escape(mot)}</title>"
+                      f"<rect x='{bx}' y='{yy - 9}' width='10' height='10' "
+                      f"rx='2' fill='{tonos[k % len(tonos)]}'/>")
+        for j, linea in enumerate(lineas):
+            partes.append(f"<text x='{bx + 18}' y='{yy + j * 16}' class='vs'>"
+                          f"{escape(linea)}</text>")
+        partes.append("</g>")
+        yy += 16 * len(lineas) + 4
     partes.append("</svg>")
     return "".join(partes)

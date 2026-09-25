@@ -18,75 +18,79 @@ El tema claro no es «invertir colores»: fondo blanco hueso (no #FFF puro),
 superficies apenas grises, mismos acentos oscurecidos para mantener AA.
 
 Semántica de señal en este dominio: ámbar = señalado como informal (caso
-accionable para focalización), verde = sin señal. El acento índigo queda solo
-para interacción, nunca significa condición laboral.
+accionable para focalización), «bueno» = sin señal (violeta en claro/oscuro,
+verde oliva en Terminal), «malo» = alerta. El acento (teal de ichi7.dev en
+claro/oscuro, azul Python en Terminal) es solo interacción y «tu perfil»:
+nunca significa condición laboral. Contraste AA y distinguibilidad bajo
+protanopia/deuteranopia/tritanopia verificados en tests/test_color.py.
 """
 
 from __future__ import annotations
 
 PALETAS: dict[str, dict[str, str]] = {
     "claro": {
-        # v1.1: más nítido y más «ejecutivo». Tarjetas blancas sobre un gris
-        # azulado muy claro (antes: papel hueso sobre papel), tinta casi
-        # negra y un índigo más saturado. Todos los pares de texto ≥ 4,5:1.
-        "fondo":             "#F3F5F9",
+        # v1.2: identidad de ichi7.dev. Fondo con un matiz teal apenas
+        # perceptible, tarjetas blancas, tinta casi negra y el teal de marca
+        # oscurecido a teal-700 (#2DD4BF da 1,9:1 sobre blanco; #0F766E da
+        # 5,5:1). Todos los pares de texto ≥ 4,5:1 (tests/test_color.py).
+        "fondo":             "#EEF4F3",
         "superficie":        "#FFFFFF",
-        "superficie_alta":   "#EEF1F6",
-        "superficie_hover":  "#E5E9F1",
-        "borde":             "#D3D9E3",
-        "borde_sutil":       "#E3E7EE",
-        "texto":             "#111A2C",   # 16,9:1 sobre superficie
-        "texto_medio":       "#3E4A5E",   # 9,0:1
-        "texto_tenue":       "#586377",   # 6,1:1 — AA en texto pequeño
-        "acento":            "#3446D4",   # 7,0:1 sobre blanco
-        "acento_alto":       "#2733AE",
-        "acento_fondo":      "#E8EBFD",
+        "superficie_alta":   "#E6EFEE",
+        "superficie_hover":  "#DAE7E5",
+        "borde":             "#C9D8D6",
+        "borde_sutil":       "#DDE7E6",
+        "texto":             "#0E1A19",
+        "texto_medio":       "#364746",
+        "texto_tenue":       "#4F605E",
+        "acento":            "#0F766E",   # teal-700: texto y trazos finos
+        "acento_alto":       "#0B5E57",
+        "acento_fondo":      "#DCF1ED",
         "boton_texto":       "#FFFFFF",
-        "senal_buena":       "#127A4A",
+        # «Bueno» violeta y «malo» carmesí: con el verde y el rojo de antes,
+        # ámbar y rojo quedaban a ΔE 0,02 en deuteranopia (indistinguibles).
+        "senal_buena":       "#5634AC",
         "senal_media":       "#8A5A06",
-        "senal_mala":        "#B42A2F",
-        "senal_buena_fondo": "#E3F4EA",
+        "senal_mala":        "#82182E",
+        "senal_buena_fondo": "#EEE9FB",
         "senal_media_fondo": "#FBF0DA",
-        "senal_mala_fondo":  "#FBE4E5",
-        "senal_buena_texto": "#0B5433",
+        "senal_mala_fondo":  "#FAE6EA",
+        "senal_buena_texto": "#3F2482",
         "senal_media_texto": "#6A4608",
-        "senal_mala_texto":  "#8A1F23",
-        "dato":              "#556076",
-        "dato_tenue":        "#C5CDDA",
-        "rejilla":           "#E5E8EE",
-        "titulo":            "#0A1222",
-        "sombra_tarjeta":    "0 1px 2px rgba(17,26,44,0.04), "
-                             "0 6px 20px rgba(17,26,44,0.06)",
+        "senal_mala_texto":  "#6B1325",
+        "dato":              "#4E6260",
+        "dato_tenue":        "#BCCFCC",
+        "rejilla":           "#DDE8E6",
+        "titulo":            "#061413",
+        "sombra_tarjeta":    "0 1px 2px rgba(6,40,36,0.05), "
+                             "0 8px 24px rgba(6,40,36,0.07)",
     },
     "oscuro": {
-        "fondo":             "#0D0F12",
-        "superficie":        "#14181F",
-        "superficie_alta":   "#1A1F28",
-        "superficie_hover":  "#202632",
-        "borde":             "#272E3A",
-        "borde_sutil":       "#1C222B",
-        "texto":             "#E7EAF0",
-        "texto_medio":       "#98A1B0",
-        # Aclarado de #6B7585: aquel daba 3,8:1 sobre superficie, por debajo
-        # del AA que exige texto pequeño, y este color se usa justo en las
-        # etiquetas pequeñas (.eyebrow, .et, .tarjeta-etiqueta).
-        "texto_tenue":       "#778191",
-        "acento":            "#6E7BF2",
-        "acento_alto":       "#8A94F7",
-        "acento_fondo":      "#1B1F38",
-        "boton_texto":       "#0B0D14",
-        "senal_buena":       "#3DD68C",
+        "fondo":             "#0B0F10",
+        "superficie":        "#121819",
+        "superficie_alta":   "#182021",
+        "superficie_hover":  "#1F292A",
+        "borde":             "#263234",
+        "borde_sutil":       "#1A2324",
+        "texto":             "#E6EEED",
+        "texto_medio":       "#9AABA9",
+        # Aclarado para texto pequeño: .eyebrow, .et y .tarjeta-etiqueta.
+        "texto_tenue":       "#7D8F8D",
+        "acento":            "#2DD4BF",   # teal de ichi7.dev, 9,6:1
+        "acento_alto":       "#5EEAD4",
+        "acento_fondo":      "#0E2A27",
+        "boton_texto":       "#04211E",
+        "senal_buena":       "#9980FE",
         "senal_media":       "#E0A33E",
-        "senal_mala":        "#E5484D",
-        "senal_buena_fondo": "#12241C",
+        "senal_mala":        "#E65A79",
+        "senal_buena_fondo": "#1C1834",
         "senal_media_fondo": "#241D10",
-        "senal_mala_fondo":  "#2A1416",
-        "senal_buena_texto": "#B6EED2",
+        "senal_mala_fondo":  "#2A1219",
+        "senal_buena_texto": "#D5CCFF",
         "senal_media_texto": "#F0D9AC",
-        "senal_mala_texto":  "#F7C9CB",
-        "dato":              "#8B95A6",
-        "dato_tenue":        "#3A424F",
-        "rejilla":           "#222834",
+        "senal_mala_texto":  "#F9C6D2",
+        "dato":              "#8A9C9A",
+        "dato_tenue":        "#34403F",
+        "rejilla":           "#1F2929",
         # Tinta de titulares y sombra de tarjeta. En los temas oscuros el
         # titular ya destaca por contraste puro y una sombra no se ve sobre
         # fondo casi negro: ambos quedan neutros aquí y trabajan en el claro.
@@ -112,15 +116,19 @@ PALETAS: dict[str, dict[str, str]] = {
         "acento_alto":       "#FFD43B",   # amarillo Python, 12,9:1
         "acento_fondo":      "#132433",
         "boton_texto":       "#0A0C10",
-        "senal_buena":       "#5FD68C",
+        # Terminal conserva azul y amarillo de Python (el teal aquí empeoraba:
+        # acento y «bueno» a ΔE 0,02 en tritanopia). Sí cambian «bueno» (verde
+        # oliva) y «malo» (rosa): el par anterior quedaba a ΔE 0,05 en
+        # deuteranopia.
+        "senal_buena":       "#6F9C37",
         "senal_media":       "#FFD43B",
-        "senal_mala":        "#FF7B72",
-        "senal_buena_fondo": "#0E2418",
+        "senal_mala":        "#FD8994",
+        "senal_buena_fondo": "#16220C",
         "senal_media_fondo": "#241E08",
-        "senal_mala_fondo":  "#2A1315",
-        "senal_buena_texto": "#9FE8BC",
+        "senal_mala_fondo":  "#2A1518",
+        "senal_buena_texto": "#C3E39A",
         "senal_media_texto": "#FFE58F",
-        "senal_mala_texto":  "#FFB3AE",
+        "senal_mala_texto":  "#FFC4CA",
         "dato":              "#8FA68C",
         "dato_tenue":        "#39434E",
         "rejilla":           "#222A34",
@@ -137,7 +145,7 @@ E = {"1": "4px", "2": "8px", "3": "12px", "4": "16px",
 # v1.1: un escalón más grande en todo el cuerpo. 12-13 px se leía bien en
 # la exposición (proyector, de cerca) pero apretado en un portafolio.
 F = {"micro": "11px", "mini": "13px", "cuerpo": "14.5px", "medio": "16px",
-     "sub": "21px", "titulo": "32px", "cifra": "30px", "cifra_xl": "50px",
+     "sub": "21px", "titulo": "28px", "cifra": "30px", "cifra_xl": "50px",
      "hero": "56px"}
 R = {"sm": "4px", "md": "6px", "lg": "10px"}
 
@@ -239,8 +247,8 @@ h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.02em; font-weight: 60
 [data-testid="stAppViewContainer"] h3 {{ font-size: {F['medio']} !important; padding: 0 !important;
                                         margin: 24px 0 8px 0 !important; }}
 h1 {{ font-size: {F['titulo']}; font-weight: 700 !important; line-height: 1.12;
-      letter-spacing: -0.03em; margin: 0 0 var(--e2) 0; max-width: 30ch;
-      animation: aparecer 520ms cubic-bezier(.2,.7,.2,1) both; }}
+      letter-spacing: -0.03em; margin: 0 0 var(--e2) 0; max-width: 40ch;
+      animation: aparecer 220ms cubic-bezier(.2,.7,.2,1) both; }}
 h2 {{ font-size: {F['sub']}; font-weight: 650 !important; line-height: 1.25;
       margin: var(--e8) 0 var(--e3) 0; max-width: 46ch; }}
 h3 {{ font-size: {F['medio']}; margin: var(--e6) 0 var(--e2) 0; }}
@@ -829,7 +837,7 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 /* Movimiento: una sola curva de entrada para todo. Suave y corta: la página
    se «asienta» en vez de saltar. Se apaga entera con reduced-motion (abajo). */
 @keyframes aparecer {{
-  from {{ opacity: 0; transform: translateY(8px); }}
+  from {{ opacity: 0; transform: translateY(4px); }}
   to   {{ opacity: 1; transform: none; }}
 }}
 @keyframes crecer-x {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
@@ -839,11 +847,11 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 }}
 .entradilla, .tarjeta, .panel, .kpi, .hero-cifra, .tres-numeros > div,
 .porque, .hallazgo, .fila-veredicto, .paso-viaje, .estacion-cab {{
-  animation: aparecer 460ms cubic-bezier(.2,.7,.2,1) both;
+  animation: aparecer 220ms cubic-bezier(.2,.7,.2,1) both;
 }}
-.rejilla-tarjetas > .tarjeta:nth-child(2) {{ animation-delay: 60ms; }}
-.rejilla-tarjetas > .tarjeta:nth-child(3) {{ animation-delay: 120ms; }}
-.rejilla-tarjetas > .tarjeta:nth-child(4) {{ animation-delay: 180ms; }}
+.rejilla-tarjetas > .tarjeta:nth-child(2) {{ animation-delay: 30ms; }}
+.rejilla-tarjetas > .tarjeta:nth-child(3) {{ animation-delay: 60ms; }}
+.rejilla-tarjetas > .tarjeta:nth-child(4) {{ animation-delay: 90ms; }}
 .tarjeta {{ transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }}
 .tarjeta:hover {{ transform: translateY(-2px); border-color: {T['acento']}55; }}
 
@@ -887,8 +895,8 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 .hero-relleno {{
   position: absolute; inset: 0 auto 0 0; border-radius: 999px;
   background: linear-gradient(90deg, {T['acento']}, {T['acento_alto']});
-  transform-origin: left; animation: crecer-x 700ms cubic-bezier(.2,.7,.2,1) both;
-  transition: width 400ms cubic-bezier(.2,.7,.2,1);
+  transform-origin: left; animation: crecer-x 250ms cubic-bezier(.2,.7,.2,1) both;
+  transition: width 250ms cubic-bezier(.2,.7,.2,1);
 }}
 .hero-marca {{ position: absolute; top: -6px; bottom: -6px; width: 2px;
               background: {T['texto']}; border-radius: 2px; }}
@@ -930,7 +938,7 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 /* Slider: pista de acento y pulgar con halo al tocarlo */
 [data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]:focus,
 [data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]:hover {{
-  animation: pulso 1.2s ease-out infinite;
+  animation: pulso 1.2s ease-out 1;
 }}
 
 /* Tablas: envoltura con scroll horizontal en móvil y fila con hover */
@@ -958,6 +966,88 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 .paso-viaje {{ border-top: 2px solid {T['acento']}; padding-top: var(--e3);
               height: 100%; }}
 .paso-viaje .sutil {{ font-size: {F['cuerpo']}; color: {T['texto']}; margin-top: var(--e2); }}
+
+/* ==========================================================================
+   v1.2 — barra superior, gráficos en línea y resumen «de un vistazo»
+   ========================================================================== */
+
+/* Barra superior: marca + secciones + idioma + tema. Reemplaza al sidebar y
+   devuelve su ancho al contenido. Pegajosa: la navegación nunca se pierde. */
+.st-key-barra {{
+  position: sticky; top: 0; z-index: 50;
+  background: {T['fondo']}ee;
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid {T['borde_sutil']};
+  padding: var(--e2) 0 !important;
+  margin-bottom: var(--e4);
+}}
+.marca-barra {{
+  display: flex; align-items: baseline; gap: var(--e2);
+  white-space: nowrap; font-size: {F['cuerpo']}; color: {T['texto']};
+}}
+.marca-barra .rombo {{ color: {T['acento']}; font-size: 18px; }}
+.marca-barra b {{ font-weight: 650; }}
+.marca-barra .quien {{ color: {T['texto_medio']}; border-bottom: 1px dotted {T['texto_tenue']};
+                      cursor: help; }}
+/* Navegación activa: fondo de acento pleno. El resto, texto medio sin borde. */
+.st-key-sec [data-testid="stButtonGroup"] button {{
+  background: transparent !important; border-color: transparent !important;
+  padding: 6px 12px !important;
+}}
+.st-key-sec [data-testid="stButtonGroup"] button p {{
+  color: {T['texto_medio']} !important; font-size: {F['cuerpo']} !important;
+  font-weight: 500;
+}}
+.st-key-sec [data-testid="stButtonGroup"] button:hover p {{ color: {T['acento_alto']} !important; }}
+.st-key-sec [data-testid="stButtonGroup"] button[aria-checked="true"] {{
+  background: {T['acento']} !important; border-color: {T['acento']} !important;
+}}
+.st-key-sec [data-testid="stButtonGroup"] button[aria-checked="true"] p {{
+  color: {T['boton_texto']} !important; font-weight: 600;
+}}
+.st-key-lang [data-testid="stButtonGroup"] button,
+.st-key-theme [data-testid="stButtonGroup"] button {{ padding: 4px 10px !important; }}
+.st-key-lang [data-testid="stButtonGroup"] button p,
+.st-key-theme [data-testid="stButtonGroup"] button p {{ font-size: {F['mini']} !important; }}
+
+/* Gráficos en línea (st.html): heredan fuentes y paleta de la página, sin
+   iframe ni @import propio. La caja tiene alto fijo y el SVG se ajusta DENTRO
+   (preserveAspectRatio meet): el mismo contrato que tenían los iframes. */
+.grafico {{ width: 100%; }}
+.grafico svg {{ display: block; width: 100%; height: 100%; overflow: visible; }}
+.grafico svg text {{ font-family: {fuente_cuerpo}; font-variant-numeric: tabular-nums; }}
+.grafico .et {{ font-family: {FUENTE_MONO}; font-size: 10px; letter-spacing: 0.08em;
+               text-transform: uppercase; fill: {T['texto_tenue']}; }}
+.grafico .vl {{ font-size: 12px; fill: {T['texto']}; }}
+.grafico .vs {{ font-size: 11px; fill: {T['texto_medio']}; }}
+.grafico .anim-barra {{ transform-box: fill-box; transform-origin: left center;
+                       animation: g-crecer-x 240ms cubic-bezier(.2,.7,.2,1) both; }}
+.grafico .anim-columna {{ transform-box: fill-box; transform-origin: center bottom;
+                         animation: g-crecer-y 240ms cubic-bezier(.2,.7,.2,1) both; }}
+.grafico .anim-trazo {{ stroke-dasharray: 1; stroke-dashoffset: 1;
+                       animation: g-trazo 250ms cubic-bezier(.4,0,.2,1) forwards; }}
+.grafico .anim-celda {{ animation: g-aparecer 200ms ease both; }}
+.grafico .anim-punto {{ transform-box: fill-box; transform-origin: center;
+                       animation: g-pop 220ms cubic-bezier(.3,1.4,.5,1) both; }}
+@keyframes g-crecer-x {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
+@keyframes g-crecer-y {{ from {{ transform: scaleY(0); }} to {{ transform: scaleY(1); }} }}
+@keyframes g-trazo {{ to {{ stroke-dashoffset: 0; }} }}
+@keyframes g-aparecer {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+@keyframes g-pop {{ from {{ transform: scale(0); }} to {{ transform: scale(1); }} }}
+
+/* Resumen de un vistazo: cifras grandes con su rótulo, y una frase. */
+.vistazo-cifras {{ display: flex; flex-direction: column; gap: var(--e4); }}
+.vistazo-cifra b {{
+  display: block; font-family: {FUENTE_MONO}; font-size: {F['cifra']};
+  font-weight: 500; letter-spacing: -0.02em; color: {T['acento_alto']}; line-height: 1.1;
+}}
+.vistazo-cifra span {{ font-size: {F['mini']}; color: {T['texto_medio']}; line-height: 1.45; }}
+.vistazo-frase {{ font-size: {F['medio']}; line-height: 1.55; color: {T['texto']};
+                 border-left: 3px solid {T['acento']}; padding-left: var(--e3); }}
+
+/* Jerarquía del tema claro: las cabeceras de bloque llevan una marca de
+   acento; los temas oscuros ya destacan por contraste. */
+h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; }}
 
 /* Firma: pie de página y sidebar */
 .pie {{
@@ -991,6 +1081,12 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
     background: {T['superficie']} !important; border: 1px solid {T['borde']};
     border-radius: var(--r-md); color: {T['texto']} !important;
   }}
+  /* Barra superior en móvil: la marca y los selectores en una fila, las
+     secciones debajo en una sola línea con scroll horizontal. */
+  .st-key-barra {{ flex-wrap: wrap !important; row-gap: var(--e2) !important; }}
+  .st-key-sec {{ order: 3; width: 100% !important; max-width: 100%; overflow-x: auto; }}
+  .st-key-sec [data-testid="stButtonGroup"] > div {{ flex-wrap: nowrap !important; }}
+  .st-key-sec [data-testid="stButtonGroup"] button {{ white-space: nowrap; flex-shrink: 0; }}
   .franja-kpi {{ grid-template-columns: repeat(2, minmax(0,1fr)); }}
   .tres-numeros {{ grid-template-columns: 1fr; }}
   .hero-valor {{ font-size: 40px; }}

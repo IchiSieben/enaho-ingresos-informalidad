@@ -197,6 +197,36 @@ def test_el_embudo_publicado_cuadra():
     assert emb["split"]["train"] + emb["split"]["test"] == etapas[-1]["filas"]
 
 
+def test_el_embudo_svg_muestra_motivo_y_porcentaje():
+    """
+    Condición del reemplazo del Sankey: cada recorte conserva su motivo
+    legible (texto visible Y <title>) y su porcentaje sobre el total crudo,
+    con decimal bajo el 1 %.
+    """
+    import re
+    from html import unescape
+    motivos = ["Motivo del primer recorte, con varias palabras para partir "
+               "en más de una línea si hace falta.", "Segundo motivo.",
+               "Tercer motivo, el recorte chico."]
+    svg = graficos.embudo(
+        [("Crudo", 1000), ("A", 700), ("B", 500), ("C", 497)],
+        [("fuera 1", 300, motivos[0]), ("fuera 2", 200, motivos[1]),
+         ("fuera 3", 3, motivos[2])],
+        [("Train", 400, "entrena"), ("Test", 97, "evalúa")], PALETAS["claro"])
+    titulos = unescape(" ".join(re.findall(r"<title>(.*?)</title>", svg)))
+    visible = unescape(" ".join(re.findall(r"<text[^>]*>(.*?)</text>", svg)))
+    for m in motivos:
+        assert m in titulos
+        assert m in visible, f"motivo no visible: {m}"
+    assert "0,3 %" in visible          # 3 de 1000: el entero diría «0 %»
+    assert "30 %" in visible and "100 %" in visible
+    assert graficos.proporcion(svg)[0] == 960
+    # Entrada ≤ 250 ms: solo clases de animación del contrato, sin retrasos.
+    assert "animation-delay" not in svg
+    with pytest.raises(ValueError):
+        graficos.embudo([("a", 1), ("b", 1)], [], [], PALETAS["claro"])
+
+
 # --------------------------------------------------------------------------
 # Bilingüe (v1.1): ningún texto de datos se queda en español en la versión EN
 # --------------------------------------------------------------------------
