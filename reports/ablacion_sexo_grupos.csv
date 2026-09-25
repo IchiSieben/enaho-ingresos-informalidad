@@ -1,0 +1,9 @@
+variante,sexo,base,n,senalados,precision,recall
+completa,Hombre,muestra,21613,0.6585,0.8986,0.884
+completa,Hombre,ponderado,21613,0.5965,0.8782,0.8388
+completa,Mujer,muestra,16492,0.6915,0.9018,0.9056
+completa,Mujer,ponderado,16492,0.653,0.8876,0.8763
+sin sexo,Hombre,muestra,21613,0.6746,0.892,0.8989
+sin sexo,Hombre,ponderado,21613,0.6163,0.8709,0.8594
+sin sexo,Mujer,muestra,16492,0.665,0.9106,0.8794
+sin sexo,Mujer,ponderado,16492,0.6253,0.8983,0.8493
