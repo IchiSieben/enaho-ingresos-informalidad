@@ -1,0 +1,56 @@
+matriz #  1 ADJUDICADA    [mincer1974] p(1) ln y=6.20+.107s+.081t-.0012t2 .285
+matriz #  2 ADJUDICADA    [mincer1974] p(3) ln y= f(d3) + .068t- .0009t2 + 1.207 ln w .525
+matriz #  3 OK            [card1999] r-squared 0.328 0.182 0.136 0.222 0.403
+matriz #  3 OK            [card1999] r-squared 0.247 0.071 0.074 0.105 0.247
+matriz #  4 OK_FRAG       [lemieux2006] though mincer (1974) considered several functional forms for the earnings equati
+matriz #  5 OK            [heckman2006] experience: potential experience is measured by age - years of education - 6.
+matriz #  6 OK            [heckman2006] measurement error
+matriz #  6 ADJUDICADA    [heckman2006] discontinuous
+matriz #  7 OK_FRAG       [psacharopoulos2018] the private average global rate of return to one extra year of schooling is abou
+matriz #  7 OK            [psacharopoulos2018] latin america and caribbean 11.0 7.3
+matriz #  8 OK            [yamada2007] en el año 2004, el retorno promedio por año de educación para los asalariados fu
+matriz #  9 OK            [duan1983] smearing estimate: a nonparametric retransformation method
+matriz # 12 OK            [sohnesen2016] comparing out-of-sample predictions in surveys for same year in six countries sh
+matriz # 13 OK            [saito2015] prc plots... can provide the viewer with an accurate prediction of future classi
+matriz # 13 OK            [saito2015] one can ask whether roc plots could be misleading when applied in imbalanced cla
+matriz # 14 OK            [inei_informal (cita actual, ] los datos de la informalidad se han obtenido en base a la reciente información d
+matriz # 14 OK            [inei_informal (cita actual, ] tres de cada cuatro... (70,9%)
+matriz # 15 OK            [inei_empleo_2025 (nueva)] el 70,2% tenían empleo informal
+matriz # 15 OK            [inei_empleo_2025 (nueva)] 94,8%... rural... 64,5%
+matriz # 15 OK            [inei_empleo_2025 (nueva)] 88,6%... 1 a 10 trabajadores... 44,0%... 11 a 50... 15,6%... 51 y más
+matriz # 17 OK            [hart1973] the distinction between formal and informal income opportunities is based essent
+matriz # 18 OK            [oit1972kenya] the bulk of employment in the informal sector, far from being only marginally pr
+matriz # 19 OK            [chen2012] unincorporated small or unregistered enterprises (1993 icls); informal employmen
+matriz # 20 OK_FRAG       [oit2018_mujeres_hombres] the formal or informal nature of a job held by an employee is determined... soci
+matriz # 21 OK            [oit_17ciet] informal sector, adopted by the 15th icls (1993)... of informal employment, endo
+matriz # 22 OK            [chen2012] the dualist school sees...
+matriz # 22 OK            [chen2012] the structuralist school sees...
+matriz # 22 OK            [chen2012] the legalist school sees...
+matriz # 22 OK            [chen2012] the voluntarists argue...
+matriz # 23 OK            [lewis1954] the evidence appears most consistent with lewiss dual view of informality
+matriz # 26 OK            [portescastellsbenton1989] the structuralist school sees the informal economy as subordinated economic unit
+matriz # 28 OK_FRAG       [maloney2004] if in fact much of the sector is voluntary, in the sense of...
+matriz # 29 OK_FRAG       [guntherlaunov2012] the informal sector as a strategy of last resort to escape involuntary unemploym
+matriz # 30 OK            [laportashleifer2014] the evidence appears most consistent with lewiss dual view of informality, which
+matriz # 32 OK            [ulyssea2020] one cannot rely on wage gaps to test for the existence of segmentation...
+matriz # 32 OK            [ulyssea2020] both the extensive and intensive margins of informality decline with firm size
+matriz # 33 OK            [matosmar1984] se produce el crecimiento de una economía popular contestataria a la que la opin
+matriz # 33 OK            [matosmar1984] la vida social de la ciudad acepta hoy y difunde, como parte de sus estrategias 
+matriz # 34 OK            [golteadams1987] en sus asociaciones empresariales y en el reclutamiento de personal, recurren a 
+matriz # 35 OK            [rodriguez2011] los resultados sugieren la existencia de segmentación entre estos dos tipos de p
+matriz # 35 OK            [rodriguez2011] diferencias en 22 y 31% con... diferencias en las diferencias y entre 33 y 64% c
+matriz # 36 OK            [kamichi2023] es porque no lo consideran necesario (53 %), porque su negocio es pequeño (32,5 
+matriz # 37 OK            [nopo2008] the 45% gender wage gap in peru is decomposed as: 11% explained by differences i
+matriz # 38 OK            [nopo_atal_winder2009] men earn 9-27 percent more than women... the unexplained pay gap is higher among
+matriz # 39 OK            [blaukahn2017] using psid microdata over the 1980-2010, we provide new empirical evidence on th
+matriz # 40 OK_FRAG       [goldin2014] the gender gap in pay would be considerably reduced and might even vanish if fir
+matriz # 41 OK            [nopo_saavedra_torero2004] there are racially related earnings differences in favor of predominantly white 
+matriz # 42 OK            [arpi2018] descomponiendo mediante el método de blinder-oaxaca (1973)... el alcance explica
+matriz # 43 OK            [esparta_rivera2020] se encuentra evidencia de que dicha brecha no es atribuible únicamente a factore
+matriz # 44 OK            [iza3151_2007] we find that there is a gross wage penalty of a little over 18 per cent for work
+matriz # 45 OK            [breiman2001] there are two cultures in the use of statistical modeling to reach conclusions f
+matriz # 46 OK            [shmueli2010] conflation between explanation and prediction is common, yet the distinction mus
+matriz # 49 OK            [barocas2023] what if we simply withhold gender from the data? is that a sufficient response t
+matriz # 49 OK            [barocas2023] in real datasets, most attributes tend to be proxies for demographic variables, 
+matriz # 50 OK            [aiken2022] relative to the geographic targeting options considered by the government of tog
+citas de la matriz con problema: 0 · cifras del marco sin respaldo: 0

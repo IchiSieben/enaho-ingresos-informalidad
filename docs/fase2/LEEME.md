@@ -33,3 +33,20 @@ también atrapa prosa. Revisión manual, uno por uno:
 - **Duan (1983):** sin copia abierta ni resumen (Semantic Scholar, Unpaywall y
   Crossref). Solo se verificaron los metadatos; la app le atribuye únicamente el
   nombre del método, que es el título del artículo.
+
+## Segunda pasada: los entregables
+
+`verificar_entregables.py` repite la comprobación sobre lo que se entrega, no sobre
+los borradores. Cada cita de `MATRIZ_AFIRMACIONES.md` se busca en el crudo de SU
+fuente, con alias explícitos (las citas de segunda mano se buscan en el crudo de
+quien las cita) y sin buscar en los demás archivos: esa búsqueda ya había dado un
+falso positivo (una frase de Kamichi «encontrada» en Golte y Adams). También
+verifica, dígito por dígito, cada cifra de la columna «Qué dice la literatura» de
+`MARCO_TEORICO.md`. Resultado (`_verificacion_entregables.txt`): 46 citas OK,
+6 OK_FRAG, 3 adjudicadas (listadas en el script), 0 problemas; 0 cifras sin
+respaldo.
+
+Correcciones de esta pasada: la cita de `inei_informal` estaba abreviada; la de
+Breiman era el encabezado de JSTOR (se cambió por el resumen); la nota propuesta
+de Ulyssea decía «Revisión 2015-2026», que era el criterio de búsqueda, no algo
+del artículo.

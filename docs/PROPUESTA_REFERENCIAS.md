@@ -169,13 +169,13 @@ sección 5.
            "annurev-economics-082119-121914.pdf",
     "doi": "10.1146/annurev-economics-082119-121914",
     "acceso": "abierto",
-    "nota": "Revisión 2015-2026 del debate dualista/voluntarista; advierte que "
+    "nota": "Revisión del debate dualista/voluntarista; advierte que "
             "las brechas salariales por sí solas no bastan para probar "
             "segmentación, y documenta que la informalidad decrece con el "
             "tamaño de la firma en todos los países estudiados.",
     "cita_en": "Ulyssea, G. (2020). “Informality: Causes and Consequences for "
                "Development”. <i>Annual Review of Economics</i> 12, pp. 525-546.",
-    "nota_en": "2015-2026 review of the dualist/voluntarist debate; warns that "
+    "nota_en": "Review of the dualist/voluntarist debate; warns that "
                "wage gaps alone are not enough to test for segmentation, and "
                "documents that informality declines with firm size in every "
                "country studied.",
