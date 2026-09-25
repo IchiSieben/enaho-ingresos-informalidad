@@ -140,6 +140,17 @@ PALETAS: dict[str, dict[str, str]] = {
 # El tema Terminal va TODO en monoespaciada, no solo las cifras.
 TEMAS_MONO = {"terminal"}
 
+# Filtro que lleva el teal de la pista del slider (primaryColor del config,
+# pintado por Streamlit en un gradiente con el valor incrustado) al acento de
+# cada tema. Calculado con color.filtro_hacia("#0F766E", acento): la búsqueda
+# tarda ~13 s por tema, así que se guarda aquí y tests/test_color.py
+# comprueba que sigue llevando al acento si cambia la paleta.
+FILTRO_PISTA = {
+    "claro": "none",
+    "oscuro": "hue-rotate(-2deg) saturate(1.0) brightness(1.8)",
+    "terminal": "hue-rotate(38deg) saturate(0.8) brightness(1.6)",
+}
+
 E = {"1": "4px", "2": "8px", "3": "12px", "4": "16px",
      "6": "24px", "8": "32px", "12": "48px"}
 # v1.1: un escalón más grande en todo el cuerpo. 12-13 px se leía bien en
@@ -186,7 +197,13 @@ def css(T: dict[str, str]) -> str:
         f"{barra} .st-key-sec button p {{ font-size: 14px !important; "
         f"letter-spacing: -0.02em; }}\n"
         f"{barra} .st-key-lang button, {barra} .st-key-theme button "
-        f"{{ padding: 4px 8px !important; }}"
+        f"{{ padding: 4px 8px !important; }}\n"
+        # Las cinco pills de perfiles en ES tampoco cabían en una fila y
+        # empujaban el gráfico de Informalidad bajo el pliegue a 1366×768.
+        f"section[data-testid=stMain] [class*=st-key-perfil] [data-testid=stButtonGroup] "
+        f"button {{ padding: 4px 12px !important; }}\n"
+        f"section[data-testid=stMain] [class*=st-key-perfil] [data-testid=stButtonGroup] "
+        f"button p {{ font-size: 14px !important; }}"
         if tema in TEMAS_MONO else "")
     return f"""<style>
 {IMPORT_FUENTES}
@@ -1093,6 +1110,45 @@ section[data-testid="stMain"] .st-key-barra .st-key-theme button p {{ font-size:
   color: {T['texto_medio']} !important;
 }}
 [data-testid="stTooltipIcon"] svg {{ stroke: {T['texto_medio']} !important; }}
+
+/* Slider, radio y toggle nativos: Streamlit los pinta con el primaryColor del
+   config.toml (el teal del tema claro) en cualquier tema. [theme.light] y
+   [theme.dark] no sirven: Streamlit elige entre ellos por la preferencia del
+   sistema del visitante, no por ?theme=, y la app tiene tres temas. Se
+   repintan aquí con los tokens del tema activo. La pista lleva el valor
+   incrustado en su gradiente, así que se transforma con `filter` en vez de
+   reescribirla (ver FILTRO_PISTA). */
+[data-testid="stSlider"] > [role="group"] > div > div:first-child {{
+  filter: {FILTRO_PISTA[tema]};
+}}
+[data-testid="stSlider"] > [role="group"] > div > div:nth-child(2) {{
+  background-color: {T['acento']} !important;
+}}
+[data-testid="stSliderThumbValue"] {{ color: {T['acento_alto']} !important; }}
+[data-testid="stRadioOption"] > div > div:first-child > div:first-child {{
+  background-color: {T['texto_tenue']} !important;
+}}
+[data-testid="stRadioOption"] > div > div:first-child > div:first-child > div {{
+  background-color: {T['superficie']} !important;
+}}
+[data-testid="stRadioOption"][data-selected="true"] > div > div:first-child > div:first-child {{
+  background-color: {T['acento']} !important;
+}}
+[data-testid="stRadioOption"][data-selected="true"] > div > div:first-child > div:first-child > div {{
+  background-color: {T['boton_texto']} !important;
+}}
+[data-testid="stCheckbox"] label > div:nth-child(2) {{
+  background-color: {T['texto_tenue']} !important;
+}}
+[data-testid="stCheckbox"] label[data-selected="true"] > div:nth-child(2) {{
+  background-color: {T['acento']} !important;
+}}
+[data-testid="stCheckbox"] label > div:nth-child(2) > div {{
+  background-color: {T['superficie']} !important;
+}}
+[data-testid="stCheckbox"] label[data-selected="true"] > div:nth-child(2) > div {{
+  background-color: {T['boton_texto']} !important;
+}}
 [class*="st-key-caja_form_reg"] [data-testid="stWidgetLabel"] p,
 [class*="st-key-caja_form_clf"] [data-testid="stWidgetLabel"] p {{
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

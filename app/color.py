@@ -76,3 +76,62 @@ def delta_e(a: str, b: str, tipo: str | None = None) -> float:
         pa = _oklab(tuple(_lin(v) for v in _hex(a)))
         pb = _oklab(tuple(_lin(v) for v in _hex(b)))
     return math.dist(pa, pb)
+
+
+# --------------------------------------------------------------------------
+# Filtro CSS para recolorear la pista del slider
+# --------------------------------------------------------------------------
+# Streamlit pinta la pista con un gradiente cuyo corte es el valor actual
+# (teal hasta el 61 %, gris después), y ese color sale del primaryColor del
+# config.toml, que es el del tema claro. Con CSS no se puede reescribir el
+# gradiente sin conocer el valor, pero sí transformar sus píxeles con
+# `filter`. Aquí se busca el filtro que lleva el teal al acento de cada tema.
+# Las matrices son las de Filter Effects (W3C) aplicadas en sRGB, que es como
+# Chromium las calcula para las funciones de `filter`; el color resultante se
+# verifica midiendo el píxel en el navegador (docs/qa).
+
+
+def _hue_rotate(rgb, grados):
+    a = math.radians(grados)
+    c, s = math.cos(a), math.sin(a)
+    m = ((0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928),
+         (0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.140, 0.072 - c * 0.072 - s * 0.283),
+         (0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072))
+    return tuple(sum(m[i][j] * rgb[j] for j in range(3)) for i in range(3))
+
+
+def _saturate(rgb, s):
+    m = ((0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s),
+         (0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s),
+         (0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s))
+    return tuple(sum(m[i][j] * rgb[j] for j in range(3)) for i in range(3))
+
+
+def aplicar_filtro(c: str, grados: float, sat: float, brillo: float) -> str:
+    """Color hex tras `hue-rotate(grados) saturate(sat) brightness(brillo)`."""
+    rgb = _hex(c)
+    rgb = tuple(min(1, max(0, v)) for v in _hue_rotate(rgb, grados))
+    rgb = tuple(min(1, max(0, v)) for v in _saturate(rgb, sat))
+    rgb = tuple(min(1, max(0, v * brillo)) for v in rgb)
+    return "#" + "".join(f"{round(v * 255):02X}" for v in rgb)
+
+
+def filtro_hacia(origen: str, destino: str) -> tuple[str, str, float]:
+    """
+    Filtro CSS que lleva `origen` lo más cerca posible de `destino`.
+    Devuelve (css, color_resultante, ΔE OKLab). Búsqueda en rejilla: son tres
+    parámetros acotados y se calcula una vez por tema.
+    """
+    mejor = None
+    for g in range(-180, 181, 2):
+        for s10 in range(5, 41):
+            for b10 in range(5, 41):
+                s, b = s10 / 10, b10 / 10
+                r = aplicar_filtro(origen, g, s, b)
+                d = delta_e(r, destino)
+                if mejor is None or d < mejor[0]:
+                    mejor = (d, g, s, b, r)
+    d, g, s, b, r = mejor
+    if g == 0 and s == 1 and b == 1:
+        return "none", r, d
+    return f"hue-rotate({g}deg) saturate({s}) brightness({b})", r, d

@@ -58,3 +58,32 @@ def test_semanticos_distinguibles_con_daltonismo(tema):
                for a, b in itertools.combinations(SEMANTICOS, 2)
                for tipo in (None, *CVD))
     assert peor[0] >= DELTA_MIN, f"{tema}: {peor[1]}–{peor[2]} en {peor[3]} = {peor[0]:.3f}"
+
+
+@pytest.mark.parametrize("tema", list(PALETAS))
+def test_filtro_de_pista_lleva_al_acento(tema):
+    # La pista del slider se recolorea con FILTRO_PISTA (estilos.py). Si la
+    # paleta cambia y el filtro no, la pista quedaría de otro color.
+    import re
+    from color import aplicar_filtro
+    from estilos import FILTRO_PISTA
+    T = PALETAS[tema]
+    f = FILTRO_PISTA[tema]
+    if f == "none":
+        resultado = "#0F766E"
+    else:
+        g, s, b = map(float, re.findall(r"-?\d+(?:\.\d+)?", f))
+        resultado = aplicar_filtro("#0F766E", g, s, b)
+    assert delta_e(resultado, T["acento"]) < 0.02, (tema, resultado, T["acento"])
+    # WCAG 1.4.11: componentes de interfaz a 3:1 contra su fondo.
+    assert contraste(resultado, T["superficie"]) >= 3
+
+
+@pytest.mark.parametrize("tema", list(PALETAS))
+def test_widgets_nativos_visibles(tema):
+    # Pulgar, radio marcado y toggle encendido van en acento; apagados, en
+    # texto_tenue. Ambos a 3:1 contra la superficie (WCAG 1.4.11).
+    T = PALETAS[tema]
+    for token in ("acento", "texto_tenue"):
+        assert contraste(T[token], T["superficie"]) >= 3, (tema, token)
+    assert contraste(T["boton_texto"], T["acento"]) >= 3
