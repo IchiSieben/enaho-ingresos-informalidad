@@ -76,7 +76,7 @@ GRAFICOS_REQUERIDOS = [
     "proporcion", "embudo", "franja_probabilidad", "matriz_confusion",
     "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
     "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
-    "viaje_dato", "miniatura_pd",
+    "viaje_dato", "viaje_dato_vertical", "miniatura_pd",
 ]
 
 # Claves del artefacto sin las que una sección no puede dibujarse. Se listan
@@ -439,7 +439,8 @@ def cabecera(pregunta: str, llano: str, detalle: str, seccion: str,
             html(f"<div class='sutil' style='max-width:68ch'>{detalle}</div>")
 
 
-def grafico(svg: str, alto: int, vistazo: bool = False) -> None:
+def grafico(svg: str, alto: int, vistazo: bool = False,
+            clase: str = "") -> None:
     """
     SVG en línea: sin iframe, hereda fuentes y paleta de la página.
 
@@ -452,10 +453,11 @@ def grafico(svg: str, alto: int, vistazo: bool = False) -> None:
     La caja toma la proporción del viewBox (nunca recorta: el SVG escala con
     `meet`) y `alto` queda como tope, para que un gráfico estrecho no se
     estire a todo el ancho de la página. `vistazo` marca el gráfico clave de
-    la sección (lo mide docs/qa/medir_vistazo.py).
+    la sección (lo mide docs/qa/medir_vistazo.py). `clase` añade clases a la
+    caja, p. ej. `solo-ancho`/`solo-angosto` para variantes por ancho.
     """
     w, h = graficos.proporcion(svg)
-    extra = " vistazo-grafico" if vistazo else ""
+    extra = (" vistazo-grafico" if vistazo else "") + (f" {clase}" if clase else "")
     html(f"<div class='grafico{extra}{clase_quieta()}' style='aspect-ratio:"
          f"{w:g}/{h:g};max-height:{alto}px'>{svg}</div>")
 
@@ -3357,8 +3359,14 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
     # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. Arranca
     # encendida: es lo primero que ve quien entra a esta sección.
     animado = st.session_state.get("maq_viaje_anim", True)
-    grafico(graficos.viaje_dato(titulos, [e["sub"] for e in estaciones],
-                                idx, T(), animado=animado), 185, vistazo=True)
+    subs = [e["sub"] for e in estaciones]
+    # Dos variantes del mismo viaje; el CSS muestra una según el ancho. A
+    # 390 px la fila horizontal escalaba a la mitad y no se leía.
+    grafico(graficos.viaje_dato(titulos, subs, idx, T(), animado=animado),
+            185, vistazo=True, clase="solo-ancho")
+    grafico(graficos.viaje_dato_vertical(titulos, subs, idx, T(),
+                                         animado=animado),
+            440, vistazo=True, clase="solo-angosto")
     emb, tam = maq["embudo"], maq["tamanos"]
     crudo = emb["etapas"][0]["filas"]
     modelado = emb["split"]["train"] + emb["split"]["test"]

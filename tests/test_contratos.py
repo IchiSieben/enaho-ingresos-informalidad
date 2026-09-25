@@ -257,3 +257,22 @@ def test_perfiles_de_ejemplo_son_validos():
                 assert float(f["min"]) <= float(v) <= float(f["max"]), (p["id"], nombre)
             else:
                 assert v in f["opciones"], (p["id"], nombre, v)
+
+
+@pytest.mark.parametrize("animado", [False, True])
+def test_viaje_vertical_lleva_los_mismos_datos(animado):
+    """
+    La variante apilada del viaje (pantallas angostas) muestra las mismas
+    estaciones y subtítulos que la horizontal, y cabe en 360 de ancho.
+    """
+    from html import unescape
+    titulos = ["Microdatos", "Limpieza", "Torneo"]
+    subs = ["601 MB", "47.632 filas", "9 recetas"]
+    h = graficos.viaje_dato(titulos, subs, 1, PALETAS["claro"], animado=animado)
+    v = graficos.viaje_dato_vertical(titulos, subs, 1, PALETAS["claro"],
+                                     animado=animado)
+    assert graficos.proporcion(v)[0] == 360
+    for t, s in zip(titulos, subs):
+        assert t in unescape(h) and t in unescape(v)
+        assert s in unescape(h) and s in unescape(v)
+    assert ("animateMotion" in v) == animado

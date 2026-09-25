@@ -783,6 +783,34 @@ def barras_mae(ids: list[str], maes: list[float], destacado: str, T: dict,
 # --------------------------------------------------------------------------
 # 10. El viaje del dato (sala de máquinas)
 # --------------------------------------------------------------------------
+def _anim_caja(i: int, n: int, T: dict, dur: str, w: float) -> str:
+    """
+    SMIL que ilumina la caja `i` cuando el dato pasa por ella. Las estaciones
+    van equiespaciadas, así que el dato llega a la i-ésima en la fracción
+    i/(n−1) de la vuelta; `w` es el medio ancho de la ventana de luz. Lo
+    comparten las variantes horizontal y vertical del viaje.
+    """
+    f = i / (n - 1)
+    base_f, lit_f = T["superficie_alta"], T["acento_fondo"]
+    base_s, lit_s = T["borde"], T["acento"]
+    if i == 0:
+        kt = f"0;{w};{1 - w};1"
+        vf, vs = (f"{lit_f};{base_f};{base_f};{lit_f}",
+                  f"{lit_s};{base_s};{base_s};{lit_s}")
+    elif i == n - 1:
+        kt = f"0;{1 - w};1"
+        vf, vs = (f"{base_f};{base_f};{lit_f}",
+                  f"{base_s};{base_s};{lit_s}")
+    else:
+        kt = f"0;{f - w};{f};{f + w};1"
+        vf = f"{base_f};{base_f};{lit_f};{base_f};{base_f}"
+        vs = f"{base_s};{base_s};{lit_s};{base_s};{base_s}"
+    return (f"<animate attributeName='fill' values='{vf}' "
+            f"keyTimes='{kt}' dur='{dur}' repeatCount='indefinite'/>"
+            f"<animate attributeName='stroke' values='{vs}' "
+            f"keyTimes='{kt}' dur='{dur}' repeatCount='indefinite'/>")
+
+
 def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
                ancho: int = 960, alto: int = 148, animado: bool = False) -> str:
     """
@@ -831,27 +859,7 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
         borde = T["acento"] if es else T["borde"]
         tinta = T["acento_alto"] if es else T["texto_medio"]
 
-        anims = ""
-        if animado:
-            f = i / (n - 1)
-            base_f, lit_f = T["superficie_alta"], T["acento_fondo"]
-            base_s, lit_s = T["borde"], T["acento"]
-            if i == 0:
-                kt = f"0;{w};{1 - w};1"
-                vf, vs = (f"{lit_f};{base_f};{base_f};{lit_f}",
-                          f"{lit_s};{base_s};{base_s};{lit_s}")
-            elif i == n - 1:
-                kt = f"0;{1 - w};1"
-                vf, vs = (f"{base_f};{base_f};{lit_f}",
-                          f"{base_s};{base_s};{lit_s}")
-            else:
-                kt = f"0;{f - w};{f};{f + w};1"
-                vf = f"{base_f};{base_f};{lit_f};{base_f};{base_f}"
-                vs = f"{base_s};{base_s};{lit_s};{base_s};{base_s}"
-            anims = (f"<animate attributeName='fill' values='{vf}' "
-                     f"keyTimes='{kt}' dur='{dur}' repeatCount='indefinite'/>"
-                     f"<animate attributeName='stroke' values='{vs}' "
-                     f"keyTimes='{kt}' dur='{dur}' repeatCount='indefinite'/>")
+        anims = _anim_caja(i, n, T, dur, w) if animado else ""
 
         partes.append(f"<rect x='{bx:.1f}' y='{by}' width='{bw:.1f}' "
                       f"height='{bh}' rx='8' fill='{relleno}' stroke='{borde}' "
@@ -904,6 +912,75 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
             f"stroke-width='2'><animateMotion dur='{dur}' "
             f"repeatCount='indefinite' "
             f"path='M {x0:.1f} {ry} L {x1:.1f} {ry}'/>"
+            f"<animate attributeName='r' values='6;8;6' dur='1.2s' "
+            f"repeatCount='indefinite'/></circle>")
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+def viaje_dato_vertical(titulos: list[str], subtitulos: list[str],
+                        activa: int, T: dict, ancho: int = 360,
+                        animado: bool = False) -> str:
+    """
+    El mismo viaje del dato, apilado para pantallas angostas: las estaciones
+    una debajo de otra y el riel a la izquierda. A 390 px la fila horizontal
+    escala a menos de la mitad y sus rótulos dejan de leerse; aquí el texto
+    conserva su tamaño. Mismos datos y misma animación que `viaje_dato`; la
+    app muestra una u otra según el ancho (CSS, sin rerun).
+    """
+    n = len(titulos)
+    arriba, fila, hueco = 8, 56, 12
+    alto = arriba * 2 + n * fila + (n - 1) * hueco
+    rx_, bx = 20, 44
+    bw = ancho - bx - 4
+    centros = [arriba + i * (fila + hueco) + fila / 2 for i in range(n)]
+    rotulo = (L(f"Viaje del dato en movimiento: un punto recorre las "
+                f"{n} estaciones",
+                f"Journey of a data point, animated: a dot travels through "
+                f"the {n} stations") if animado else
+              L(f"Viaje del dato: {escape(titulos[activa])} activa",
+                f"Journey of a data point: {escape(titulos[activa])} active"))
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' "
+              f"preserveAspectRatio='xMidYMin meet' role='img' "
+              f"aria-label='{rotulo}'>"]
+    dur, w = "12s", 0.06
+    y0, y1 = centros[0], centros[-1]
+    partes.append(f"<line x1='{rx_}' y1='{y0:.1f}' x2='{rx_}' y2='{y1:.1f}' "
+                  f"stroke='{T['dato_tenue']}' stroke-width='3' "
+                  f"stroke-linecap='round'/>")
+    if animado:
+        partes.append(
+            f"<line x1='{rx_}' y1='{y0:.1f}' x2='{rx_}' y2='{y0:.1f}' "
+            f"stroke='{T['acento']}' stroke-width='3' stroke-linecap='round'>"
+            f"<animate attributeName='y2' values='{y0:.1f};{y1:.1f}' "
+            f"dur='{dur}' repeatCount='indefinite'/></line>")
+    for i, (titulo, sub) in enumerate(zip(titulos, subtitulos)):
+        by = arriba + i * (fila + hueco)
+        es = (not animado) and i == activa
+        relleno = T["acento_fondo"] if es else T["superficie_alta"]
+        borde = T["acento"] if es else T["borde"]
+        tinta = T["acento_alto"] if es else T["texto_medio"]
+        anims = _anim_caja(i, n, T, dur, w) if animado else ""
+        partes.append(f"<rect x='{bx}' y='{by}' width='{bw}' height='{fila}' "
+                      f"rx='8' fill='{relleno}' stroke='{borde}' "
+                      f"stroke-width='{2 if es else 1}'>{anims}</rect>")
+        partes.append(f"<circle cx='{rx_}' cy='{centros[i]:.1f}' r='{6 if es else 4}' "
+                      f"fill='{T['acento'] if es else T['superficie']}' "
+                      f"stroke='{T['acento'] if es else T['dato']}' "
+                      f"stroke-width='1.5'/>")
+        partes.append(f"<text x='{bx + 12}' y='{by + 23}' class='et' "
+                      f"style='font-size:13px;font-weight:600;fill:"
+                      f"{T['texto'] if es else T['texto_medio']}'>"
+                      f"{i + 1} · {escape(titulo)}</text>")
+        partes.append(f"<text x='{bx + 12}' y='{by + 43}' class='vs' "
+                      f"style='font-size:13px;fill:{tinta}'>"
+                      f"{escape(sub)}</text>")
+    if animado:
+        partes.append(
+            f"<circle r='7' fill='{T['acento_alto']}' stroke='{T['fondo']}' "
+            f"stroke-width='2'><animateMotion dur='{dur}' "
+            f"repeatCount='indefinite' "
+            f"path='M {rx_} {y0:.1f} L {rx_} {y1:.1f}'/>"
             f"<animate attributeName='r' values='6;8;6' dur='1.2s' "
             f"repeatCount='indefinite'/></circle>")
     partes.append("</svg>")

@@ -1191,6 +1191,18 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 }}
 .sidebar-firma b {{ color: {T['texto']}; }}
 
+/* Variantes de un gráfico por ancho (viaje del dato): la fila horizontal
+   hasta 700 px, la apilada por debajo. El contenedor de Streamlit de la
+   variante oculta también se oculta, para no dejar su hueco. */
+.solo-angosto {{ display: none; }}
+[data-testid="stElementContainer"]:has(.solo-angosto) {{ display: none; }}
+@media (max-width: 700px) {{
+  .solo-ancho {{ display: none; }}
+  [data-testid="stElementContainer"]:has(.solo-ancho) {{ display: none; }}
+  .solo-angosto {{ display: block; }}
+  [data-testid="stElementContainer"]:has(.solo-angosto) {{ display: block; }}
+}}
+
 @media (max-width: 900px) {{
   /* Barra superior en móvil. Medido a 390 px: queda en tres filas (marca e
      idioma, tema, secciones). Pegajosa se comería un quinto de la pantalla
