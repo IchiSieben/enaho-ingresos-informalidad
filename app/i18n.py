@@ -71,7 +71,7 @@ def pct(x: float, dec: int = 1) -> str:
 
 
 def pc(v: float, dec: int = 0) -> str:
-    """Un número que YA es porcentaje: 67.3 -> «67,3 %» / «67.3%»."""
+    """Un número que YA es porcentaje: 41.5 -> «41,5 %» / «41.5%»."""
     return d(v, dec) + ("%" if en() else " %")
 
 

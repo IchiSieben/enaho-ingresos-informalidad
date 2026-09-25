@@ -283,6 +283,12 @@ def cargar_maquinas() -> dict:
     return _leer_maquinas(firma_maquinas())
 
 
+def cifras_texto() -> dict:
+    """Cifras sueltas del texto (especie, informalidad reconstruida,
+    experiencia negativa), leídas de los reportes por 09_precomputar_ui.py."""
+    return cargar_maquinas()["cifras_texto"]
+
+
 @st.cache_resource(show_spinner=False)
 def cargar_modelo(nombre: str):
     return joblib.load(DIR_MODELS / nombre)
@@ -1230,7 +1236,8 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
             f"promedio saldría subestimado en torno a un "
             f"{pc((1 - 1 / smear) * 100)}.<br><br>"
             f"<b>Qué queda fuera.</b> El target es solo dinero: el pago en "
-            f"especie y el autoconsumo (que recibe el 24,6 % de los "
+            f"especie y el autoconsumo (que recibe el "
+            f"{pc(cifras_texto()['especie']['pct'], 1)} de los "
             f"ocupados, sobre todo en el agro) no se cuentan. Y es un "
             f"ingreso anualizado y repartido en doce meses, no el del mes "
             f"de la entrevista.<br><br>"
@@ -1252,7 +1259,8 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
             f"mean would be understated by about "
             f"{pc((1 - 1 / smear) * 100)}.<br><br>"
             f"<b>What's left out.</b> The target is cash only: in-kind "
-            f"pay and own consumption (received by 24.6% of workers, "
+            f"pay and own consumption (received by "
+            f"{pc(cifras_texto()['especie']['pct'], 1)} of workers, "
             f"mostly in farming) aren't counted. And it's an annualized "
             f"income split over twelve months, not the interview "
             f"month's.<br><br>"
@@ -1351,14 +1359,16 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
             "independientes y empleadores se les pregunta si tienen RUC "
             "(registro tributario); a los dependientes, si les aportan a un "
             "sistema de pensiones. La derivación se validó contra la tasa "
-            "oficial: reconstruida sobre todos los ocupados da 67,3 % frente "
-            "al 70,2 % que publica el INEI para 2025.",
+            "oficial: reconstruida sobre todos los ocupados da "
+            f"{pc(cifras_texto()['informalidad_reconstruida']['pct_ponderado'], 1)}"
+            " frente al 70,2 % que publica el INEI para 2025.",
             "The rule was derived from two survey questions: the "
             "self-employed and employers are asked whether they have a RUC "
             "(tax registration); employees, whether anyone contributes to a "
             "pension scheme for them. The derivation was validated against "
             "the official rate: rebuilt over all employed people it gives "
-            "67.3% vs. the 70.2% INEI publishes for 2025.")
+            f"{pc(cifras_texto()['informalidad_reconstruida']['pct_ponderado'], 1)}"
+            " vs. the 70.2% INEI publishes for 2025.")
         + ref("inei_informal"),
         seccion=L("informalidad", "informality"),
         eyebrow=L("Clasificación · Gradient Boosting",
@@ -1880,14 +1890,16 @@ def seccion_torneo(schema: dict, art: dict) -> None:
         html("<h2>" + L("Robustez: ¿y el ingreso en especie?",
                         "Robustness: what about in-kind income?") + "</h2>")
         html("<div class='sutil' style='max-width:78ch'>" + L(
-            f"El 24,6 % de los ocupados recibe pago en especie o autoconsumo "
+            f"El {pc(cifras_texto()['especie']['pct'], 1)} de los ocupados "
+            f"recibe pago en especie o autoconsumo "
             f"(concentrado en el agro rural). Si excluirlo sesgara el premio "
             f"urbano, la narrativa entera quedaría en duda — así que se midió: "
             f"con target solo monetario el premio urbano es "
             f"<b>{pc(sens[0]['premio_urbano_pct'], 1)}</b>; añadiendo especie, "
             f"<b>{pc(sens[1]['premio_urbano_pct'], 1)}</b>. La exclusión queda "
             f"validada como robusta y declarada.",
-            f"24.6% of workers receive in-kind pay or own consumption "
+            f"{pc(cifras_texto()['especie']['pct'], 1)} of workers receive "
+            f"in-kind pay or own consumption "
             f"(concentrated in rural farming). If excluding it biased the "
             f"urban premium, the whole story would be in doubt — so it was "
             f"measured: with a cash-only target the urban premium is "
@@ -2113,18 +2125,20 @@ def _ficha_clasificador(clas: dict, a: dict, abl: list) -> None:
             f"INEI reports 88.6% in firms of <b>1 to 10 workers</b> and 15.6% "
             f"in those with over 50. The bands differ, so the two figures "
             f"aren't directly comparable")
+    reconstruida = cifras_texto()["informalidad_reconstruida"]["pct_ponderado"]
     html("<div class='sutil' style='margin-top:10px;max-width:78ch'>" + L(
         f"Baseline de PR-AUC = prevalencia ({d(clas['prevalencia_train'], 3)} "
         f"muestral; {d(clas['prevalencia_ponderada'], 3)} ponderada). La regla "
         f"del target se validó contra la tasa oficial: reconstruida sobre "
-        f"todos los ocupados da 67,3 % frente al 70,2 % que publica el "
+        f"todos los ocupados da {pc(reconstruida, 1)} frente al 70,2 % que "
+        f"publica el "
         f"INEI{ref('inei_informal')}{gradiente}. La definición de empleo "
         f"informal que se replica es la internacional de la OIT "
         f"(17.ª CIET){ref('oit_17ciet')}.",
         f"PR-AUC baseline = prevalence ({d(clas['prevalencia_train'], 3)} "
         f"sample; {d(clas['prevalencia_ponderada'], 3)} weighted). The target "
         f"rule was validated against the official rate: rebuilt over all "
-        f"employed people it gives 67.3% vs. the 70.2% INEI "
+        f"employed people it gives {pc(reconstruida, 1)} vs. the 70.2% INEI "
         f"publishes{ref('inei_informal')}{gradiente}. The definition of "
         f"informal employment replicated here is the ILO's international one "
         f"(17th ICLS){ref('oit_17ciet')}.") + "</div>")
@@ -2147,7 +2161,7 @@ def _ficha_clasificador(clas: dict, a: dict, abl: list) -> None:
             "Tamaño de empresa y categoría ocupacional son las variables más "
             "próximas a la definición operativa del target: en microempresas, "
             "no aportar a pensiones es casi estructural. Aun quitando ambas, "
-            "el PR-AUC se sostiene en 0,94: educación, área, rama y horas "
+            f"el PR-AUC se sostiene en {d(abl[-1]['PRAUC_cv'], 2)}: educación, área, rama y horas "
             "cargan la señal restante. El clasificador identifica la "
             "<b>configuración laboral</b> asociada a la informalidad — es una "
             "herramienta de focalización, no de predicción a futuro, y por "
@@ -2155,7 +2169,7 @@ def _ficha_clasificador(clas: dict, a: dict, abl: list) -> None:
             "Firm size and employment category are the features closest to "
             "the target's operational definition: in micro-firms, not "
             "contributing to a pension is almost structural. Even with both "
-            "removed, PR-AUC holds at 0.94: schooling, area, industry and "
+            f"removed, PR-AUC holds at {d(abl[-1]['PRAUC_cv'], 2)}: schooling, area, industry and "
             "hours carry the remaining signal. The classifier identifies the "
             "<b>job configuration</b> associated with informality — it's a "
             "targeting tool, not a forecast, which is why a high PR-AUC is "
@@ -2293,6 +2307,12 @@ def _ficha_regresor(reg: dict) -> None:
 def _ficha_limites(clas: dict, reg: dict, meta: dict) -> None:
     """Ficha, pestaña 3: limitaciones, procedencia y auditoría."""
     html("<h2>" + L("Limitaciones declaradas", "Stated limitations") + "</h2>")
+    cif = cifras_texto()
+    especie = pc(cif["especie"]["pct"], 1)
+    sens = cargar_artefactos()["torneo"]["sensibilidad_especie"]
+    caida = d(sens[0]["premio_urbano_pct"] - sens[1]["premio_urbano_pct"], 1)
+    tfnr = n(cargar_maquinas()["embudo"]["tfnr"]["filas"])
+    negativa = pc(cif["experiencia_negativa"]["pct"], 1)
     lim = [
         L("<b>Ingreso autorreportado y suavizado.</b> El target es la versión "
           "imputada, deflactada y anualizada del INEI dividida entre 12: un "
@@ -2303,30 +2323,30 @@ def _ficha_limites(clas: dict, reg: dict, meta: dict) -> None:
           "imputed, deflated and annualized income divided by 12: a "
           "stabilized income, not the interview month's. Construct validity "
           "inherits the limits of self-reporting in household surveys."),
-        L("<b>Solo ingreso monetario.</b> El 24,6 % de los ocupados recibe "
-          "pago en especie o autoconsumo, excluido del target. La "
+        L(f"<b>Solo ingreso monetario.</b> El {especie} de los ocupados "
+          "recibe pago en especie o autoconsumo, excluido del target. La "
           "sensibilidad medida (sección Torneo) acota el sesgo: el premio "
-          "urbano cae 2,6 puntos al incluirlo.",
-          "<b>Cash income only.</b> 24.6% of workers receive in-kind pay or "
-          "own consumption, excluded from the target. The measured "
+          f"urbano cae {caida} puntos al incluirlo.",
+          f"<b>Cash income only.</b> {especie} of workers receive in-kind "
+          "pay or own consumption, excluded from the target. The measured "
           "sensitivity (Tournament section) bounds the bias: the urban "
-          "premium drops 2.6 points when it's included."),
+          f"premium drops {caida} points when it's included."),
         L("<b>Población restringida.</b> Solo ocupados de 14+ con ingreso "
-          "laboral positivo: quedan fuera desocupados, inactivos y los 6.500 "
+          f"laboral positivo: quedan fuera desocupados, inactivos y los {tfnr} "
           "trabajadores familiares no remunerados (informales por "
           "definición). La prevalencia del clasificador es por eso menor que "
           "la oficial.",
           "<b>Restricted population.</b> Only employed people aged 14+ with "
-          "positive labor income: the unemployed, the inactive and the 6,500 "
+          f"positive labor income: the unemployed, the inactive and the {tfnr} "
           "unpaid family workers (informal by definition) are left out. "
           "That's why the classifier's prevalence is lower than the official "
           "rate."),
         L("<b>Experiencia potencial, no real.</b> Se usa edad − años de "
-          "educación − 6 (truncada en 0; 0,2 % de casos negativos). En "
+          f"educación − 6 (truncada en 0; {negativa} de casos negativos). En "
           "trabajadores de baja educación sobreestima la experiencia efectiva "
           "(Heckman, Lochner & Todd, 2006)",
           "<b>Potential, not actual, experience.</b> We use age − years of "
-          "schooling − 6 (floored at 0; 0.2% of cases negative). For "
+          f"schooling − 6 (floored at 0; {negativa} of cases negative). For "
           "low-education workers it overstates actual experience (Heckman, "
           "Lochner & Todd, 2006)") + ref("heckman2006") + ".",
         L("<b>Categoría ocupacional ramifica el target del clasificador.</b> "

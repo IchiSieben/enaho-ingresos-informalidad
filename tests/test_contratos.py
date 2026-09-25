@@ -276,3 +276,45 @@ def test_viaje_vertical_lleva_los_mismos_datos(animado):
         assert t in unescape(h) and t in unescape(v)
         assert s in unescape(h) and s in unescape(v)
     assert ("animateMotion" in v) == animado
+
+
+# --------------------------------------------------------------------------
+# Cifras del texto: salen de artefactos, no del teclado
+# --------------------------------------------------------------------------
+# Las seis cifras que el texto llegó a escribir a mano, en sus dos formatos.
+# 70,2 % no está: es la tasa oficial del INEI (literatura, con su ref()).
+LITERALES_PROHIBIDOS = [
+    r"24[.,]6\s?%", r"2[.,]6 (puntos|points)", r"67[.,]3\s?%",
+    r"6[.,]500\b", r"\b0[.,]94\b", r"\b0[.,]2\s?%",
+]
+
+# Única excepción: clave de traducción que reproduce, carácter por carácter,
+# un texto de ui_artifacts.json (la cifra la escribió el artefacto, no la app).
+ESPEJO_DEL_ARTEFACTO = "Restricción de población, no variable: 6.500 ocupados"
+
+
+def test_no_reaparecen_cifras_escritas_a_mano():
+    import re
+    hallazgos = []
+    for ruta in sorted((RAIZ / "app").glob("*.py")):
+        for i, linea in enumerate(ruta.read_text(encoding="utf-8").splitlines(), 1):
+            for patron in LITERALES_PROHIBIDOS:
+                if re.search(patron, linea):
+                    hallazgos.append(f"{ruta.name}:{i} {patron}: {linea.strip()}")
+    # La excepción solo vale si el artefacto de verdad trae ese texto.
+    artefacto = (RAIZ / "models" / "ui_artifacts.json").read_text(encoding="utf-8")
+    assert ESPEJO_DEL_ARTEFACTO in artefacto
+    espejo = [h for h in hallazgos if h.startswith("i18n.py:")
+              and ("6.500 ocupados" in h or "6,500 employed" in h)]
+    assert len(espejo) == 2, espejo
+    resto = [h for h in hallazgos if h not in espejo]
+    assert not resto, "cifras escritas a mano:\n" + "\n".join(resto)
+
+
+def test_cifras_texto_publicadas():
+    cif = _maquinas()["cifras_texto"]
+    assert 0 < cif["especie"]["pct"] < 100 and cif["especie"]["filas"] > 0
+    assert 0 < cif["informalidad_reconstruida"]["pct_ponderado"] < 100
+    assert cif["experiencia_negativa"]["casos"] > 0
+    for bloque in cif.values():
+        assert (RAIZ / bloque["fuente"].split(" §")[0]).exists()

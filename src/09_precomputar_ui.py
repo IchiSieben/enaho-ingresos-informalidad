@@ -566,10 +566,58 @@ def tamanos_medidos() -> dict:
     }
 
 
+def _numero_reporte(texto: str, patron: str, fuente: str) -> float:
+    """Número (acepta 11,760 / 67,3 / 24.6) leído de un reporte; aborta si falta."""
+    m = re.search(patron, texto)
+    if not m:
+        raise SystemExit(f"{fuente}: no se encontro {patron!r}. "
+                         "Se aborta sin escribir ui_maquinas.json.")
+    crudo = m.group(1)
+    # coma de miles (11,760) frente a coma decimal (67,3): la decimal lleva
+    # uno o dos dígitos detrás; la de miles, tres
+    if re.fullmatch(r"\d{1,3}(,\d{3})+", crudo):
+        crudo = crudo.replace(",", "")
+    return float(crudo.replace(",", "."))
+
+
+def cifras_texto() -> dict:
+    """
+    Cifras que la app cita en su prosa y que no están en ningún otro
+    artefacto. Salen de los reportes que escribió el pipeline al correr sobre
+    los microdatos (src/03 y src/04); aquí solo se leen, no se recalculan, y
+    se verifica que cuadren entre sí. Van a ui_maquinas.json porque
+    ui_artifacts.json no puede cambiar ni un byte.
+    """
+    prep = (DIR_REPORTS / "01_preparacion_fase1.md").read_text(encoding="utf-8")
+    torneo = (DIR_REPORTS / "torneo_regresion.md").read_text(encoding="utf-8")
+    f1, f4 = "reports/01_preparacion_fase1.md", "reports/torneo_regresion.md"
+    especie_filas = _numero_reporte(
+        prep, r"autoconsumo \(D529T/D540T/D543 > 0\): ([\d,]+) \(", f1)
+    especie_pct = _numero_reporte(
+        prep, r"autoconsumo \(D529T/D540T/D543 > 0\): [\d,]+ \(([\d.]+)%\)", f1)
+    reconstruida = _numero_reporte(prep, r"Nacional ponderado: *([\d,]+)%", f1)
+    neg_casos = _numero_reporte(
+        torneo, r"negativa en (\d+) casos \(([\d.]+)%\)", f4)
+    neg_pct = _numero_reporte(
+        torneo, r"negativa en \d+ casos \(([\d.]+)%\)", f4)
+    if not 0 < especie_pct < 100 or not 0 < reconstruida < 100:
+        raise SystemExit("cifras_texto: porcentaje fuera de rango. Se aborta.")
+    return {
+        "especie": {"filas": int(especie_filas), "pct": especie_pct,
+                    "fuente": f1 + " § Ingreso en especie"},
+        "informalidad_reconstruida": {
+            "pct_ponderado": reconstruida,
+            "fuente": f1 + " § validación de la regla del target"},
+        "experiencia_negativa": {"casos": int(neg_casos), "pct": neg_pct,
+                                 "fuente": f4},
+    }
+
+
 def escribir_maquinas() -> None:
     artefactos = {
         "embudo": embudo_auditado(),
         "tamanos": tamanos_medidos(),
+        "cifras_texto": cifras_texto(),
         "meta": {
             "generado_por": "src/09_precomputar_ui.py",
             "fecha_generacion": datetime.now(timezone.utc)
