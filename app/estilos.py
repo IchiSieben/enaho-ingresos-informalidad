@@ -4,14 +4,14 @@
 """
 FASE 3 — Sistema de diseño (adaptado del proyecto hermano de salud publica).
 
-Los tokens viven en un DICCIONARIO DE PYTHON y de ahí se GENERA el CSS: los
-SVG de `graficos.py` viajan a un iframe (`st.components.v1.html`) que no ve
-las variables CSS del padre, así que la única fuente de verdad de color tiene
-que estar en Python y pasarse como parámetro a ambos mundos.
+Los tokens viven en un DICCIONARIO DE PYTHON y de ahí se GENERA el CSS; los
+SVG de `graficos.py` reciben la misma paleta como parámetro, así que hay una
+sola fuente de verdad de color. (Hasta v1.1 los SVG viajaban en iframes que
+no veían el CSS de la página; desde v1.2 van en línea en el propio DOM.)
 
 Novedad de este proyecto: TRES paletas con las mismas claves en `PALETAS`
-("claro"/"oscuro"/"terminal") y un selector en la barra lateral persistido en
-`st.session_state["tema"]`. Nada de duplicar bloques CSS a mano: `css(T)`
+("claro"/"oscuro"/"terminal") y un selector en la barra superior persistido en
+`st.session_state["tema"]` y en `?theme=`. Nada de duplicar bloques CSS a mano: `css(T)`
 genera el bloque completo desde la paleta activa.
 
 El tema claro no es «invertir colores»: fondo blanco hueso (no #FFF puro),
@@ -178,6 +178,16 @@ def css(T: dict[str, str]) -> str:
     # En Terminal el cuerpo entero va en monoespaciada, no solo las cifras.
     fuente_cuerpo = FUENTE_MONO if tema in TEMAS_MONO else FUENTE_UI
     fuente_titulo = FUENTE_MONO if tema in TEMAS_MONO else FUENTE_TITULO
+    # La monoespaciada es más ancha: en EN la barra no cabía en una fila a
+    # 1366 px (medido en v1.2). Se aprieta solo en los temas mono.
+    barra = "section[data-testid=stMain] .st-key-barra"
+    ajuste_barra_mono = (
+        f"{barra} .st-key-sec button {{ padding: 6px 7px !important; }}\n"
+        f"{barra} .st-key-sec button p {{ font-size: 14px !important; "
+        f"letter-spacing: -0.02em; }}\n"
+        f"{barra} .st-key-lang button, {barra} .st-key-theme button "
+        f"{{ padding: 4px 8px !important; }}"
+        if tema in TEMAS_MONO else "")
     return f"""<style>
 {IMPORT_FUENTES}
 
@@ -203,11 +213,18 @@ def css(T: dict[str, str]) -> str:
 [data-testid="stSidebarCollapseButton"],
 [data-testid="stSidebarCollapsedControl"],
 #MainMenu, footer {{ display: none !important; }}
+/* El bloque markdown que inyecta este mismo CSS ocupaba un hueco de 16 px
+   sobre la barra. Oculto, su <style> sigue aplicándose. (st.html no sirve
+   aquí: en 1.61 sanea el contenido y el CSS no llegaba a aplicarse.) */
+[data-testid="stElementContainer"]:has([data-testid="stMarkdownContainer"] > style:first-child) {{
+  display: none !important;
+}}
 
 [data-testid="stAppViewContainer"] {{ background: {T['fondo']}; }}
 [data-testid="stAppViewBlockContainer"],
+[data-testid="stMainBlockContainer"],
 .block-container {{
-  padding-top: var(--e6) !important;
+  padding-top: 4px !important;
   padding-bottom: var(--e12) !important;
   max-width: 1400px;
 }}
@@ -242,12 +259,15 @@ h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.02em; font-weight: 60
 [data-testid="stAppViewContainer"] h3,
 .marca-titulo, .kpi-valor, .hero-rel {{ font-family: {fuente_titulo}; }}
 [data-testid="stAppViewContainer"] h1 {{ font-size: {F['titulo']} !important; }}
+/* Streamlit le da al h1 de markdown 20 px arriba y 16 abajo con una regla
+   más específica: la pregunta de cada sección no los necesita. */
+[data-testid="stMain"] [data-testid="stMarkdownContainer"] h1 {{ padding: 0 !important; }}
 [data-testid="stAppViewContainer"] h2 {{ font-size: {F['sub']} !important; padding: 0 !important;
                                         margin: 40px 0 12px 0 !important; }}
 [data-testid="stAppViewContainer"] h3 {{ font-size: {F['medio']} !important; padding: 0 !important;
                                         margin: 24px 0 8px 0 !important; }}
 h1 {{ font-size: {F['titulo']}; font-weight: 700 !important; line-height: 1.12;
-      letter-spacing: -0.03em; margin: 0 0 var(--e2) 0; max-width: 40ch;
+      letter-spacing: -0.03em; margin: 0; max-width: 1000px;
       animation: aparecer 220ms cubic-bezier(.2,.7,.2,1) both; }}
 h2 {{ font-size: {F['sub']}; font-weight: 650 !important; line-height: 1.25;
       margin: var(--e8) 0 var(--e3) 0; max-width: 46ch; }}
@@ -274,9 +294,10 @@ h3 {{ font-size: {F['medio']}; margin: var(--e6) 0 var(--e2) 0; }}
 [data-testid="stSidebar"] .sutil {{ font-size: {F['micro']}; }}
 
 /* El selector de estaciones del viaje (control segmentado del área principal)
-   va más visible que el tamaño por defecto. Scoped a stMain a propósito: el
-   selector de tema también es un stButtonGroup, pero vive en el sidebar y ese
-   se queda como está. El font-size va sobre el <p> interno (el texto llega
+   va más visible que el tamaño por defecto. Desde v1.2 la barra superior
+   también vive en stMain y esta regla la alcanzaba: las reglas de la barra
+   llevan el prefijo `section[data-testid="stMain"] .st-key-barra` para ganar
+   por especificidad. El font-size va sobre el <p> interno (el texto llega
    como markdown dentro del botón y no hereda del button). */
 section[data-testid="stMain"] [data-testid="stButtonGroup"] button {{
   padding: 8px 18px !important;
@@ -855,7 +876,7 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 .tarjeta {{ transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }}
 .tarjeta:hover {{ transform: translateY(-2px); border-color: {T['acento']}55; }}
 
-.eyebrow-seccion {{ color: {T['acento_alto']}; margin-bottom: var(--e2); }}
+.eyebrow-seccion {{ color: {T['acento_alto']}; margin-bottom: calc(-1 * var(--e2)); }}
 .entradilla {{ font-size: {F['medio']}; max-width: 70ch; color: {T['texto_medio']}; }}
 
 /* Franja de cifras clave: la portada ejecutiva */
@@ -925,8 +946,9 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
   border-radius: 14px !important;
   box-shadow: {T['sombra_tarjeta']};
 }}
-.derivada {{ padding: var(--e2) var(--e3); background: {T['superficie_alta']};
-            border-radius: var(--r-md); margin-bottom: var(--e2); }}
+/* v1.2: una línea de nota, sin caja: en la rejilla del formulario la caja
+   costaba una fila entera de alto. */
+.derivada {{ font-size: {F['mini']}; margin-top: calc(-1 * var(--e2)); }}
 
 /* Pills (perfiles de ejemplo) */
 [data-testid="stPills"] button, [data-testid="stButtonGroup"] button[kind^="pills"] {{
@@ -990,29 +1012,37 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 .marca-barra .quien {{ color: {T['texto_medio']}; border-bottom: 1px dotted {T['texto_tenue']};
                       cursor: help; }}
 /* Navegación activa: fondo de acento pleno. El resto, texto medio sin borde. */
-.st-key-sec [data-testid="stButtonGroup"] button {{
+section[data-testid="stMain"] .st-key-barra .st-key-sec button {{
   background: transparent !important; border-color: transparent !important;
-  padding: 6px 12px !important;
+  padding: 6px 9px !important;
 }}
-.st-key-sec [data-testid="stButtonGroup"] button p {{
+section[data-testid="stMain"] .st-key-barra .st-key-sec button p {{
   color: {T['texto_medio']} !important; font-size: {F['cuerpo']} !important;
   font-weight: 500;
 }}
-.st-key-sec [data-testid="stButtonGroup"] button:hover p {{ color: {T['acento_alto']} !important; }}
-.st-key-sec [data-testid="stButtonGroup"] button[aria-checked="true"] {{
+section[data-testid="stMain"] .st-key-barra .st-key-sec button:hover p {{ color: {T['acento_alto']} !important; }}
+section[data-testid="stMain"] .st-key-barra .st-key-sec button[aria-checked="true"] {{
   background: {T['acento']} !important; border-color: {T['acento']} !important;
 }}
-.st-key-sec [data-testid="stButtonGroup"] button[aria-checked="true"] p {{
+section[data-testid="stMain"] .st-key-barra .st-key-sec button[aria-checked="true"] p {{
   color: {T['boton_texto']} !important; font-weight: 600;
 }}
-.st-key-lang [data-testid="stButtonGroup"] button,
-.st-key-theme [data-testid="stButtonGroup"] button {{ padding: 4px 10px !important; }}
-.st-key-lang [data-testid="stButtonGroup"] button p,
-.st-key-theme [data-testid="stButtonGroup"] button p {{ font-size: {F['mini']} !important; }}
+section[data-testid="stMain"] .st-key-barra .st-key-lang button,
+section[data-testid="stMain"] .st-key-barra .st-key-theme button {{ padding: 4px 10px !important; }}
+section[data-testid="stMain"] .st-key-barra .st-key-lang button p,
+section[data-testid="stMain"] .st-key-barra .st-key-theme button p {{ font-size: {F['mini']} !important; }}
+{ajuste_barra_mono}
+/* Pestañas: el subrayado activo lo pinta Streamlit con primaryColor (el teal
+   del config); aquí sigue al acento del tema, para que Terminal conserve el suyo. */
+/* En 1.61 (react-aria) el subrayado es un div sin testid dentro del stTab activo. */
+[data-testid="stTab"][aria-selected="true"] > div:not([data-testid]) {{
+  background-color: {T['acento']} !important;
+}}
+[data-testid="stTab"][aria-selected="true"] p {{ color: {T['acento_alto']} !important; }}
 
-/* Gráficos en línea (st.html): heredan fuentes y paleta de la página, sin
-   iframe ni @import propio. La caja tiene alto fijo y el SVG se ajusta DENTRO
-   (preserveAspectRatio meet): el mismo contrato que tenían los iframes. */
+/* Gráficos en línea (markdown con HTML): heredan fuentes y paleta de la página, sin
+   iframe ni @import propio. La caja toma la proporción del viewBox con un
+   alto máximo, y el SVG se ajusta DENTRO (preserveAspectRatio meet). */
 .grafico {{ width: 100%; }}
 .grafico svg {{ display: block; width: 100%; height: 100%; overflow: visible; }}
 .grafico svg text {{ font-family: {fuente_cuerpo}; font-variant-numeric: tabular-nums; }}
@@ -1034,9 +1064,46 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 @keyframes g-trazo {{ to {{ stroke-dashoffset: 0; }} }}
 @keyframes g-aparecer {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
 @keyframes g-pop {{ from {{ transform: scale(0); }} to {{ transform: scale(1); }} }}
+/* Rerun dentro de la misma sección: sin animación de entrada (ver
+   clase_quieta en la app). El trazo necesita su estado final explícito. */
+.quieto, .quieto * {{ animation: none !important; }}
+.quieto .anim-trazo {{ stroke-dasharray: none; stroke-dashoffset: 0; }}
+
+/* Formulario en rejilla (ingreso, informalidad): etiquetas en una línea,
+   con elipsis si no caben; la ayuda (?) lleva la etiqueta completa. */
+[class*="st-key-caja_form_reg"] [data-testid="stWidgetLabel"],
+[class*="st-key-caja_form_clf"] [data-testid="stWidgetLabel"] {{
+  min-width: 0; max-width: 100%; overflow: hidden;
+}}
+/* Se encoge el texto (span), nunca el icono de ayuda (div): con la fuente
+   mono del tema Terminal el texto desbordaba y dejaba el (?) en 0 px. */
+[class*="st-key-caja_form_reg"] [data-testid="stWidgetLabel"] > span,
+[class*="st-key-caja_form_clf"] [data-testid="stWidgetLabel"] > span {{
+  min-width: 0; flex: 0 1 auto; overflow: hidden;
+}}
+[class*="st-key-caja_form_reg"] [data-testid="stWidgetLabel"] > div,
+[class*="st-key-caja_form_clf"] [data-testid="stWidgetLabel"] > div {{
+  flex-shrink: 0;
+}}
+/* Iconos nativos (ayuda «?», «Detalle técnico»): Streamlit los pinta con el
+   textColor del config, que es el del tema claro; en los oscuros quedaban
+   casi negros sobre negro. Siguen a la paleta activa. */
+[data-testid="stTooltipIcon"] svg,
+[data-testid="stMain"] [data-testid="stIconMaterial"] {{
+  color: {T['texto_medio']} !important;
+}}
+[data-testid="stTooltipIcon"] svg {{ stroke: {T['texto_medio']} !important; }}
+[class*="st-key-caja_form_reg"] [data-testid="stWidgetLabel"] p,
+[class*="st-key-caja_form_clf"] [data-testid="stWidgetLabel"] p {{
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}}
 
 /* Resumen de un vistazo: cifras grandes con su rótulo, y una frase. */
 .vistazo-cifras {{ display: flex; flex-direction: column; gap: var(--e4); }}
+.vistazo-cifras.fila {{
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.4fr);
+  gap: var(--e4); align-items: start; margin-top: var(--e3);
+}}
 .vistazo-cifra b {{
   display: block; font-family: {FUENTE_MONO}; font-size: {F['cifra']};
   font-weight: 500; letter-spacing: -0.02em; color: {T['acento_alto']}; line-height: 1.1;
@@ -1058,6 +1125,9 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 .pie-autor {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
 .pie a {{ color: {T['acento_alto']}; text-decoration: none; }}
 .pie a:hover {{ text-decoration: underline; }}
+.pie-mapa {{ margin: var(--e2) 0; padding-left: 1.1em; max-width: 90ch; }}
+.pie-mapa li {{ margin: 0; }}
+.pie-mapa b {{ color: {T['texto_medio']}; font-weight: 600; }}
 .sidebar-firma {{
   margin-top: var(--e4); padding-top: var(--e3);
   border-top: 1px solid {T['borde_sutil']};
@@ -1066,29 +1136,17 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 .sidebar-firma b {{ color: {T['texto']}; }}
 
 @media (max-width: 900px) {{
-  /* En móvil el sidebar tapa todo: ahí SÍ hace falta poder cerrarlo. */
-  [data-testid="stSidebarCollapseButton"],
-  [data-testid="stSidebarCollapsedControl"],
-  [data-testid="stExpandSidebarButton"],
-  [data-testid="stHeader"] {{ display: flex !important; }}
-  [data-testid="stHeader"] {{ background: transparent !important; }}
-  /* El botón para reabrir el sidebar vive DENTRO de stToolbar: se muestra la
-     barra y se esconde todo lo demás que trae. */
-  [data-testid="stToolbar"] {{ display: flex !important; }}
-  [data-testid="stToolbarActions"], [data-testid="stMainMenu"],
-  [data-testid="stAppDeployButton"], #MainMenu {{ display: none !important; }}
-  [data-testid="stExpandSidebarButton"] {{
-    background: {T['superficie']} !important; border: 1px solid {T['borde']};
-    border-radius: var(--r-md); color: {T['texto']} !important;
-  }}
-  /* Barra superior en móvil: la marca y los selectores en una fila, las
-     secciones debajo en una sola línea con scroll horizontal. */
-  .st-key-barra {{ flex-wrap: wrap !important; row-gap: var(--e2) !important; }}
+  /* Barra superior en móvil. Medido a 390 px: queda en tres filas (marca e
+     idioma, tema, secciones). Pegajosa se comería un quinto de la pantalla
+     en cada scroll, así que se queda arriba, en el flujo. */
+  .st-key-barra {{ flex-wrap: wrap !important; row-gap: var(--e2) !important;
+                  position: static !important; }}
   .st-key-sec {{ order: 3; width: 100% !important; max-width: 100%; overflow-x: auto; }}
-  .st-key-sec [data-testid="stButtonGroup"] > div {{ flex-wrap: nowrap !important; }}
-  .st-key-sec [data-testid="stButtonGroup"] button {{ white-space: nowrap; flex-shrink: 0; }}
+  .st-key-sec > div {{ flex-wrap: nowrap !important; }}
+  section[data-testid="stMain"] .st-key-barra .st-key-sec button {{ white-space: nowrap; flex-shrink: 0; }}
   .franja-kpi {{ grid-template-columns: repeat(2, minmax(0,1fr)); }}
   .tres-numeros {{ grid-template-columns: 1fr; }}
+  .vistazo-cifras.fila {{ grid-template-columns: 1fr; }}
   .hero-valor {{ font-size: 40px; }}
   h1 {{ font-size: 26px; }}
 }}
@@ -1102,6 +1160,7 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 }}
 
 @media (max-width: 900px) {{
+  [data-testid="stMainBlockContainer"],
   .block-container {{ padding-left: var(--e4) !important; padding-right: var(--e4) !important; }}
   .tarjeta-valor {{ font-size: {F['titulo']}; }}
   .rejilla-tarjetas {{ grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }}
@@ -1113,6 +1172,10 @@ def css_iframe(T: dict[str, str]) -> str:
     """
     CSS mínimo del contenido de `st.components.v1.html`: el iframe no hereda
     nada del padre, así que la paleta ACTIVA se pasa también aquí.
+
+    Obsoleto desde v1.2 (la app ya no usa iframes). Se conserva un despliegue
+    más: si la nube recarga los módulos antes que la app, la v1.1 aún lo
+    llama.
 
     El `color-scheme` interno DEBE coincidir con el del iframe padre: si el
     padre es dark y el documento embebido queda en 'normal', Chromium pinta

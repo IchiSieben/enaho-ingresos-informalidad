@@ -35,3 +35,15 @@ ingreso), no en el trabajo de modelado de nadie.
 
 Los microdatos de la ENAHO 2025 son del **INEI** (Perú) y no se
 redistribuyen en este repositorio (ver [`NOTICE`](NOTICE)).
+
+## Dónde aparece la firma
+
+Desde la v1.2 la app no tiene barra lateral. La autoría se muestra en tres
+lugares:
+
+- **Barra superior**: ◆ + «Yoichi Palacios Tanaka», con un tooltip que nombra
+  al grupo ENEI y al docente.
+- **Pie de cada sección**: autoría completa (autor, integrantes del grupo y
+  docente), mapa de secciones, límite de uso y enlace al repositorio.
+- **Cabecera de cada archivo de código**: sin cambios.
+

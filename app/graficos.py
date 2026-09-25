@@ -7,8 +7,8 @@ FASE 3 — Gráficos SVG construidos en Python (adaptado del proyecto hermano de
 
 Funciones puras: reciben datos y la paleta activa `T`, devuelven una cadena
 SVG. Ninguna toca Streamlit ni estado global. Reciben los colores como
-parámetro porque el contenido viaja a un iframe que no ve el CSS del padre:
-es el único mecanismo que mantiene una sola fuente de verdad de color.
+parámetro: así la paleta de `estilos.PALETAS` es la única fuente de verdad,
+tanto para el SVG en línea (v1.2) como para los iframes de v1.1.
 
 Semántica de este dominio: la clase accionable es informal=1; superar el
 umbral SEÑALA el caso (ámbar, focalización), no lo condena. Verde = sin señal.
@@ -23,7 +23,12 @@ from i18n import L, n as _n_i18n, pc, tr
 
 
 def envolver(svg: str, css_iframe: str) -> str:
-    """Empaqueta un SVG como documento para `st.components.v1.html`."""
+    """
+    Empaqueta un SVG como documento para `st.components.v1.html`.
+
+    Obsoleto desde v1.2: se conserva un despliegue más por si la nube carga
+    este módulo con la app v1.1 aún en memoria.
+    """
     return (f"<!doctype html><html><head><meta charset='utf-8'/>"
             f"<style>{css_iframe}</style></head><body>{svg}</body></html>")
 
@@ -158,8 +163,6 @@ def franja_probabilidad(proba: float, umbral: float, hist: dict | None, T: dict,
     x = lambda v: m["i"] + min(max(v, 0.0), 1.0) * ix
     base = m["s"] + iy
 
-    senalado = proba >= umbral
-    color = T["senal_media"] if senalado else T["senal_buena"]
     partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
               f"aria-label='"
               + L(f"El perfil tiene una probabilidad de {pc(proba * 100, 1)}; "
@@ -200,16 +203,18 @@ def franja_probabilidad(proba: float, umbral: float, hist: dict | None, T: dict,
                   f"text-anchor='middle'>{L('umbral', 'threshold')} "
                   f"{_n(umbral, 3)}</text>")
 
-    # El caso
+    # El caso. v1.2: «tu perfil» es interacción, así que va en el acento
+    # teal; si queda señalado o no lo dice la zona de fondo y la cifra grande.
     px = x(proba)
     partes.append(f"<circle class='anim-punto' cx='{px:.1f}' "
                   f"cy='{base - iy * 0.55:.1f}' r='9' "
-                  f"fill='{color}' stroke='{T['fondo']}' stroke-width='2.5'/>")
+                  f"fill='{T['acento']}' stroke='{T['fondo']}' stroke-width='2.5'/>")
     lado = "end" if px > m["i"] + ix * 0.72 else "start"
     dx = -14 if lado == "end" else 14
     partes.append(f"<text x='{px + dx:.1f}' y='{base - iy * 0.55 + 4:.1f}' "
-                  f"class='vl' text-anchor='{lado}' fill='{color}' "
-                  f"style='font-weight:600'>{L('tu perfil', 'your profile')}: "
+                  f"class='vl' text-anchor='{lado}' "
+                  f"style='font-weight:600;fill:{T['acento_alto']}'>"
+                  f"{L('tu perfil', 'your profile')}: "
                   f"{pc(proba * 100, 1)}</text>")
 
     for v, txt in ((0.0, pc(0)), (0.5, pc(50)), (1.0, pc(100))):
@@ -793,8 +798,8 @@ def viaje_dato(titulos: list[str], subtitulos: list[str], activa: int, T: dict,
     atributo; y SMIL solo anima los <rect> (fill/stroke inline, sin clase).
 
     TODO(post-expo): cajas clicables para elegir estación desde el propio
-    SVG. Requiere un componente custom bidireccional — el SVG vive en un
-    iframe de components.html y no puede escribir en session_state.
+    SVG. Requiere un componente custom bidireccional: un SVG en línea no
+    puede escribir en session_state.
     TODO(post-expo): línea de progreso uniendo los números 1→6 por encima de
     las cajas (decorativa; hoy la secuencia ya la marcan las flechas).
     """
@@ -1036,7 +1041,7 @@ def embudo(etapas: list[tuple[str, int]],
                           f"({_cuota(c_v, base)}): {escape(motivo)}</title>")
             partes.append(
                 f"<text x='{izq}' y='{fy + 12}' class='vl' text-anchor='end' "
-                f"fill='{T['texto_medio']}'>− {escape(c_nom)}</text>"
+                f"style='fill:{T['texto_medio']}'>− {escape(c_nom)}</text>"
                 f"<text x='{izq}' y='{fy + 27}' class='vs' text-anchor='end'>"
                 f"{_cuota(c_v, base)}</text>")
             # El trozo que se cae, alineado bajo el extremo de la barra

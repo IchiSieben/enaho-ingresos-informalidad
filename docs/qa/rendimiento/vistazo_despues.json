@@ -1,0 +1,76 @@
+{
+  "ingreso@1440x900": {
+    "pregunta": 135,
+    "controles": 493,
+    "respuesta": 685,
+    "grafico": 652,
+    "alto_viewport": 900,
+    "cabe": true
+  },
+  "informalidad@1440x900": {
+    "pregunta": 135,
+    "controles": 493,
+    "respuesta": 562,
+    "grafico": 759,
+    "alto_viewport": 900,
+    "cabe": true
+  },
+  "torneo@1440x900": {
+    "pregunta": 135,
+    "respuesta": 499,
+    "grafico": 572,
+    "alto_viewport": 900,
+    "cabe": true
+  },
+  "ficha@1440x900": {
+    "pregunta": 135,
+    "respuesta": 600,
+    "grafico": 607,
+    "alto_viewport": 900,
+    "cabe": true
+  },
+  "maquinas@1440x900": {
+    "pregunta": 135,
+    "respuesta": 506,
+    "grafico": 384,
+    "alto_viewport": 900,
+    "cabe": true
+  },
+  "ingreso@1366x768": {
+    "pregunta": 135,
+    "controles": 493,
+    "respuesta": 685,
+    "grafico": 652,
+    "alto_viewport": 768,
+    "cabe": true
+  },
+  "informalidad@1366x768": {
+    "pregunta": 135,
+    "controles": 493,
+    "respuesta": 562,
+    "grafico": 755,
+    "alto_viewport": 768,
+    "cabe": true
+  },
+  "torneo@1366x768": {
+    "pregunta": 135,
+    "respuesta": 499,
+    "grafico": 572,
+    "alto_viewport": 768,
+    "cabe": true
+  },
+  "ficha@1366x768": {
+    "pregunta": 135,
+    "respuesta": 600,
+    "grafico": 607,
+    "alto_viewport": 768,
+    "cabe": true
+  },
+  "maquinas@1366x768": {
+    "pregunta": 135,
+    "respuesta": 506,
+    "grafico": 384,
+    "alto_viewport": 768,
+    "cabe": true
+  }
+}

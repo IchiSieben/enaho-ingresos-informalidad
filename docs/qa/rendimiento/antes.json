@@ -1,0 +1,42 @@
+{
+  "carga_inicial_s": 4.0,
+  "requests_carga": 162,
+  "ingreso": {
+    "cambio_seccion_s": 1.05,
+    "iframes": 4,
+    "requests_cambio": 0,
+    "requests_fonts_cambio": 0,
+    "rerun_slider_mediana_s": 0.819,
+    "rerun_slider_max_s": 0.866,
+    "requests_por_slider": 3,
+    "fonts_por_slider": 3
+  },
+  "informalidad": {
+    "cambio_seccion_s": 1.33,
+    "iframes": 12,
+    "requests_cambio": 37,
+    "requests_fonts_cambio": 36,
+    "rerun_slider_mediana_s": 0.92,
+    "rerun_slider_max_s": 1.289,
+    "requests_por_slider": 6,
+    "fonts_por_slider": 6
+  },
+  "torneo": {
+    "cambio_seccion_s": 1.38,
+    "iframes": 2,
+    "requests_cambio": 7,
+    "requests_fonts_cambio": 7
+  },
+  "ficha": {
+    "cambio_seccion_s": 1.15,
+    "iframes": 3,
+    "requests_cambio": 9,
+    "requests_fonts_cambio": 9
+  },
+  "maquinas": {
+    "cambio_seccion_s": 1.44,
+    "iframes": 11,
+    "requests_cambio": 48,
+    "requests_fonts_cambio": 44
+  }
+}

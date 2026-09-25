@@ -15,7 +15,7 @@ Arquitectura heredada del proyecto hermano de salud publica:
 
 Novedades de este proyecto:
 - Modo claro/oscuro: `PALETAS` con las mismas claves; el CSS se GENERA desde la
-  paleta activa y los SVG la reciben como parámetro (los iframes no heredan CSS).
+  paleta activa y los SVG la reciben como parámetro.
 - Sección «Torneo de modelos»: la exposición hecha interfaz (tres actos).
 - Experiencia potencial: el usuario NO la digita; se deriva de edad y educación.
 - Bilingüe (v1.1): todo texto visible va en pares L("es", "en"); los valores
@@ -23,6 +23,11 @@ Novedades de este proyecto:
   abre la versión en inglés.
 - Estimación en vivo: el perfil se estima al mover cualquier control, y hay
   perfiles de ejemplo de un clic.
+
+v1.2:
+- Sin sidebar: una barra superior con sección, idioma y tema, los tres
+  ligados a la URL (`?sec=`, `?lang=`, `?theme=`) sin pisarse entre sí.
+- Los SVG van en línea (markdown con HTML), sin un iframe por gráfico.
 
 Uso:
     streamlit run app/streamlit_app.py
@@ -41,7 +46,6 @@ from urllib.parse import quote
 import joblib
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import estilos
@@ -55,7 +59,7 @@ from referencias import ref
 RAIZ = Path(__file__).resolve().parents[1]
 DIR_MODELS = RAIZ / "models"
 
-VERSION = "1.1"
+VERSION = "1.2"
 AUTOR = "Yoichi Palacios Tanaka"
 GRUPO = ["Alan Nestor Cañazaca Mamani", "Magdalena Quico de la Cruz",
          "Edgar Delgado Ortega"]
@@ -69,7 +73,7 @@ PORTAFOLIO = "https://ichi7.dev"
 # mitad del render —cuando el usuario ya estaba mirando la pantalla— en vez de
 # al arrancar. Lo que sigue lo convierte en un fallo temprano y explícito.
 GRAFICOS_REQUERIDOS = [
-    "envolver", "franja_probabilidad", "matriz_confusion",
+    "proporcion", "embudo", "franja_probabilidad", "matriz_confusion",
     "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
     "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
     "viaje_dato", "miniatura_pd",
@@ -138,6 +142,21 @@ SECCIONES = [
 ]
 
 
+SECCION_POR_DEFECTO = "ingreso"
+CLAVES_SECCION = [c for c, _ in SECCIONES]
+
+
+def titulo_corto(clave: str) -> str:
+    """Rótulo de la barra superior: las cinco caben en una fila a 1366 px."""
+    return {
+        "ingreso": L("Ingreso", "Income"),
+        "informalidad": L("Informalidad", "Informality"),
+        "torneo": L("Torneo", "Tournament"),
+        "ficha": L("Ficha", "Model card"),
+        "maquinas": L("Cómo se hizo", "Making of"),
+    }[clave]
+
+
 def titulo_seccion(clave: str) -> str:
     return {
         "ingreso": L("Estimación de ingreso", "Income estimate"),
@@ -148,8 +167,8 @@ def titulo_seccion(clave: str) -> str:
     }[clave]
 
 
-# Una línea llana bajo cada botón del sidebar: qué hace esa pestaña, sin
-# tener que entrar.
+# Una línea llana por sección: qué hace, sin tener que entrar. Va en el pie,
+# como mapa de la app.
 def descripcion_seccion(clave: str) -> str:
     return {
         "ingreso": L("Arma un perfil y estima su ingreso mensual típico — "
@@ -324,12 +343,63 @@ def T() -> dict:
     return PALETAS[tema_activo()]
 
 
-def iniciar_idioma() -> None:
-    """Primer render: el idioma sale de `?lang=`; después manda la sesión."""
-    if "idioma" not in st.session_state:
-        q = st.query_params.get("lang", i18n.IDIOMA_POR_DEFECTO)
-        st.session_state["idioma"] = (q if q in i18n.IDIOMAS
-                                      else i18n.IDIOMA_POR_DEFECTO)
+# Los tres controles de la barra y su parámetro de URL: (clave, defecto).
+# La clave del widget ES el nombre del parámetro.
+def _ligados() -> list[tuple[str, list, str]]:
+    return [("sec", CLAVES_SECCION, SECCION_POR_DEFECTO),
+            ("lang", list(i18n.IDIOMAS), i18n.IDIOMA_POR_DEFECTO),
+            ("theme", list(PALETAS), TEMA_POR_DEFECTO)]
+
+
+def _valor_ligado(clave: str, validos, defecto: str) -> str:
+    """
+    Valor de un control de la barra: primero la sesión (lo que el usuario
+    eligió), si no la URL validada, si no el defecto.
+
+    Por qué no `bind="query-params"` de Streamlit: verificado en Chromium con
+    1.61, el frontend escribe en la URL el RÓTULO formateado de la opción
+    (`?sec=Model+card`), no su valor. La URL cambiaba con el idioma y
+    `?sec=torneo` no abría nada. AppTest no lo detecta porque no pasa por el
+    frontend. Aquí la URL lleva siempre la clave estable.
+    """
+    v = st.session_state.get(clave)
+    if v in validos:
+        return v
+    q = st.query_params.get(clave)
+    return q if q in validos else defecto
+
+
+def iniciar_estado() -> None:
+    """
+    Idioma, tema y sección salen de los tres controles de la barra (claves
+    `lang`, `theme`, `sec`). Corre ANTES de dibujarlos: `set_page_config` y el
+    CSS ya necesitan idioma y tema.
+
+    El valor inicial se escribe en la sesión en vez de pasarlo como `default`:
+    un `default` que cambia entre ejecuciones cambia la identidad del widget.
+    Luego se copia a las claves de siempre (`idioma`, `tema`, `seccion`),
+    que son las que leen i18n y el resto de la app.
+    """
+    for clave, validos, defecto in _ligados():
+        st.session_state[clave] = _valor_ligado(clave, validos, defecto)
+    st.session_state["idioma"] = st.session_state["lang"]
+    st.session_state["tema"] = st.session_state["theme"]
+    st.session_state["seccion"] = st.session_state["sec"]
+
+
+def sincronizar_url() -> None:
+    """
+    Escribe en la URL solo lo que difiere del defecto, y respeta cualquier
+    otro parámetro que traiga. Así cada control escribe SU parámetro sin
+    pisar los otros dos, y la URL limpia es la portada.
+    """
+    propios = {c for c, _, _ in _ligados()}
+    actual = st.query_params.to_dict()
+    nuevo = {k: v for k, v in actual.items() if k not in propios}
+    nuevo.update({c: st.session_state[c] for c, _, d in _ligados()
+                  if st.session_state[c] != d})
+    if nuevo != actual:
+        st.query_params.from_dict(nuevo)
 
 
 def html(s: str) -> None:
@@ -353,22 +423,66 @@ def cabecera(pregunta: str, llano: str, detalle: str, seccion: str,
     técnico exacto se muda a un expander. La precisión no se borra, se baja de
     capa.
 
-    `seccion` desambigua el expander. Streamlit identifica los widgets por
-    etiqueta y posicion en el arbol: cuatro expanders llamados igual y situados
-    igual son EL MISMO widget, asi que abrir el de una seccion abria el de
-    todas. El sufijo rompe la colision.
+    `seccion` desambiguaba el expander de v1.1 (cuatro expanders llamados
+    igual eran el mismo widget). El popover de v1.2 no guarda estado, pero se
+    conserva el parámetro: las cinco llamadas lo pasan.
     """
     if eyebrow:
         html(f"<div class='eyebrow eyebrow-seccion'>{eyebrow}</div>")
     html(f"<h1>{pregunta}</h1>")
-    html(f"<div class='entradilla'>{llano}</div>")
-    with st.expander(L("Detalle técnico", "Technical detail") + f" · {seccion}"):
-        html(f"<div class='sutil'>{detalle}</div>")
+    # v1.2: el detalle va en un popover al final de la entradilla, no en un
+    # expander a todo el ancho: son ~50 px menos antes de los controles.
+    with st.container(horizontal=True, vertical_alignment="bottom", gap="small"):
+        html(f"<div class='entradilla'>{llano}</div>")
+        with st.popover(L("Detalle técnico", "Technical detail"),
+                        icon=":material/info:", type="tertiary"):
+            html(f"<div class='sutil' style='max-width:68ch'>{detalle}</div>")
 
 
-def grafico(svg: str, alto: int) -> None:
-    components.html(graficos.envolver(svg, estilos.css_iframe(T())), height=alto,
-                    scrolling=False)
+def grafico(svg: str, alto: int, vistazo: bool = False) -> None:
+    """
+    SVG en línea: sin iframe, hereda fuentes y paleta de la página.
+
+    Por qué `st.markdown` y no `st.html`: verificado en Chromium con 1.61,
+    `st.html` elimina el <svg> entero al sanear (el div llega vacío).
+    `st.markdown(unsafe_allow_html=True)` conserva <title>, <animate>,
+    <animateMotion>, clases, `style` y `aria-label`. Los SVG de `graficos`
+    no usan `id`.
+
+    La caja toma la proporción del viewBox (nunca recorta: el SVG escala con
+    `meet`) y `alto` queda como tope, para que un gráfico estrecho no se
+    estire a todo el ancho de la página. `vistazo` marca el gráfico clave de
+    la sección (lo mide docs/qa/medir_vistazo.py).
+    """
+    w, h = graficos.proporcion(svg)
+    extra = " vistazo-grafico" if vistazo else ""
+    html(f"<div class='grafico{extra}{clase_quieta()}' style='aspect-ratio:"
+         f"{w:g}/{h:g};max-height:{alto}px'>{svg}</div>")
+
+
+def clase_quieta() -> str:
+    """
+    « quieto» cuando la animación de entrada NO debe repetirse.
+
+    Cada rerun (o rerun de fragment) reemplaza el DOM del gráfico, así que su
+    animación de entrada volvería a correr: arrastrar un slider haría crecer
+    las barras desde cero en cada paso. Solo se anima al ENTRAR a la sección.
+    """
+    return "" if st.session_state.get("_animar", True) else " quieto"
+
+
+def vistazo_resumen(cifras: list[tuple[str, str]], frase: str,
+                    fila: bool = False) -> None:
+    """
+    Resumen de un vistazo: tres cifras grandes con su rótulo y una frase. Las
+    cifras llegan ya calculadas desde los artefactos; esta función solo las
+    maqueta. En columna junto al gráfico, o `fila=True` bajo un gráfico
+    ancho (el viaje del dato no se deja leer a media página).
+    """
+    filas = "".join(f"<div class='vistazo-cifra'><b>{c}</b><span>{r}</span></div>"
+                    for c, r in cifras)
+    html(f"<div class='vistazo-cifras{' fila' if fila else ''}'>{filas}"
+         f"<div class='vistazo-frase'>{frase}</div></div>")
 
 
 def aviso(texto: str, clase: str = "senal-aviso") -> None:
@@ -447,72 +561,102 @@ def _aplicar_perfil(prefijo: str, features: list[dict]) -> None:
 
 
 def selector_perfiles(prefijo: str, features: list[dict]) -> None:
-    html("<div class='eyebrow' style='margin-bottom:6px'>"
-         + L("Perfiles de ejemplo · un clic", "Example profiles · one click")
-         + "</div>")
-    st.pills(L("Perfiles de ejemplo", "Example profiles"),
-             [p["id"] for p in PERFILES],
-             format_func=lambda k: next(p[i18n.idioma()] for p in PERFILES
-                                        if p["id"] == k),
-             key=f"perfil_{prefijo}", label_visibility="collapsed",
-             on_change=_aplicar_perfil, args=(prefijo, features))
+    with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+        html("<div class='eyebrow' style='white-space:nowrap'>"
+             + L("Perfil · ejemplos de un clic", "Profile · one-click examples")
+             + "</div>")
+        st.pills(L("Perfiles de ejemplo", "Example profiles"),
+                 [p["id"] for p in PERFILES],
+                 format_func=lambda k: next(p[i18n.idioma()] for p in PERFILES
+                                            if p["id"] == k),
+                 key=f"perfil_{prefijo}", label_visibility="collapsed",
+                 on_change=_aplicar_perfil, args=(prefijo, features))
 
 
-def formulario(features: list[dict], prefijo: str) -> pd.DataFrame:
+def _control(feat: dict, prefijo: str, memoria: dict, rejilla: bool = False):
     """
-    Un control por variable del schema, EXCEPTO la experiencia potencial y su
-    cuadrado: son derivadas de Mincer (edad − años educ − 6, truncada en 0) y
-    digitarlas seria redundante e inconsistente. Se calculan aqui.
-
-    Controles según la forma del dato: numéricas → slider (se ve el rango),
-    categóricas de hasta 3 opciones → control segmentado, el resto → lista.
-    Los valores siguen en español: `tr()` solo cambia lo que se muestra.
+    Un control para una variable del schema, según la forma del dato:
+    numérica → slider (se ve el rango), categórica de hasta 3 opciones →
+    control segmentado, el resto → lista.
 
     El valor inicial solo se pasa si la clave del widget aún no existe: pasar
     `value=` a un widget cuyo estado ya fijó un perfil hace que Streamlit
     pinte una advertencia amarilla en plena pantalla.
     """
-    memoria = st.session_state.setdefault(f"valores_{prefijo}", {})
-    valores = {}
-    for feat in features:
-        nombre, clave = feat["nombre"], f"{prefijo}_{feat['nombre']}"
-        if nombre in DERIVADAS:
-            continue
-        etiqueta = tr(feat.get("etiqueta", nombre))
-        previo = memoria.get(nombre, feat["default"])
-        ya = clave in st.session_state
-        if feat["tipo"] == "numerico":
-            lo, hi = float(feat["min"]), float(feat["max"])
-            entero = all(float(feat[k]).is_integer() for k in ("min", "max", "default"))
-            inicial = min(max(float(previo), lo), hi)
-            if entero:
-                kw = {} if ya else {"value": int(inicial)}
-                v = st.slider(etiqueta, int(lo), int(hi), step=1, key=clave,
-                              help=ayuda_de(feat), **kw)
-            else:
-                kw = {} if ya else {"value": inicial}
-                v = st.slider(etiqueta, lo, hi, step=0.01, key=clave,
-                              help=ayuda_de(feat), **kw)
-            valores[nombre] = float(v)
+    nombre, clave = feat["nombre"], f"{prefijo}_{feat['nombre']}"
+    etiqueta = tr(feat.get("etiqueta", nombre))
+    ayuda = ayuda_de(feat)
+    if rejilla and len(etiqueta) > 24:
+        # En la rejilla la etiqueta va en una línea y puede cortarse con
+        # elipsis (CSS): la ayuda repite la etiqueta completa. Solo en las
+        # largas: a un segmentado sin ayuda no se le agrega un icono vacío.
+        ayuda = f"**{etiqueta}**" + (f"\n\n{ayuda}" if ayuda else "")
+    previo = memoria.get(nombre, feat["default"])
+    ya = clave in st.session_state
+    if feat["tipo"] == "numerico":
+        lo, hi = float(feat["min"]), float(feat["max"])
+        entero = all(float(feat[k]).is_integer() for k in ("min", "max", "default"))
+        inicial = min(max(float(previo), lo), hi)
+        if entero:
+            kw = {} if ya else {"value": int(inicial)}
+            v = st.slider(etiqueta, int(lo), int(hi), step=1, key=clave,
+                          help=ayuda, **kw)
         else:
-            opciones = feat["opciones"]
-            if ya and st.session_state[clave] not in opciones:
-                del st.session_state[clave]
-                ya = False
-            inicial = previo if previo in opciones else opciones[0]
-            if len(opciones) <= 3:
-                kw = {} if ya else {"default": inicial}
-                v = st.segmented_control(etiqueta, opciones, format_func=tr,
-                                         key=clave, help=ayuda_de(feat), **kw)
-                # El segmentado deselecciona al volver a pulsar: se recuerda
-                # el último valor válido en vez de dejar el perfil a medias.
-                if v is None:
-                    v = memoria.get(nombre, inicial)
-            else:
-                kw = {} if ya else {"index": opciones.index(inicial)}
-                v = st.selectbox(etiqueta, opciones, format_func=tr,
-                                 key=clave, help=ayuda_de(feat), **kw)
-            valores[nombre] = v
+            kw = {} if ya else {"value": inicial}
+            v = st.slider(etiqueta, lo, hi, step=0.01, key=clave,
+                          help=ayuda, **kw)
+        return float(v)
+    opciones = feat["opciones"]
+    if ya and st.session_state[clave] not in opciones:
+        del st.session_state[clave]
+        ya = False
+    inicial = previo if previo in opciones else opciones[0]
+    if _es_compacto(feat):
+        kw = {} if ya else {"default": inicial}
+        v = st.segmented_control(etiqueta, opciones, format_func=tr,
+                                 key=clave, help=ayuda, **kw)
+        # El segmentado deselecciona al volver a pulsar: se recuerda el
+        # último valor válido en vez de dejar el perfil a medias.
+        return memoria.get(nombre, inicial) if v is None else v
+    kw = {} if ya else {"index": opciones.index(inicial)}
+    return st.selectbox(etiqueta, opciones, format_func=tr,
+                        key=clave, help=ayuda, **kw)
+
+
+def _es_compacto(feat: dict) -> bool:
+    """Sliders y segmentados comparten fila; las listas van en otra."""
+    return feat["tipo"] == "numerico" or len(feat["opciones"]) <= 3
+
+
+def formulario(features: list[dict], prefijo: str,
+               rejilla: bool = False) -> pd.DataFrame:
+    """
+    Un control por variable del schema, EXCEPTO la experiencia potencial y su
+    cuadrado: son derivadas de Mincer (edad − años educ − 6, truncada en 0) y
+    digitarlas seria redundante e inconsistente. Se calculan aqui.
+
+    `rejilla=True` (ingreso e informalidad, v1.2): el formulario a todo el
+    ancho en dos filas, sliders y segmentados en una, listas en otra, para
+    que pregunta, controles y respuesta quepan sin scroll a 1366×768. La
+    sala de máquinas lo usa en una columna angosta: ahí sigue vertical.
+    Los valores siguen en español: `tr()` solo cambia lo que se muestra.
+    """
+    memoria = st.session_state.setdefault(f"valores_{prefijo}", {})
+    visibles = [f for f in features if f["nombre"] not in DERIVADAS]
+    valores = {}
+    if rejilla:
+        compactos = [f for f in visibles if _es_compacto(f)]
+        listas = [f for f in visibles if not _es_compacto(f)]
+        for grupo, por_fila in ((compactos, 5), (listas, 4)):
+            for k in range(0, len(grupo), por_fila):
+                cols = st.columns(por_fila, gap="medium")
+                for col, feat in zip(cols, grupo[k:k + por_fila]):
+                    with col:
+                        valores[feat["nombre"]] = _control(feat, prefijo, memoria,
+                                                           rejilla=True)
+    else:
+        for feat in visibles:
+            valores[feat["nombre"]] = _control(feat, prefijo, memoria)
 
     if {"edad", "anios_educ"} <= set(valores):
         exper = max(float(valores["edad"]) - float(valores["anios_educ"]) - 6, 0.0)
@@ -717,6 +861,11 @@ def a_hist_oof() -> dict | None:
     return cargar_artefactos().get("clasificador", {}).get("histograma_oof")
 
 
+def _ir_a_demasiado_bueno() -> None:
+    st.session_state["sec"] = "ficha"
+    st.session_state["resaltar_demasiado_bueno"] = True
+
+
 @st.fragment
 def bloque_umbral(clas: dict, curva: dict) -> None:
     """Mover el slider solo reejecuta esta función: nada se vuelve a predecir."""
@@ -730,19 +879,12 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
         "f1": (float(refs["f1_optimo"]["umbral"]), L("Máx. F1", "Max F1")),
     }
 
-    html("<div class='eyebrow'>" + L("Dónde poner la vara", "Where to set the bar")
-         + "</div>")
-    html("<div class='sutil' style='margin:6px 0 10px 0;max-width:78ch'>"
-         + L("Mover el umbral no recalcula la probabilidad del perfil: mueve la "
-             "vara con la que decidimos señalar. <b>La probabilidad la pone el "
-             "modelo; el umbral lo pones tú.</b>",
-             "Moving the threshold doesn't recompute the profile's "
-             "probability: it moves the bar we use to decide whom to flag. "
-             "<b>The model sets the probability; you set the threshold.</b>")
-         + "</div>")
-
-    col_p, col_s = st.columns([1, 1])
+    # v1.2: veredicto y franja a la izquierda, la vara a la derecha — lo que
+    # cabe en la primera pantalla. Consecuencias, curva y matriz, en pestañas.
+    col_v, col_p = st.columns([60, 40], gap="large")
     with col_p:
+        html("<div class='eyebrow'>" + L("Dónde poner la vara",
+                                         "Where to set the bar") + "</div>")
         preset = st.radio(
             L("Preajuste", "Preset"), list(presets) + ["libre"], index=0,
             format_func=lambda k: (L("Umbral libre", "Custom threshold")
@@ -755,7 +897,6 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
                    "The first three are cut-offs chosen by different "
                    "criteria. “Custom threshold” lets you move it by hand to "
                    "see what you gain and what you lose."))
-    with col_s:
         if preset == "libre":
             umbral = st.slider(L("Umbral", "Threshold"), 0.05, 0.95,
                                float(st.session_state.get("umbral_libre", 0.50)),
@@ -773,21 +914,20 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
             st.slider(L("Umbral", "Threshold"), 0.05, 0.95, umbral, 0.005,
                       disabled=True, format="%.3f",
                       key=f"slider_fijo_{preset}")
-
-    html("<div class='sutil' style='margin-top:8px'>"
-         + L(f"★ El punto operativo aprobado exige <b>precisión ≥ 0,90 para "
-             f"la clase informal</b>: ",
-             f"★ The approved operating point requires <b>precision ≥ 0.90 "
-             f"for the informal class</b>: ")
-         + tr(p_op['frase_exposicion']) + "</div>")
+        html("<div class='sutil'>"
+             + L("Mover el umbral no recalcula la probabilidad del perfil: "
+                 "mueve la vara con la que decidimos señalar. <b>La "
+                 "probabilidad la pone el modelo; el umbral lo pones tú.</b>",
+                 "Moving the threshold doesn't recompute the profile's "
+                 "probability: it moves the bar we use to decide whom to "
+                 "flag. <b>The model sets the probability; you set the "
+                 "threshold.</b>") + "</div>")
 
     proba = st.session_state.get("proba_informal")
     i = indice_umbral(curva, umbral)
 
     # ---- Consecuencias en vivo ----
-    # Se calculan ANTES del veredicto porque la línea de «tres números» que va
-    # pegada a la cifra grande necesita la cobertura y la precisión de este
-    # mismo umbral. Los tres son números vivos: ninguno está escrito a mano.
+    # Los tres son números vivos: ninguno está escrito a mano.
     total = curva["n"]
     tp, fp = curva["tp"][i], curva["fp"][i]
     tn, fn = curva["tn"][i], curva["fn"][i]
@@ -798,153 +938,333 @@ def bloque_umbral(clas: dict, curva: dict) -> None:
     rec = curva["recall_1"][i]
     pct_senalado = (tp + fp) / total * 100
 
-    # Cabina: cifra + veredicto en una fila compacta, franja debajo, y las
-    # consecuencias del umbral pegadas.
-    if proba is not None:
-        senalado = proba >= umbral
-        col = T()["senal_media"] if senalado else T()["senal_buena"]
-        veredicto = (L("Señalado para focalización", "Flagged for targeting")
-                     if senalado else
-                     L("Sin señal por este criterio",
-                       "Not flagged under this criterion"))
-        html(f"<div class='fila-veredicto'>"
-             f"<span class='cifra-veredicto' style='color:{col}'>"
-             f"{pct(proba, 1)}</span>"
-             f"<span class='texto-veredicto' style='color:{col}'>"
-             f"{veredicto}</span></div>")
-        html("<div class='sutil' style='margin:-2px 0 10px 0'>"
-             + (L("Su probabilidad estimada supera el umbral. La señal apunta a "
-                  "una configuración de empleo, no es un veredicto sobre la "
-                  "persona.",
-                  "Its estimated probability is above the threshold. The flag "
-                  "points to a job configuration — it is not a verdict on the "
-                  "person.") if senalado else
-                L("Su probabilidad estimada queda por debajo del umbral.",
-                  "Its estimated probability is below the threshold."))
+    with col_v:
+        if proba is not None:
+            senalado = proba >= umbral
+            col = T()["senal_media"] if senalado else T()["senal_buena"]
+            veredicto = (L("Señalado para focalización", "Flagged for targeting")
+                         if senalado else
+                         L("Sin señal por este criterio",
+                           "Not flagged under this criterion"))
+            html(f"<div class='fila-veredicto'>"
+                 f"<span class='cifra-veredicto' style='color:{col}'>"
+                 f"{pct(proba, 1)}</span>"
+                 f"<span class='texto-veredicto' style='color:{col}'>"
+                 f"{veredicto}</span></div>")
+            html("<div class='sutil' style='margin:-2px 0 6px 0'>"
+                 + (L("Su probabilidad estimada supera el umbral. La señal "
+                      "apunta a una configuración de empleo, no es un "
+                      "veredicto sobre la persona.",
+                      "Its estimated probability is above the threshold. The "
+                      "flag points to a job configuration — it is not a "
+                      "verdict on the person.") if senalado else
+                    L("Su probabilidad estimada queda por debajo del umbral.",
+                      "Its estimated probability is below the threshold."))
+                 + "</div>")
+            grafico(graficos.franja_probabilidad(
+                proba, umbral, a_hist_oof(), T()), 165, vistazo=True)
+            # El botón vive dentro de un fragment: el callback fija la
+            # sección (la clave del control de la barra, que aún no se ha
+            # dibujado en el próximo run) y el rerun de toda la app se pide
+            # en la rama verdadera, porque `st.rerun` dentro de un callback
+            # no hace nada.
+            if st.button(L("¿Por qué tan alto? →", "Why so high? →"),
+                         key="ir_demasiado_bueno", type="tertiary",
+                         on_click=_ir_a_demasiado_bueno,
+                         help=L("Abre «¿Es demasiado bueno el clasificador?» "
+                                "en la Ficha técnica: por qué un PR-AUC de "
+                                "0,96 aquí es coherente y no señal de fuga de "
+                                "información.",
+                                "Opens “Is the classifier too good to be "
+                                "true?” in the Model card: why a 0.96 PR-AUC "
+                                "is consistent here and not a sign of data "
+                                "leakage.")):
+                st.rerun(scope="app")
+
+    t_cons, t_curva, t_matriz = st.tabs([
+        L("Qué pasa con este umbral", "What this threshold does"),
+        L("Precisión frente a cobertura", "Precision vs. coverage"),
+        L("Matriz de confusión", "Confusion matrix")])
+
+    with t_cons:
+        if proba is not None:
+            col = T()["senal_media"] if proba >= umbral else T()["senal_buena"]
+            # Los tres porcentajes de esta pantalla miden cosas distintas y se
+            # confunden con facilidad. Se nombran juntos, una sola vez.
+            html(f"<div class='tres-numeros'>"
+                 f"<div><b style='color:{col}'>{pct(proba, 1)}</b>"
+                 f"<span>{L('de ESTE PERFIL: así de informal es esta configuración', 'for THIS PROFILE: how informal this configuration looks')}</span></div>"
+                 f"<div><b style='color:{T()['acento_alto']}'>{pc(pct_senalado)}</b>"
+                 f"<span>{L('de LA POBLACIÓN queda sobre el umbral', 'of THE POPULATION sits above the threshold')}</span></div>"
+                 f"<div><b style='color:{T()['senal_buena']}'>{pc(prec * 100)}</b>"
+                 f"<span>{L('de PRECISIÓN: de cada 100 señalados, cuántos aciertas', 'PRECISION: out of 100 flagged, how many are right')}</span></div>"
+                 f"</div>")
+        html(f"<div class='panel' style='margin-top:8px'>"
+             f"<div style='font-size:15px;line-height:1.9;color:{T()['texto']}'>"
+             + L(f"Con umbral <b>{d(umbral, 3)}</b>:<br>"
+                 f"se señala al <b style='color:{T()['acento_alto']}'>"
+                 f"{pc(pct_senalado)}</b> de los trabajadores · "
+                 f"de cada 100 señalados, <b style='color:{T()['senal_buena']}'>"
+                 f"{round(prec * 100)}</b> son informales · "
+                 f"se escapan <b style='color:{T()['senal_mala']}'>"
+                 f"{round((1 - rec) * 100)}</b> de cada 100 informales "
+                 f"(<i>falsos negativos</i>: el modelo no los señaló y sí lo eran).",
+                 f"At threshold <b>{d(umbral, 3)}</b>:<br>"
+                 f"<b style='color:{T()['acento_alto']}'>{pc(pct_senalado)}</b> "
+                 f"of workers get flagged · "
+                 f"out of every 100 flagged, <b style='color:{T()['senal_buena']}'>"
+                 f"{round(prec * 100)}</b> are informal · "
+                 f"<b style='color:{T()['senal_mala']}'>"
+                 f"{round((1 - rec) * 100)}</b> out of every 100 informal workers "
+                 f"slip through (<i>false negatives</i>: the model didn't flag "
+                 f"them, but they were informal).")
+             + "</div></div>")
+        html("<div class='sutil' style='margin-top:8px'>"
+             + L(f"★ El punto operativo aprobado exige <b>precisión ≥ 0,90 para "
+                 f"la clase informal</b>: ",
+                 f"★ The approved operating point requires <b>precision ≥ 0.90 "
+                 f"for the informal class</b>: ")
+             + tr(p_op['frase_exposicion']) + "</div>")
+        with st.popover(L("¿Puede ser cero?", "Could it be zero?")):
+            html("<div class='sutil' style='max-width:60ch'>"
+                 + L(f"Sí: con umbral 0 señalas a todos y no se escapa nadie — "
+                     f"pero la precisión cae a "
+                     f"<b>{pct(clas['prevalencia_train'], 0)}</b> (la "
+                     f"prevalencia), igual que señalar al azar. Por eso el umbral "
+                     f"es una elección de costos, no un defecto.",
+                     f"Yes: with a threshold of 0 you flag everyone and nobody "
+                     f"slips through — but precision drops to "
+                     f"<b>{pct(clas['prevalencia_train'], 0)}</b> (the "
+                     f"prevalence), no better than flagging at random. That's why "
+                     f"the threshold is a cost trade-off, not a flaw.")
+                 + "</div>")
+
+    with t_curva:
+        if a_curva := curva.get("precision_1"):
+            grafico(graficos.curva_precision_cobertura(
+                curva["recall_1"], a_curva, (rec, prec),
+                [(presets[k_][1], indice_umbral(curva, presets[k_][0]))
+                 for k_ in presets], curva, T()), 350)
+            html("<div class='sutil'>"
+                 + L("El punto blanco es el umbral que tienes puesto. Las marcas "
+                     "son los tres preajustes. Cada punto de la curva es un umbral "
+                     "posible: subirlo te mueve arriba y a la izquierda (más "
+                     "acierto, más informales que se escapan); bajarlo, abajo y a "
+                     "la derecha.",
+                     "The hollow dot is your current threshold; the small marks "
+                     "are the three presets. Every point on the curve is a "
+                     "possible threshold: raising it moves you up and to the left "
+                     "(more precision, more informal workers missed); lowering "
+                     "it, down and to the right.")
+                 + "</div>")
+
+    with t_matriz:
+        html("<div class='sutil' style='max-width:78ch;margin-bottom:8px'>"
+             + L("Cada trabajador cae en una de estas cuatro casillas según lo que "
+                 "el modelo dijo y lo que realmente era. <b>Subir el umbral</b> "
+                 "reduce los falsos positivos y aumenta los falsos negativos: "
+                 "señalas menos gente, aciertas más en los que señalas, pero se te "
+                 "escapan más informales. <b>Bajarlo</b> hace exactamente lo "
+                 "contrario. No hay un punto que mejore las dos cosas a la vez; "
+                 "por eso hay que elegir.",
+                 "Every worker lands in one of these four boxes, depending on what "
+                 "the model said and what was actually true. <b>Raising the "
+                 "threshold</b> cuts false positives and adds false negatives: "
+                 "you flag fewer people and are right more often, but more "
+                 "informal workers slip through. <b>Lowering it</b> does exactly "
+                 "the opposite. No point improves both at once — that's why you "
+                 "have to choose.")
              + "</div>")
-        # Los tres porcentajes de esta pantalla miden cosas distintas y se
-        # confunden con facilidad. Se nombran juntos, una sola vez.
-        html(f"<div class='tres-numeros'>"
-             f"<div><b style='color:{col}'>{pct(proba, 1)}</b>"
-             f"<span>{L('de ESTE PERFIL: así de informal es esta configuración', 'for THIS PROFILE: how informal this configuration looks')}</span></div>"
-             f"<div><b style='color:{T()['acento_alto']}'>{pc(pct_senalado)}</b>"
-             f"<span>{L('de LA POBLACIÓN queda sobre el umbral', 'of THE POPULATION sits above the threshold')}</span></div>"
-             f"<div><b style='color:{T()['senal_buena']}'>{pc(prec * 100)}</b>"
-             f"<span>{L('de PRECISIÓN: de cada 100 señalados, cuántos aciertas', 'PRECISION: out of 100 flagged, how many are right')}</span></div>"
-             f"</div>")
-        # No hay anclas de URL: la navegación es por session_state. El botón
-        # cambia de sección y marca el destino para que se vea al llegar.
-        if st.button(L("¿Por qué tan alto? →", "Why so high? →"),
-                     key="ir_demasiado_bueno", type="tertiary",
-                     help=L("Abre «¿Es demasiado bueno el clasificador?» en "
-                            "la Ficha técnica: por qué un PR-AUC de 0,96 aquí "
-                            "es coherente y no señal de fuga de información.",
-                            "Opens “Is the classifier too good to be true?” "
-                            "in the Model card: why a 0.96 PR-AUC is "
-                            "consistent here and not a sign of data "
-                            "leakage.")):
-            st.session_state["seccion"] = "ficha"
-            st.session_state["resaltar_demasiado_bueno"] = True
-            st.rerun(scope="app")
-        grafico(graficos.franja_probabilidad(
-            proba, umbral, a_hist_oof(), T()), 165)
-
-    html("<div class='eyebrow' style='margin-top:4px'>"
-         + L("Qué pasa con este umbral", "What this threshold does") + "</div>")
-    html(f"<div class='panel' style='margin-top:8px'>"
-         f"<div style='font-size:15px;line-height:1.9;color:{T()['texto']}'>"
-         + L(f"Con umbral <b>{d(umbral, 3)}</b>:<br>"
-             f"se señala al <b style='color:{T()['acento_alto']}'>"
-             f"{pc(pct_senalado)}</b> de los trabajadores · "
-             f"de cada 100 señalados, <b style='color:{T()['senal_buena']}'>"
-             f"{round(prec * 100)}</b> son informales · "
-             f"se escapan <b style='color:{T()['senal_mala']}'>"
-             f"{round((1 - rec) * 100)}</b> de cada 100 informales "
-             f"(<i>falsos negativos</i>: el modelo no los señaló y sí lo eran).",
-             f"At threshold <b>{d(umbral, 3)}</b>:<br>"
-             f"<b style='color:{T()['acento_alto']}'>{pc(pct_senalado)}</b> "
-             f"of workers get flagged · "
-             f"out of every 100 flagged, <b style='color:{T()['senal_buena']}'>"
-             f"{round(prec * 100)}</b> are informal · "
-             f"<b style='color:{T()['senal_mala']}'>"
-             f"{round((1 - rec) * 100)}</b> out of every 100 informal workers "
-             f"slip through (<i>false negatives</i>: the model didn't flag "
-             f"them, but they were informal).")
-         + "</div></div>")
-
-    # La pregunta que sigue a «se escapan N» siempre es la misma: ¿por qué no
-    # cero? Se responde aquí, con la prevalencia leída del schema.
-    with st.popover(L("¿Puede ser cero?", "Could it be zero?")):
-        html("<div class='sutil' style='max-width:60ch'>"
-             + L(f"Sí: con umbral 0 señalas a todos y no se escapa nadie — "
-                 f"pero la precisión cae a "
-                 f"<b>{pct(clas['prevalencia_train'], 0)}</b> (la "
-                 f"prevalencia), igual que señalar al azar. Por eso el umbral "
-                 f"es una elección de costos, no un defecto.",
-                 f"Yes: with a threshold of 0 you flag everyone and nobody "
-                 f"slips through — but precision drops to "
-                 f"<b>{pct(clas['prevalencia_train'], 0)}</b> (the "
-                 f"prevalence), no better than flagging at random. That's why "
-                 f"the threshold is a cost trade-off, not a flaw.")
-             + "</div>")
-
-    if a_curva := curva.get("precision_1"):
-        grafico(graficos.curva_precision_cobertura(
-            curva["recall_1"], a_curva, (rec, prec),
-            [(presets[k_][1], indice_umbral(curva, presets[k_][0]))
-             for k_ in presets], curva, T()), 350)
+        grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 330)
         html("<div class='sutil'>"
-             + L("El punto blanco es el umbral que tienes puesto. Las marcas "
-                 "son los tres preajustes. Cada punto de la curva es un umbral "
-                 "posible: subirlo te mueve arriba y a la izquierda (más "
-                 "acierto, más informales que se escapan); bajarlo, abajo y a "
-                 "la derecha.",
-                 "The hollow dot is your current threshold; the small marks "
-                 "are the three presets. Every point on the curve is a "
-                 "possible threshold: raising it moves you up and to the left "
-                 "(more precision, more informal workers missed); lowering "
-                 "it, down and to the right.")
+             + L(f"Calculado sobre {n(total)} trabajadores del entrenamiento con "
+                 f"probabilidades <i>out-of-fold</i> —es decir, estimadas para "
+                 f"cada persona por un modelo que no la usó al entrenar— y "
+                 f"escalado a 1.000. Precisión de la clase informal: "
+                 f"{d(prec, 4)} · recall: {d(rec, 4)}.",
+                 f"Computed on {n(total)} training workers using "
+                 f"<i>out-of-fold</i> probabilities — each person scored by a "
+                 f"model that never saw them during training — and scaled to "
+                 f"1,000. Informal-class precision: {d(prec, 4)} · recall: "
+                 f"{d(rec, 4)}.")
              + "</div>")
-
-    st.write("")
-    html("<h3>" + L("Matriz de confusión: los cuatro resultados posibles",
-                    "Confusion matrix: the four possible outcomes") + "</h3>")
-    html("<div class='sutil' style='max-width:78ch;margin-bottom:8px'>"
-         + L("Cada trabajador cae en una de estas cuatro casillas según lo que "
-             "el modelo dijo y lo que realmente era. <b>Subir el umbral</b> "
-             "reduce los falsos positivos y aumenta los falsos negativos: "
-             "señalas menos gente, aciertas más en los que señalas, pero se te "
-             "escapan más informales. <b>Bajarlo</b> hace exactamente lo "
-             "contrario. No hay un punto que mejore las dos cosas a la vez; "
-             "por eso hay que elegir.",
-             "Every worker lands in one of these four boxes, depending on what "
-             "the model said and what was actually true. <b>Raising the "
-             "threshold</b> cuts false positives and adds false negatives: "
-             "you flag fewer people and are right more often, but more "
-             "informal workers slip through. <b>Lowering it</b> does exactly "
-             "the opposite. No point improves both at once — that's why you "
-             "have to choose.")
-         + "</div>")
-    # 330, no 290: con 290 el SVG (520x286) escalado al ancho de la columna
-    # salía por debajo del iframe y cortaba la fila inferior por la mitad.
-    grafico(graficos.matriz_confusion(m_tp, m_fp, m_tn, m_fn, T()), 330)
-    html("<div class='sutil'>"
-         + L(f"Calculado sobre {n(total)} trabajadores del entrenamiento con "
-             f"probabilidades <i>out-of-fold</i> —es decir, estimadas para "
-             f"cada persona por un modelo que no la usó al entrenar— y "
-             f"escalado a 1.000. Precisión de la clase informal: "
-             f"{d(prec, 4)} · recall: {d(rec, 4)}.",
-             f"Computed on {n(total)} training workers using "
-             f"<i>out-of-fold</i> probabilities — each person scored by a "
-             f"model that never saw them during training — and scaled to "
-             f"1,000. Informal-class precision: {d(prec, 4)} · recall: "
-             f"{d(rec, 4)}.")
-         + "</div>")
 
 
 # --------------------------------------------------------------------------
 # Sección 1: estimación de ingreso
 # --------------------------------------------------------------------------
+@st.fragment
+def _ingreso_en_vivo(schema: dict, art: dict) -> None:
+    """
+    Todo lo que depende del perfil, en un fragment: mover un slider reejecuta
+    solo esto (formulario, estimación, cifra, tarjetas, cohorte), no la
+    cabecera ni lo que va debajo del pliegue.
+    """
+    reg = schema["regresor"]
+    b = art.get("regresor", {})
+    with st.container(border=True, key="caja_form_reg"):
+        selector_perfiles("reg", reg["features"])
+        fila = formulario(reg["features"], "reg", rejilla=True)
+    # Estimación en vivo: predecir una fila con el modelo ya cacheado cuesta
+    # milisegundos, así que no hace falta un botón que el usuario olvide.
+    modelo = cargar_modelo("regresor_e9.joblib")
+    st.session_state["ingreso"] = float(
+        modelo.predict(fila[columnas_esperadas(modelo)])[0])
+
+    ingreso = st.session_state["ingreso"]
+    smear = float(reg["smearing_duan"])
+    media = (ingreso + 1) * smear - 1
+    ing_art = b.get("ingreso", {})
+    mediana_pob = float(ing_art.get("mediana_ponderada",
+                                    reg["ingreso_mediano_train"]))
+
+    # Cifra protagonista: el ingreso típico, grande, con su lectura al
+    # lado y una barra que lo sitúa frente a la mediana del país.
+    razon = ingreso / mediana_pob if mediana_pob else 1.0
+    rel = (L(f"{d(razon, 1)} × la mediana del país",
+             f"{d(razon, 1)}× the national median") if razon >= 1.05 else
+           L(f"{pc((1 - razon) * 100)} por debajo de la mediana del país",
+             f"{pc((1 - razon) * 100)} below the national median")
+           if razon <= 0.95 else
+           L("en la mediana del país", "right at the national median"))
+    tope = max(ingreso, mediana_pob, media) * 1.15
+    html(f"<div class='hero-cifra{clase_quieta()}'>"
+         f"<div class='eyebrow'>{L('Ingreso mensual típico estimado', 'Estimated typical monthly income')}</div>"
+         f"<div class='hero-fila'><span class='hero-valor'>S/ {n(ingreso)}</span>"
+         f"<span class='hero-rel'>{rel}</span></div>"
+         f"<div class='hero-barra'>"
+         f"<div class='hero-relleno' style='width:{ingreso / tope * 100:.1f}%'></div>"
+         f"<div class='hero-marca{' hero-marca-der' if mediana_pob / tope > 0.7 else ''}' "
+         f"style='left:{mediana_pob / tope * 100:.1f}%'>"
+         f"<span>{L('mediana país', 'national median')} S/ {n(mediana_pob)}</span></div>"
+         f"</div></div>")
+
+    # El ingreso típico ya es la cifra protagonista: las tarjetas dan el
+    # contexto (promedio, país, casos parecidos), no lo repiten.
+    tarjetas = [
+        tarjeta(L("ingreso esperado", "expected income"), f"S/ {n(media)}",
+                llano=L("El promedio. Es más alto porque unos pocos "
+                        "sueldos muy grandes lo jalan hacia arriba.",
+                        "The average. It's higher because a few very "
+                        "large paychecks pull it up."),
+                nota=L(f"Incluye la corrección × {d(smear, 3)} que "
+                       f"compensa haber entrenado en logaritmo — ver "
+                       f"«Cómo leer estas cifras».",
+                       f"Includes the × {d(smear, 3)} correction that "
+                       f"offsets training on the log scale — see “How to "
+                       f"read these figures”.")),
+        tarjeta(L("mediana del país", "national median"),
+                f"S/ {n(mediana_pob)}",
+                llano=L(f"Para comparar: la mitad de todos los "
+                        f"trabajadores del país gana menos de "
+                        f"S/ {n(mediana_pob)}.",
+                        f"For reference: half of all workers in Peru "
+                        f"earn less than S/ {n(mediana_pob)}.")),
+    ]
+
+    # IQR de casos comparables
+    v = st.session_state.get("valores_reg", {})
+    if ing_art.get("comparables") and {"sexo", "area", "anios_educ"} <= set(v):
+        educ = float(v["anios_educ"])
+        banda = ("0-6" if educ <= 6 else "7-11" if educ <= 11
+                 else "12-14" if educ <= 14 else "15+")
+        comp = ing_art["comparables"].get(f"{v['sexo']}|{v['area']}|{banda}")
+        if comp:
+            pista = L("Un percentil marca el punto por debajo del cual "
+                      "queda ese porcentaje de los casos: el P25 deja "
+                      "debajo al 25 % y el P75, al 75 %. Entre los dos "
+                      "vive la mitad central.",
+                      "A percentile is the point below which that share "
+                      "of cases falls: P25 leaves 25% below it and P75, "
+                      "75%. The middle half lives between them.")
+            tarjetas.append(tarjeta(
+                L("casos comparables", "comparable cases")
+                + f" (<span class='pista' title='{pista}'>P25–P75</span>)",
+                f"S/ {n(comp['p25'])} – {n(comp['p75'])}",
+                L(f"{tr(v['sexo']).lower()}, área {tr(v['area']).lower()}, "
+                  f"{banda} años de educación · mediana S/ {n(comp['p50'])}"
+                  f" · n={n(comp['n'])}",
+                  f"{tr(v['sexo']).lower()}, {tr(v['area']).lower()} area, "
+                  f"{banda} years of schooling · median S/ "
+                  f"{n(comp['p50'])} · n={n(comp['n'])}"),
+                llano=L(f"De los {n(comp['n'])} encuestados parecidos a "
+                        f"este perfil, la mitad del medio gana entre "
+                        f"S/ {n(comp['p25'])} y S/ {n(comp['p75'])}: un "
+                        f"25 % gana menos que S/ {n(comp['p25'])} y un "
+                        f"25 % más que S/ {n(comp['p75'])}.",
+                        f"Of the {n(comp['n'])} respondents similar to "
+                        f"this profile, the middle half earns between "
+                        f"S/ {n(comp['p25'])} and S/ {n(comp['p75'])}: "
+                        f"25% earn less than S/ {n(comp['p25'])} and 25% "
+                        f"more than S/ {n(comp['p75'])}.")))
+
+    html("<div class='rejilla-tarjetas'>" + "".join(tarjetas) + "</div>")
+    st.write("")
+    mae = reg["metricas_test"]["mae_mediana"]
+    aviso(L(f"<b>Esta cifra es un ingreso típico, no una promesa de "
+            f"sueldo.</b> En promedio se equivoca en unos S/ {n(mae)} por "
+            f"persona. Sirve para comparar perfiles entre sí, no para "
+            f"decirle a nadie cuánto va a cobrar.",
+            f"<b>This is a typical income, not a salary promise.</b> On "
+            f"average it's off by about S/ {n(mae)} per person. Use it to "
+            f"compare profiles, not to tell anyone what they will be "
+            f"paid."))
+
+    with st.expander(L("Cómo leer estas cifras", "How to read these figures")):
+        html("<div class='sutil'>" + L(
+            f"<b>Por qué la primera cifra es una mediana y no un "
+            f"promedio.</b> El modelo aprende sobre el logaritmo del "
+            f"ingreso, porque unos pocos sueldos altísimos deforman "
+            f"cualquier promedio. Al deshacer ese logaritmo se obtiene la "
+            f"<i>mediana condicional</i>: el valor que parte al grupo en "
+            f"dos mitades iguales. Es la cifra honesta para «cuánto gana "
+            f"alguien así».<br><br>"
+            f"<b>De dónde sale la corrección × {d(smear, 3)}.</b> Para "
+            f"pasar de la mediana al promedio no basta con deshacer el "
+            f"logaritmo: hay que multiplicar por un factor que recupera la "
+            f"masa de la cola alta. Es la corrección de <i>smearing</i>"
+            f"{ref('duan1983')} de Duan (1983), estimada con los residuos "
+            f"de validación cruzada del entrenamiento. Sin ella, el "
+            f"promedio saldría subestimado en torno a un "
+            f"{pc((1 - 1 / smear) * 100)}.<br><br>"
+            f"<b>Qué queda fuera.</b> El target es solo dinero: el pago en "
+            f"especie y el autoconsumo (que recibe el 24,6 % de los "
+            f"ocupados, sobre todo en el agro) no se cuentan. Y es un "
+            f"ingreso anualizado y repartido en doce meses, no el del mes "
+            f"de la entrevista.<br><br>"
+            f"<b>Error de la estimación.</b> MAE en el conjunto de prueba: "
+            f"S/ {n(mae)}. La incertidumbre individual es grande y está "
+            f"declarada: el modelo ordena perfiles, no liquida sueldos.",
+            f"<b>Why the first figure is a median, not an average.</b> The "
+            f"model learns on the log of income, because a handful of "
+            f"very high paychecks distort any average. Undoing the log "
+            f"gives the <i>conditional median</i>: the value that splits "
+            f"the group into two equal halves. It's the honest answer to "
+            f"“how much does someone like this earn”.<br><br>"
+            f"<b>Where the × {d(smear, 3)} correction comes from.</b> To "
+            f"go from the median to the mean, undoing the log isn't "
+            f"enough: you have to multiply by a factor that recovers the "
+            f"mass of the upper tail. That's Duan's (1983) "
+            f"<i>smearing</i> correction{ref('duan1983')}, estimated from "
+            f"the training cross-validation residuals. Without it the "
+            f"mean would be understated by about "
+            f"{pc((1 - 1 / smear) * 100)}.<br><br>"
+            f"<b>What's left out.</b> The target is cash only: in-kind "
+            f"pay and own consumption (received by 24.6% of workers, "
+            f"mostly in farming) aren't counted. And it's an annualized "
+            f"income split over twelve months, not the interview "
+            f"month's.<br><br>"
+            f"<b>Estimation error.</b> Test-set MAE: S/ {n(mae)}. "
+            f"Individual uncertainty is large and stated up front: the "
+            f"model ranks profiles, it doesn't set salaries.")
+            + "</div>")
+
+    if b.get("cohorte"):
+        with st.expander(L("Tu perfil frente a la cohorte",
+                           "Your profile vs. the cohort")):
+            situadores(v, reg["features"], b["cohorte"])
+
+
 def seccion_ingreso(schema: dict, art: dict) -> None:
     reg = schema["regresor"]
     b = art.get("regresor", {})
@@ -953,16 +1273,12 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
     cabecera(
         L("¿Cuánto gana al mes una persona con este perfil?",
           "How much does a person with this profile earn per month?"),
-        L(f"El modelo aprendió de {n(n_train)} trabajadores encuestados por el "
-          "INEI (ENAHO 2025). Arma un perfil a la izquierda —o elige uno de "
-          "ejemplo— y la estimación se actualiza al instante. Dos avisos: es "
-          "un promedio del año, no el sueldo del mes pasado, y solo cuenta "
-          "pagos en dinero.",
-          f"The model learned from {n(n_train)} workers surveyed by Peru's "
-          "national statistics office, INEI (ENAHO 2025 household survey). "
-          "Build a profile on the left — or pick an example — and the "
-          "estimate updates instantly. Two caveats: it's a year-round average, "
-          "not last month's paycheck, and it only counts cash payments."),
+        L(f"Aprendió de {n(n_train)} trabajadores de la ENAHO 2025 (INEI). "
+          "Elige un ejemplo o mueve los controles: la estimación cambia al "
+          "instante. Es un promedio del año y solo cuenta pagos en dinero.",
+          f"Trained on {n(n_train)} workers from Peru's ENAHO 2025 household "
+          "survey (INEI). Pick an example or move the controls: the estimate "
+          "updates instantly. It's a year-round average of cash pay only."),
         tr(reg['descripcion_target']) + "<br><br>"
         + L("«Imputada» significa que el INEI completó los valores que la "
             "persona no supo responder. «Deflactada» significa que los soles "
@@ -981,174 +1297,10 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
             "positive labor income. Amounts are in Peruvian soles (S/)."),
         seccion=L("ingreso", "income"),
         eyebrow=L("Regresión · Gradient Boosting", "Regression · Gradient Boosting"))
+    _ingreso_en_vivo(schema, art)
+    # Las cifras del proyecto, debajo del pliegue hasta que exista la
+    # portada «Empieza aquí» (Fase 4).
     franja_kpi(schema, art)
-
-    izq, der = st.columns([36, 64], gap="large")
-    with izq:
-        with st.container(border=True, key="caja_form_reg"):
-            html("<div class='eyebrow'>" + L("Perfil del trabajador",
-                                             "Worker profile") + "</div>")
-            selector_perfiles("reg", reg["features"])
-            fila = formulario(reg["features"], "reg")
-    # Estimación en vivo: predecir una fila con el modelo ya cacheado cuesta
-    # milisegundos, así que no hace falta un botón que el usuario olvide.
-    modelo = cargar_modelo("regresor_e9.joblib")
-    st.session_state["ingreso"] = float(
-        modelo.predict(fila[columnas_esperadas(modelo)])[0])
-
-    with der:
-        ingreso = st.session_state["ingreso"]
-        smear = float(reg["smearing_duan"])
-        media = (ingreso + 1) * smear - 1
-        ing_art = b.get("ingreso", {})
-        mediana_pob = float(ing_art.get("mediana_ponderada",
-                                        reg["ingreso_mediano_train"]))
-
-        # Cifra protagonista: el ingreso típico, grande, con su lectura al
-        # lado y una barra que lo sitúa frente a la mediana del país.
-        razon = ingreso / mediana_pob if mediana_pob else 1.0
-        rel = (L(f"{d(razon, 1)} × la mediana del país",
-                 f"{d(razon, 1)}× the national median") if razon >= 1.05 else
-               L(f"{pc((1 - razon) * 100)} por debajo de la mediana del país",
-                 f"{pc((1 - razon) * 100)} below the national median")
-               if razon <= 0.95 else
-               L("en la mediana del país", "right at the national median"))
-        tope = max(ingreso, mediana_pob, media) * 1.15
-        html(f"<div class='hero-cifra'>"
-             f"<div class='eyebrow'>{L('Ingreso mensual típico estimado', 'Estimated typical monthly income')}</div>"
-             f"<div class='hero-fila'><span class='hero-valor'>S/ {n(ingreso)}</span>"
-             f"<span class='hero-rel'>{rel}</span></div>"
-             f"<div class='hero-barra'>"
-             f"<div class='hero-relleno' style='width:{ingreso / tope * 100:.1f}%'></div>"
-             f"<div class='hero-marca{' hero-marca-der' if mediana_pob / tope > 0.7 else ''}' "
-             f"style='left:{mediana_pob / tope * 100:.1f}%'>"
-             f"<span>{L('mediana país', 'national median')} S/ {n(mediana_pob)}</span></div>"
-             f"</div></div>")
-
-        # El ingreso típico ya es la cifra protagonista: las tarjetas dan el
-        # contexto (promedio, país, casos parecidos), no lo repiten.
-        tarjetas = [
-            tarjeta(L("ingreso esperado", "expected income"), f"S/ {n(media)}",
-                    llano=L("El promedio. Es más alto porque unos pocos "
-                            "sueldos muy grandes lo jalan hacia arriba.",
-                            "The average. It's higher because a few very "
-                            "large paychecks pull it up."),
-                    nota=L(f"Incluye la corrección × {d(smear, 3)} que "
-                           f"compensa haber entrenado en logaritmo — ver "
-                           f"«Cómo leer estas cifras».",
-                           f"Includes the × {d(smear, 3)} correction that "
-                           f"offsets training on the log scale — see “How to "
-                           f"read these figures”.")),
-            tarjeta(L("mediana del país", "national median"),
-                    f"S/ {n(mediana_pob)}",
-                    llano=L(f"Para comparar: la mitad de todos los "
-                            f"trabajadores del país gana menos de "
-                            f"S/ {n(mediana_pob)}.",
-                            f"For reference: half of all workers in Peru "
-                            f"earn less than S/ {n(mediana_pob)}.")),
-        ]
-
-        # IQR de casos comparables
-        v = st.session_state.get("valores_reg", {})
-        if ing_art.get("comparables") and {"sexo", "area", "anios_educ"} <= set(v):
-            educ = float(v["anios_educ"])
-            banda = ("0-6" if educ <= 6 else "7-11" if educ <= 11
-                     else "12-14" if educ <= 14 else "15+")
-            comp = ing_art["comparables"].get(f"{v['sexo']}|{v['area']}|{banda}")
-            if comp:
-                pista = L("Un percentil marca el punto por debajo del cual "
-                          "queda ese porcentaje de los casos: el P25 deja "
-                          "debajo al 25 % y el P75, al 75 %. Entre los dos "
-                          "vive la mitad central.",
-                          "A percentile is the point below which that share "
-                          "of cases falls: P25 leaves 25% below it and P75, "
-                          "75%. The middle half lives between them.")
-                tarjetas.append(tarjeta(
-                    L("casos comparables", "comparable cases")
-                    + f" (<span class='pista' title='{pista}'>P25–P75</span>)",
-                    f"S/ {n(comp['p25'])} – {n(comp['p75'])}",
-                    L(f"{tr(v['sexo']).lower()}, área {tr(v['area']).lower()}, "
-                      f"{banda} años de educación · mediana S/ {n(comp['p50'])}"
-                      f" · n={n(comp['n'])}",
-                      f"{tr(v['sexo']).lower()}, {tr(v['area']).lower()} area, "
-                      f"{banda} years of schooling · median S/ "
-                      f"{n(comp['p50'])} · n={n(comp['n'])}"),
-                    llano=L(f"De los {n(comp['n'])} encuestados parecidos a "
-                            f"este perfil, la mitad del medio gana entre "
-                            f"S/ {n(comp['p25'])} y S/ {n(comp['p75'])}: un "
-                            f"25 % gana menos que S/ {n(comp['p25'])} y un "
-                            f"25 % más que S/ {n(comp['p75'])}.",
-                            f"Of the {n(comp['n'])} respondents similar to "
-                            f"this profile, the middle half earns between "
-                            f"S/ {n(comp['p25'])} and S/ {n(comp['p75'])}: "
-                            f"25% earn less than S/ {n(comp['p25'])} and 25% "
-                            f"more than S/ {n(comp['p75'])}.")))
-
-        html("<div class='rejilla-tarjetas'>" + "".join(tarjetas) + "</div>")
-        st.write("")
-        mae = reg["metricas_test"]["mae_mediana"]
-        aviso(L(f"<b>Esta cifra es un ingreso típico, no una promesa de "
-                f"sueldo.</b> En promedio se equivoca en unos S/ {n(mae)} por "
-                f"persona. Sirve para comparar perfiles entre sí, no para "
-                f"decirle a nadie cuánto va a cobrar.",
-                f"<b>This is a typical income, not a salary promise.</b> On "
-                f"average it's off by about S/ {n(mae)} per person. Use it to "
-                f"compare profiles, not to tell anyone what they will be "
-                f"paid."))
-
-        with st.expander(L("Cómo leer estas cifras", "How to read these figures")):
-            html("<div class='sutil'>" + L(
-                f"<b>Por qué la primera cifra es una mediana y no un "
-                f"promedio.</b> El modelo aprende sobre el logaritmo del "
-                f"ingreso, porque unos pocos sueldos altísimos deforman "
-                f"cualquier promedio. Al deshacer ese logaritmo se obtiene la "
-                f"<i>mediana condicional</i>: el valor que parte al grupo en "
-                f"dos mitades iguales. Es la cifra honesta para «cuánto gana "
-                f"alguien así».<br><br>"
-                f"<b>De dónde sale la corrección × {d(smear, 3)}.</b> Para "
-                f"pasar de la mediana al promedio no basta con deshacer el "
-                f"logaritmo: hay que multiplicar por un factor que recupera la "
-                f"masa de la cola alta. Es la corrección de <i>smearing</i>"
-                f"{ref('duan1983')} de Duan (1983), estimada con los residuos "
-                f"de validación cruzada del entrenamiento. Sin ella, el "
-                f"promedio saldría subestimado en torno a un "
-                f"{pc((1 - 1 / smear) * 100)}.<br><br>"
-                f"<b>Qué queda fuera.</b> El target es solo dinero: el pago en "
-                f"especie y el autoconsumo (que recibe el 24,6 % de los "
-                f"ocupados, sobre todo en el agro) no se cuentan. Y es un "
-                f"ingreso anualizado y repartido en doce meses, no el del mes "
-                f"de la entrevista.<br><br>"
-                f"<b>Error de la estimación.</b> MAE en el conjunto de prueba: "
-                f"S/ {n(mae)}. La incertidumbre individual es grande y está "
-                f"declarada: el modelo ordena perfiles, no liquida sueldos.",
-                f"<b>Why the first figure is a median, not an average.</b> The "
-                f"model learns on the log of income, because a handful of "
-                f"very high paychecks distort any average. Undoing the log "
-                f"gives the <i>conditional median</i>: the value that splits "
-                f"the group into two equal halves. It's the honest answer to "
-                f"“how much does someone like this earn”.<br><br>"
-                f"<b>Where the × {d(smear, 3)} correction comes from.</b> To "
-                f"go from the median to the mean, undoing the log isn't "
-                f"enough: you have to multiply by a factor that recovers the "
-                f"mass of the upper tail. That's Duan's (1983) "
-                f"<i>smearing</i> correction{ref('duan1983')}, estimated from "
-                f"the training cross-validation residuals. Without it the "
-                f"mean would be understated by about "
-                f"{pc((1 - 1 / smear) * 100)}.<br><br>"
-                f"<b>What's left out.</b> The target is cash only: in-kind "
-                f"pay and own consumption (received by 24.6% of workers, "
-                f"mostly in farming) aren't counted. And it's an annualized "
-                f"income split over twelve months, not the interview "
-                f"month's.<br><br>"
-                f"<b>Estimation error.</b> Test-set MAE: S/ {n(mae)}. "
-                f"Individual uncertainty is large and stated up front: the "
-                f"model ranks profiles, it doesn't set salaries.")
-                + "</div>")
-
-        if b.get("cohorte"):
-            with st.expander(L("Tu perfil frente a la cohorte",
-                               "Your profile vs. the cohort")):
-                situadores(v, reg["features"], b["cohorte"])
 
     imp = b.get("importancia_permutacion")
     if imp:
@@ -1182,19 +1334,16 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
 # --------------------------------------------------------------------------
 def seccion_informalidad(schema: dict, art: dict) -> None:
     clas = schema["clasificador"]
-    a = art.get("clasificador", {})
 
     cabecera(
         L("¿Qué tan probable es que un empleo como este sea informal?",
           "How likely is a job like this to be informal?"),
-        L("Informal según la regla del INEI: independiente sin RUC, o "
-          "dependiente sin aporte a pensión. El modelo estima esa probabilidad "
-          "para el perfil que armes, al instante. Señala configuraciones de "
-          "empleo, no juzga personas.",
+        L("Informal según el INEI: independiente sin RUC o dependiente sin "
+          "aporte a pensión. El modelo estima esa probabilidad para el perfil "
+          "que armes. Señala configuraciones de empleo, no personas.",
           "Informal under INEI's rule: self-employed without a tax ID (RUC), "
-          "or an employee with no pension contributions. The model estimates "
-          "that probability for the profile you build, instantly. It flags "
-          "job configurations — it doesn't judge people."),
+          "or an employee with no pension contributions. The model scores "
+          "the profile you build. It flags job configurations, not people."),
         f"{tr(clas['descripcion_target'])} {tr(clas.get('encuadre', ''))}<br><br>"
         + L("La regla se derivó de dos preguntas de la encuesta: a los "
             "independientes y empleadores se les pregunta si tienen RUC "
@@ -1213,25 +1362,32 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
         eyebrow=L("Clasificación · Gradient Boosting",
                   "Classification · Gradient Boosting"))
 
-    izq, der = st.columns([36, 64], gap="large")
-    with izq:
-        with st.container(border=True, key="caja_form_clf"):
-            html("<div class='eyebrow'>" + L("Perfil del trabajador",
-                                             "Worker profile") + "</div>")
-            selector_perfiles("clf", clas["features"])
-            fila = formulario(clas["features"], "clf")
+    _informalidad_en_vivo(schema, art)
+
+
+@st.fragment
+def _informalidad_en_vivo(schema: dict, art: dict) -> None:
+    """
+    El perfil, su probabilidad, el umbral y las curvas que marcan el valor del
+    perfil: todo lo que un slider cambia, en un fragment. `bloque_umbral` es
+    un fragment anidado: mover la vara no vuelve a predecir.
+    """
+    clas = schema["clasificador"]
+    a = art.get("clasificador", {})
+    with st.container(border=True, key="caja_form_clf"):
+        selector_perfiles("clf", clas["features"])
+        fila = formulario(clas["features"], "clf", rejilla=True)
     modelo = cargar_modelo("clasificador_gb.joblib")
     st.session_state["proba_informal"] = float(
         modelo.predict_proba(fila[columnas_esperadas(modelo)])[:, 1][0])
 
-    with der:
-        if a.get("curva_umbral"):
-            bloque_umbral(clas, a["curva_umbral"])
-        else:
-            aviso(L("Falta <code>models/ui_artifacts.json</code>. Corre "
-                    "<code>python src/09_precomputar_ui.py</code>.",
-                    "<code>models/ui_artifacts.json</code> is missing. Run "
-                    "<code>python src/09_precomputar_ui.py</code>."))
+    if a.get("curva_umbral"):
+        bloque_umbral(clas, a["curva_umbral"])
+    else:
+        aviso(L("Falta <code>models/ui_artifacts.json</code>. Corre "
+                "<code>python src/09_precomputar_ui.py</code>.",
+                "<code>models/ui_artifacts.json</code> is missing. Run "
+                "<code>python src/09_precomputar_ui.py</code>."))
 
     if a.get("dependencia_parcial"):
         st.divider()
@@ -1356,55 +1512,8 @@ def _ecuacion(coefs: dict, titulo: str) -> str:
            "\n".join(lineas) + "</div>"
 
 
-def seccion_torneo(schema: dict, art: dict) -> None:
-    t = art.get("torneo")
-    if not t:
-        aviso(L("Falta el bloque torneo en <code>ui_artifacts.json</code>.",
-                "The tournament block is missing from "
-                "<code>ui_artifacts.json</code>."))
-        return
-    aut = t["autopsia"]
-
-    cabecera(
-        L("¿Por qué este modelo y no otro?", "Why this model and not another?"),
-        L("Nueve maneras de armar el mismo modelo de ingreso compitieron con "
-          "reglas idénticas: misma muestra, misma partición, misma vara de "
-          "medir. Gana la que se equivoca menos en soles con datos que no vio. "
-          "Aquí está la comparación completa, incluida la versión inicial del "
-          "curso: su diagnóstico destapó un error en los datos de origen que "
-          "afectaba a cualquiera que usara esa base sin conocerlo. <b>Todo lo "
-          "de esta sección es el modelo de INGRESO</b> (una regresión: estima "
-          "soles). El clasificador de informalidad no compite aquí; su "
-          "comparación está en la Ficha técnica.",
-          "Nine ways of building the same income model competed under "
-          "identical rules: same sample, same split, same yardstick. The "
-          "winner is whichever misses by the fewest soles on data it hasn't "
-          "seen. Here is the full comparison, including the course's initial "
-          "version: diagnosing it uncovered an error in the source data that "
-          "would bite anyone using that dataset unaware. <b>Everything in "
-          "this section is the INCOME model</b> (a regression: it estimates "
-          "soles). The informality classifier doesn't compete here; its "
-          "comparison lives in the Model card."),
-        L("Las nueve especificaciones comparten muestra, partición "
-          "entrenamiento/prueba y los mismos cinco pliegues de validación "
-          "cruzada, con semilla fija. Sin eso el ranking no sería comparable. "
-          "La selección se hace por el error de validación cruzada y no por "
-          "el de prueba: elegir por prueba tras comparar nueve candidatos "
-          "sería seleccionar sobre el conjunto con el que luego se dice ser "
-          "honesto.",
-          "All nine specifications share the sample, the train/test split and "
-          "the same five cross-validation folds, with a fixed seed. Without "
-          "that the ranking wouldn't be comparable. Selection uses the "
-          "cross-validation error, not the test error: picking by test after "
-          "comparing nine candidates would mean selecting on the very set "
-          "you later claim keeps you honest."),
-        seccion=L("torneo", "tournament"),
-        eyebrow=L("Selección de modelo · 9 especificaciones",
-                  "Model selection · 9 specifications"))
-
-    # ---- Acto 1 y 2 ----
-    html("<h2>" + L("Acto 1 · La ecuación inicial", "Act 1 · The initial equation")
-         + "</h2>")
+def _acto_ecuacion_inicial(aut: dict) -> None:
+    """Acto 1 del torneo: la ecuación del curso, sucia y limpia."""
     html("<div class='entradilla'>" + L(
         "Cada línea suma o resta soles al ingreso estimado. Por ejemplo, "
         "«+ 11,47 · urbano» significa: si la persona vive en zona urbana, "
@@ -1450,7 +1559,9 @@ def seccion_torneo(schema: dict, art: dict) -> None:
             f"<b>{d(aut['corrida_limpia']['r2'], 3)}</b>, and every sign "
             f"becomes economically plausible.") + "</div>")
 
-    html("<h2>" + L("Acto 2 · El diagnóstico", "Act 2 · The diagnosis") + "</h2>")
+
+def _acto_diagnostico(aut: dict) -> None:
+    """Acto 2 del torneo: centinela, colinealidad y escala."""
     html(f"<div class='panel'><div style='line-height:1.8;font-size:14px;color:"
          f"{T()['texto']}'>" + L(
              f"<b>1 · El centinela.</b> El {pc(aut['pct_centinelas'], 2)} de "
@@ -1485,8 +1596,9 @@ def seccion_torneo(schema: dict, art: dict) -> None:
              f"correction.")
          + "</div></div>")
 
-    # ---- Acto 3: tabla + barras ----
-    html("<h2>" + L("Acto 3 · El torneo", "Act 3 · The tournament") + "</h2>")
+
+def _acto_torneo(t: dict) -> None:
+    """Acto 3 del torneo: la tabla completa de las especificaciones."""
     filas = ""
     for f in t["tabla"]:
         clase = " class='destacada'" if f["ID"] == t["desplegada"] else ""
@@ -1513,12 +1625,87 @@ def seccion_torneo(schema: dict, art: dict) -> None:
         "choosing by test after comparing nine specifications would mean "
         "selecting on the evaluation set. Test MAE is reported as an honest "
         "estimate of the already-chosen model.") + "</div>")
-    st.write("")
+
+
+def seccion_torneo(schema: dict, art: dict) -> None:
+    t = art.get("torneo")
+    if not t:
+        aviso(L("Falta el bloque torneo en <code>ui_artifacts.json</code>.",
+                "The tournament block is missing from "
+                "<code>ui_artifacts.json</code>."))
+        return
+    aut = t["autopsia"]
+
+    cabecera(
+        L("¿Por qué este modelo y no otro?", "Why this model and not another?"),
+        L("Nueve maneras de armar el mismo modelo de <b>ingreso</b> compitieron "
+          "con reglas idénticas. Gana la que se equivoca menos en soles con "
+          "datos que no vio. El clasificador de informalidad no compite aquí: "
+          "su comparación está en la Ficha técnica.",
+          "Nine ways of building the same <b>income</b> model competed under "
+          "identical rules. The winner is whichever misses by the fewest soles "
+          "on data it hasn't seen. The informality classifier doesn't compete "
+          "here: its comparison lives in the Model card."),
+        L("Las nueve especificaciones comparten muestra, partición "
+          "entrenamiento/prueba y los mismos cinco pliegues de validación "
+          "cruzada, con semilla fija. Sin eso el ranking no sería comparable. "
+          "La selección se hace por el error de validación cruzada y no por "
+          "el de prueba: elegir por prueba tras comparar nueve candidatos "
+          "sería seleccionar sobre el conjunto con el que luego se dice ser "
+          "honesto.",
+          "All nine specifications share the sample, the train/test split and "
+          "the same five cross-validation folds, with a fixed seed. Without "
+          "that the ranking wouldn't be comparable. Selection uses the "
+          "cross-validation error, not the test error: picking by test after "
+          "comparing nine candidates would mean selecting on the very set "
+          "you later claim keeps you honest."),
+        seccion=L("torneo", "tournament"),
+        eyebrow=L("Selección de modelo · 9 especificaciones",
+                  "Model selection · 9 specifications"))
+
+    # ---- De un vistazo: barras + tres cifras + una frase ----
     orden = sorted(t["tabla"], key=lambda f: f["MAE_cv"])
-    grafico(graficos.barras_mae([f["ID"] for f in orden],
-                                [f["MAE_cv"] for f in orden],
-                                t["desplegada"], T()),
-            28 + len(orden) * 32 + 30)
+    gan = next(f for f in t["tabla"] if f["ID"] == t["desplegada"])
+    # "lineal" = lo que la propia tabla no marca con interpretabilidad "baja"
+    # (las ecuaciones OLS; los árboles son "baja"): el criterio lo pone el
+    # artefacto, no una lista escrita aquí
+    interp = min((f for f in t["tabla"] if f["interpretabilidad"] != "baja"),
+                 key=lambda f: f["MAE_cv"])
+    mejora = (interp["MAE_cv"] - gan["MAE_cv"]) / interp["MAE_cv"] * 100
+    col_v, col_c = st.columns([60, 40], gap="large")
+    with col_v:
+        grafico(graficos.barras_mae([f["ID"] for f in orden],
+                                    [f["MAE_cv"] for f in orden],
+                                    t["desplegada"], T()),
+                28 + len(orden) * 32 + 30, vistazo=True)
+    with col_c:
+        vistazo_resumen(
+            [(f"S/ {n(gan['MAE_cv'])}",
+              L(f"error medio de {gan['ID']}, la ganadora (validación cruzada)",
+                f"mean error of {gan['ID']}, the winner (cross-validation)")),
+             (f"−{pc(mejora, 1)}",
+              L(f"frente a la mejor ecuación lineal ({interp['ID']})",
+                f"vs. the best linear equation ({interp['ID']})")),
+             (str(len(t["tabla"])),
+              L("especificaciones con la misma muestra y los mismos pliegues",
+                "specifications on the same sample and the same folds"))],
+            L(f"El Gradient Boosting ({gan['ID']}) predice mejor; la ecuación "
+              f"{t['explicativa']} se queda para explicar qué pesa y cuánto.",
+              f"Gradient Boosting ({gan['ID']}) predicts better; equation "
+              f"{t['explicativa']} stays on to explain what matters and how "
+              f"much."))
+
+    acto1, acto2, acto3 = st.tabs([
+        L("Acto 1 · La ecuación inicial", "Act 1 · The initial equation"),
+        L("Acto 2 · El diagnóstico", "Act 2 · The diagnosis"),
+        L("Acto 3 · El torneo", "Act 3 · The tournament")])
+
+    with acto1:
+        _acto_ecuacion_inicial(aut)
+    with acto2:
+        _acto_diagnostico(aut)
+    with acto3:
+        _acto_torneo(t)
 
     # ---- Qué variable entra dónde y cuánto pesa ----
     vb = t.get("variables")
@@ -1885,45 +2072,8 @@ def seccion_auditoria() -> None:
         "wasted.") + "</div>")
 
 
-def seccion_ficha(schema: dict, art: dict) -> None:
-    clas, reg = schema["clasificador"], schema["regresor"]
-    a = art.get("clasificador", {})
-    meta = art.get("meta", {})
-
-    cabecera(
-        L("¿Qué tan fiables son estos dos modelos?",
-          "How reliable are these two models?"),
-        L("Qué miden, dónde fallan y qué no se puede concluir con ellos. Son "
-          "dos modelos distintos y cada uno se juzga con las métricas de su "
-          "familia: no se pueden comparar entre sí.",
-          "What they measure, where they fail, and what you can't conclude "
-          "from them. They are two different models, and each is judged by "
-          "its own family's metrics: they can't be compared with each other."),
-        L("Un regresor estima una cantidad y se mide por el error en soles; "
-          "un clasificador estima una probabilidad y se mide por cómo ordena "
-          "los casos. Un regresor no tiene umbral, así que no puede tener "
-          "curva ROC; un clasificador no tiene error en soles. Poner las "
-          "métricas de uno en el otro no es más rigor, es una confusión de "
-          "categorías.",
-          "A regressor estimates a quantity and is measured by its error in "
-          "soles; a classifier estimates a probability and is measured by how "
-          "well it ranks cases. A regressor has no threshold, so it can't "
-          "have an ROC curve; a classifier has no error in soles. Putting one "
-          "model's metrics on the other isn't extra rigor — it's a category "
-          "mistake."),
-        seccion=L("ficha técnica", "model card"),
-        eyebrow=L("Ficha técnica · métricas y límites",
-                  "Model card · metrics and limits"))
-
-    # Al llegar desde «¿Por qué tan alto? →» se marca el bloque de destino. No
-    # se usa un id: Streamlit sanea el HTML de st.markdown y borra el atributo,
-    # y de todos modos la navegación es por session_state, no por URL — no hay
-    # ancla que haga scroll. Este h2 es lo primero tras la cabecera, así que al
-    # cambiar de sección ya se ve; el resalte solo dice «es este».
-    resaltar = st.session_state.pop("resaltar_demasiado_bueno", False)
-    html(f"<h2{' class=\"resaltado\"' if resaltar else ''}>"
-         + L("¿Es demasiado bueno el clasificador de informalidad?",
-             "Is the informality classifier too good to be true?") + "</h2>")
+def _ficha_clasificador(clas: dict, a: dict, abl: list) -> None:
+    """Ficha, pestaña 1: comparación de algoritmos, ablación y calibración."""
     filas = ""
     for f in a.get("comparacion", []):
         es_gb = "Gradient" in f["algoritmo"]
@@ -1977,7 +2127,6 @@ def seccion_ficha(schema: dict, art: dict) -> None:
         f"informal employment replicated here is the ILO's international one "
         f"(17th ICLS){ref('oit_17ciet')}.") + "</div>")
 
-    abl = clas.get("ablacion", [])
     if abl:
         html("<h3>" + L("Ablación estructural", "Structural ablation") + "</h3>")
         filas = ""
@@ -2014,18 +2163,13 @@ def seccion_ficha(schema: dict, art: dict) -> None:
         html("<h3>" + L("¿Significan algo las probabilidades?",
                         "Do the probabilities mean anything?") + "</h3>")
         st.write("")
-        c1, c2, c3 = st.columns(3, gap="medium")
+        c1, c2 = st.columns(2, gap="medium")
         with c1:
             grafico(graficos.curva_calibracion(a["calibracion"]["bins"], T()), 330)
         with c2:
             if a.get("roc"):
                 grafico(graficos.curva_roc(a["roc"]["fpr"], a["roc"]["tpr"],
                                            a["roc"]["auc"], None, T()), 330)
-        with c3:
-            if a.get("pr"):
-                grafico(graficos.curva_pr(a["pr"]["recall"], a["pr"]["precision"],
-                                          a["pr"]["auc"], a["pr"]["baseline"],
-                                          None, T()), 330)
 
     pr_auc = a.get("pr", {}).get("auc")
     base = a.get("pr", {}).get("baseline")
@@ -2098,6 +2242,9 @@ def seccion_ficha(schema: dict, art: dict) -> None:
                  f"index”, which is why it was excluded.")
              + "</div></div>")
 
+
+def _ficha_regresor(reg: dict) -> None:
+    """Ficha, pestaña 2: el error del estimador de ingreso, en soles."""
     html("<h2>" + L("¿Cuánto se equivoca el estimador de ingreso?",
                     "How far off is the income estimator?") + "</h2>")
     m = reg["metricas_test"]
@@ -2140,6 +2287,9 @@ def seccion_ficha(schema: dict, art: dict) -> None:
              f"without saying so would compare different things.")
          + "</div>")
 
+
+def _ficha_limites(clas: dict, reg: dict, meta: dict) -> None:
+    """Ficha, pestaña 3: limitaciones, procedencia y auditoría."""
     html("<h2>" + L("Limitaciones declaradas", "Stated limitations") + "</h2>")
     lim = [
         L("<b>Ingreso autorreportado y suavizado.</b> El target es la versión "
@@ -2220,6 +2370,91 @@ def seccion_ficha(schema: dict, art: dict) -> None:
          + "</tbody></table></div>")
 
     seccion_auditoria()
+
+
+def seccion_ficha(schema: dict, art: dict) -> None:
+    clas, reg = schema["clasificador"], schema["regresor"]
+    a = art.get("clasificador", {})
+    meta = art.get("meta", {})
+
+    cabecera(
+        L("¿Qué tan fiables son estos dos modelos?",
+          "How reliable are these two models?"),
+        L("Qué miden, dónde fallan y qué no se puede concluir con ellos. Son "
+          "dos modelos distintos y cada uno se juzga con las métricas de su "
+          "familia: no se pueden comparar entre sí.",
+          "What they measure, where they fail, and what you can't conclude "
+          "from them. They are two different models, and each is judged by "
+          "its own family's metrics: they can't be compared with each other."),
+        L("Un regresor estima una cantidad y se mide por el error en soles; "
+          "un clasificador estima una probabilidad y se mide por cómo ordena "
+          "los casos. Un regresor no tiene umbral, así que no puede tener "
+          "curva ROC; un clasificador no tiene error en soles. Poner las "
+          "métricas de uno en el otro no es más rigor, es una confusión de "
+          "categorías.",
+          "A regressor estimates a quantity and is measured by its error in "
+          "soles; a classifier estimates a probability and is measured by how "
+          "well it ranks cases. A regressor has no threshold, so it can't "
+          "have an ROC curve; a classifier has no error in soles. Putting one "
+          "model's metrics on the other isn't extra rigor — it's a category "
+          "mistake."),
+        seccion=L("ficha técnica", "model card"),
+        eyebrow=L("Ficha técnica · métricas y límites",
+                  "Model card · metrics and limits"))
+
+    # Al llegar desde «¿Por qué tan alto? →» se marca el bloque de destino. No
+    # se usa un ancla: la navegación es por session_state, no por URL, así que
+    # no hay nada que haga scroll. Por eso el resumen de un vistazo de la ficha
+    # responde justo esa pregunta: queda lo primero tras la cabecera, visible
+    # al cambiar de sección, y el resalte solo dice «es este».
+    resaltar = st.session_state.pop("resaltar_demasiado_bueno", False)
+    html(f"<h2{' class=\"resaltado\"' if resaltar else ''}>"
+         + L("¿Es demasiado bueno el clasificador de informalidad?",
+             "Is the informality classifier too good to be true?") + "</h2>")
+
+    abl = clas.get("ablacion", [])
+    pr = a.get("pr", {})
+    if pr:
+        col_v, col_c = st.columns([55, 45], gap="large")
+        with col_v:
+            grafico(graficos.curva_pr(pr["recall"], pr["precision"], pr["auc"],
+                                      pr["baseline"], None, T()), 330,
+                    vistazo=True)
+        with col_c:
+            cifras = [
+                (d(pr["auc"], 2),
+                 L("PR-AUC en test: qué tan bien ordena a los informales "
+                   "primero", "test PR-AUC: how well it ranks informal jobs "
+                   "first")),
+                (d(pr["baseline"], 2),
+                 L("el suelo: lo que acertaría señalar a todos al azar",
+                   "the floor: what flagging everyone at random would score"))]
+            if len(abl) > 1:
+                cifras.append((d(abl[-1]["PRAUC_test"], 2),
+                               L("PR-AUC en test sin tamaño de empresa ni "
+                                 "categoría, las variables más pegadas al "
+                                 "target",
+                                 "test PR-AUC without firm size or "
+                                 "employment category, the features closest "
+                                 "to the target")))
+            vistazo_resumen(cifras, L(
+                "Alto, pero no es fuga: el suelo ya es alto y la señal se "
+                "sostiene sin las variables casi definicionales. El estimador "
+                "de ingreso se mide aparte, en soles.",
+                "High, but not leakage: the floor is already high and the "
+                "signal holds without the near-definitional features. The "
+                "income estimator is measured separately, in soles."))
+
+    t_clf, t_reg, t_lim = st.tabs([
+        L("Clasificador de informalidad", "Informality classifier"),
+        L("Estimador de ingreso", "Income estimator"),
+        L("Límites y procedencia", "Limits and provenance")])
+    with t_clf:
+        _ficha_clasificador(clas, a, abl)
+    with t_reg:
+        _ficha_regresor(reg)
+    with t_lim:
+        _ficha_limites(clas, reg, meta)
 
     html("<h2>" + L("Referencias", "References") + "</h2>")
     html("<div class='sutil' style='max-width:78ch;margin-bottom:16px'>" + L(
@@ -2528,120 +2763,55 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
     ]
 
 
-def _sankey_embudo(maq: dict) -> None:
-    try:
-        import plotly.graph_objects as go
-    except ImportError:
-        aviso(L("Falta <code>plotly</code> (está en requirements.txt): el "
-                "diagrama del embudo no puede dibujarse.",
-                "<code>plotly</code> is missing (it's in requirements.txt): "
-                "the funnel diagram can't be drawn."))
-        return
-
-    Tt = T()
+def _embudo(maq: dict) -> None:
+    """
+    Embudo SVG propio (antes un Sankey de plotly: 4,7 MB de JavaScript y
+    ~2,5 s en la primera figura, con el «por qué» escondido en un hover). El
+    motivo de cada recorte ahora se lee sin interactuar.
+    """
     emb = maq["embudo"]
     e = {x["clave"]: x for x in emb["etapas"]}
     tfnr, split = emb["tfnr"], emb["split"]
-
-    def rgba(hexcolor: str, a: float) -> str:
-        h = hexcolor.lstrip("#")
-        return (f"rgba({int(h[0:2], 16)},{int(h[2:4], 16)},"
-                f"{int(h[4:6], 16)},{a})")
-
-    # Cada etiqueta lleva su parte del total crudo: el conteo solo dice
-    # cuántos quedan; el porcentaje dice cuánto se fue por el camino.
-    base = e["crudo"]["filas"]
-
-    def cta(v: int) -> str:
-        if not base:
-            return n(v)
-        p = v / base * 100
-        # Bajo el 1 %, el entero miente: 267 filas se convertían en «0 %».
-        return f"{n(v)} · {pc(p, 1 if p < 1 else 0)}"
-
-    etiquetas = [
-        L("Módulo 05 crudo", "Raw module 05") + f" · {cta(e['crudo']['filas'])}",
-        L("Ocupados", "Employed") + f" · {cta(e['ocupados']['filas'])}",
-        L("Dataset de modelado", "Modeling dataset")
-        + f" · {cta(e['modelado']['filas'])}",
-        L("Muestra del torneo", "Tournament sample")
-        + f" · {cta(e['torneo']['filas'])}",
-        f"Train · {cta(split['train'])}",
-        f"Test · {cta(split['test'])}",
-        L("No ocupados", "Not employed") + f" · {cta(e['ocupados']['recorte'])}",
-        L("Menores de 14 o sin ingreso", "Under 14 or no income")
-        + f" · {cta(e['modelado']['recorte'])}",
-        L("Casos incompletos", "Incomplete cases")
-        + f" · {cta(e['torneo']['recorte'])}",
-    ]
-    color_nodo = [Tt["acento"]] * 6 + [Tt["dato"]] * 3
-    sigue, fuera = rgba(Tt["acento"], 0.30), rgba(Tt["dato"], 0.35)
-    enlaces = [
-        # (origen, destino, valor, color, por qué)
-        (0, 1, e["ocupados"]["filas"], sigue,
-         L("Siguen: quienes estuvieron ocupados en la semana de referencia "
-           "(OCU500 = 1).",
-           "Stay: people employed during the reference week (OCU500 = 1).")),
-        (0, 6, e["ocupados"]["recorte"], fuera,
-         L("El modelo estima ingreso del trabajo: sin ocupación no hay "
-           "ingreso laboral que estimar.",
-           "The model estimates labor income: with no job there's no labor "
-           "income to estimate.")),
-        (1, 2, e["modelado"]["filas"], sigue,
-         L("Siguen: ocupados de 14 años o más con ingreso monetario positivo.",
-           "Stay: employed people aged 14+ with positive cash income.")),
-        (1, 7, e["modelado"]["recorte"], fuera,
-         L(f"Menores de 14 (edad mínima laboral del INEI) o sin ingreso "
-           f"laboral positivo. Aquí van los {n(tfnr['filas'])} TFNR: "
-           f"trabajadores familiares no remunerados — trabajan, pero sin "
-           f"sueldo no hay cifra que aprender.",
-           f"Under 14 (INEI's minimum working age) or without positive labor "
-           f"income. The {n(tfnr['filas'])} unpaid family workers go here — "
-           f"they work, but with no pay there's no figure to learn.")),
-        (2, 3, e["torneo"]["filas"], sigue,
-         L("Siguen: filas completas en todas las variables del torneo.",
-           "Stay: rows complete on every tournament feature.")),
-        (2, 8, e["torneo"]["recorte"], fuera,
-         L("Las 9 recetas deben compararse sobre exactamente las mismas "
-           "filas: fuera quien no tiene completos tamaño de empresa, "
-           "miembros, horas, educación o ingreso (0,6 %).",
-           "The 9 recipes must be compared on exactly the same rows: out goes "
-           "anyone missing firm size, household members, hours, schooling or "
-           "income (0.6%).")),
-        (3, 4, split["train"], sigue,
-         L(f"El 80 % entrena los modelos ({split['descripcion']}).",
-           f"80% trains the models ({split['descripcion']}).")),
-        (3, 5, split["test"], sigue,
-         L("El 20 % queda guardado y solo se mira al final, para medir sin "
-           "hacer trampa.",
-           "20% is held out and only looked at the end, to measure without "
-           "cheating.")),
-    ]
-    tema = estilos.nombre_tema(Tt)
-    fuente = (estilos.FUENTE_MONO if tema in estilos.TEMAS_MONO
-              else estilos.FUENTE_UI)
-    fig = go.Figure(go.Sankey(
-        arrangement="snap",
-        node=dict(
-            label=etiquetas, color=color_nodo, pad=22, thickness=14,
-            line=dict(width=0),
-            x=[0.01, 0.26, 0.51, 0.76, 0.99, 0.99, 0.26, 0.51, 0.76],
-            hovertemplate="%{label}<extra></extra>"),
-        link=dict(
-            source=[l[0] for l in enlaces], target=[l[1] for l in enlaces],
-            value=[l[2] for l in enlaces], color=[l[3] for l in enlaces],
-            customdata=[l[4] for l in enlaces],
-            hovertemplate="%{value:,.0f} " + L("filas", "rows")
-                          + "<br>%{customdata}<extra></extra>")))
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family=fuente, size=13, color=Tt["texto"]),
-        separators=".," if i18n.en() else ",.", height=430,
-        margin=dict(l=8, r=8, t=12, b=8),
-        hoverlabel=dict(bgcolor=Tt["superficie_alta"],
-                        font=dict(family=fuente, color=Tt["texto"])))
-    st.plotly_chart(fig, use_container_width=True,
-                    config={"displayModeBar": False})
+    # El recorte del torneo se cuenta sobre el dataset de modelado: es la
+    # cifra que justifica «casi nadie se pierde» y sale de los datos.
+    rel = e["torneo"]["recorte"] / e["modelado"]["filas"] * 100
+    svg = graficos.embudo(
+        [(L("Módulo 05 crudo", "Raw module 05"), e["crudo"]["filas"]),
+         (L("Ocupados", "Employed"), e["ocupados"]["filas"]),
+         (L("Dataset de modelado", "Modeling dataset"), e["modelado"]["filas"]),
+         (L("Muestra del torneo", "Tournament sample"), e["torneo"]["filas"])],
+        [(L("No ocupados", "Not employed"), e["ocupados"]["recorte"],
+          L("El modelo estima ingreso del trabajo: sin ocupación en la semana "
+            "de referencia (OCU500 ≠ 1) no hay ingreso laboral que estimar.",
+            "The model estimates labor income: with no job in the reference "
+            "week (OCU500 ≠ 1) there's no labor income to estimate.")),
+         (L("Menores de 14 o sin ingreso", "Under 14 or no income"),
+          e["modelado"]["recorte"],
+          L(f"Menores de 14 (edad mínima laboral del INEI) o sin ingreso "
+            f"laboral positivo. Aquí van los {n(tfnr['filas'])} TFNR: "
+            f"trabajadores familiares no remunerados — trabajan, pero sin "
+            f"sueldo no hay cifra que aprender.",
+            f"Under 14 (INEI's minimum working age) or without positive labor "
+            f"income. The {n(tfnr['filas'])} unpaid family workers go here — "
+            f"they work, but with no pay there's no figure to learn.")),
+         (L("Casos incompletos", "Incomplete cases"), e["torneo"]["recorte"],
+          L(f"Las 9 recetas deben compararse sobre exactamente las mismas "
+            f"filas: fuera quien no tiene completos tamaño de empresa, "
+            f"miembros, horas, educación o ingreso ({pc(rel, 1)} del dataset "
+            f"de modelado).",
+            f"The 9 recipes must be compared on exactly the same rows: out "
+            f"goes anyone missing firm size, household members, hours, "
+            f"schooling or income ({pc(rel, 1)} of the modeling dataset)."))],
+        [(L("Entrenamiento", "Training"), split["train"],
+          L(f"el 80 % entrena los modelos ({split['descripcion']}).",
+            f"80% trains the models ({split['descripcion']}).")),
+         (L("Prueba", "Test"), split["test"],
+          L("el 20 % queda guardado y solo se mira al final, para medir sin "
+            "hacer trampa.",
+            "20% is held out and only looked at the end, to measure without "
+            "cheating."))],
+        T())
+    grafico(svg, 520)
 
 
 def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
@@ -2809,60 +2979,8 @@ def lineas_pd() -> dict[str, str]:
     }
 
 
-def seccion_maquinas(schema: dict, art: dict) -> None:
-    reg = schema["regresor"]
-    maq = cargar_maquinas()
-
-    cabecera(
-        L("Cómo se hizo: de la encuesta del INEI a la app",
-          "How it was built: from INEI's survey to this app"),
-        L("Esta sección muestra, paso a paso, cómo se construyó el proyecto: "
-          "de dónde vienen los datos y cómo se filtraron, cómo se compararon "
-          "y entrenaron los modelos, y cómo llega todo a la app que estás "
-          "usando. Ninguna cifra se calcula aquí: todo sale de los mismos "
-          "archivos que alimentan las demás pestañas.",
-          "This section shows, step by step, how the project was built: where "
-          "the data come from and how they were filtered, how the models were "
-          "compared and trained, and how it all reaches the app you're using. "
-          "No figure is computed here: everything comes from the same files "
-          "that feed the other tabs."),
-        L("Las cifras del embudo y los tamaños medidos viven en "
-          "<code>models/ui_maquinas.json</code>, generado por "
-          "<code>src/09_precomputar_ui.py</code> leyendo el embudo auditado de "
-          "<code>INFORME_AUDITORIA.md §4</code> y midiendo los archivos en "
-          "disco. Va en un artefacto hermano de <code>ui_artifacts.json</code> "
-          "porque la presentación congelada cita el tamaño en disco de este "
-          "último: no puede crecer ni un byte.",
-          "The funnel figures and measured sizes live in "
-          "<code>models/ui_maquinas.json</code>, generated by "
-          "<code>src/09_precomputar_ui.py</code> by reading the audited funnel "
-          "in <code>INFORME_AUDITORIA.md §4</code> and measuring the files on "
-          "disk. It's a sibling artifact of <code>ui_artifacts.json</code> "
-          "because the frozen presentation cites the latter's size on disk: "
-          "it can't grow by a single byte."),
-        seccion=L("máquinas", "engine room"),
-        eyebrow=L("Sala de máquinas · MLOps de punta a punta",
-                  "Engine room · end-to-end MLOps"))
-    st.write("")
-
-    if not maq:
-        aviso(L("Falta <code>models/ui_maquinas.json</code>. Genéralo con "
-                "<code>python src/09_precomputar_ui.py --solo-maquinas</code>.",
-                "<code>models/ui_maquinas.json</code> is missing. Generate it "
-                "with <code>python src/09_precomputar_ui.py "
-                "--solo-maquinas</code>."))
-        return
-
-    # ---------- 1 · El viaje del dato ----------
-    html("<h2>" + L("El viaje del dato", "The data's journey") + "</h2>")
-    html("<div class='entradilla'>" + L(
-        "Seis estaciones desde la encuesta hasta la nube. Elige una y mira qué "
-        "entra, qué se decide y qué sale — con sus tamaños medidos.",
-        "Six stations from the survey to the cloud. Pick one and see what "
-        "goes in, what gets decided and what comes out — with measured "
-        "sizes.") + "</div>")
-    estaciones = _estaciones(schema, art, maq)
-    titulos = [e["titulo"] for e in estaciones]
+def _maq_viaje(estaciones: list, titulos: list, idx: int) -> None:
+    """Cómo se hizo, pestaña 1: selector de estación y su detalle."""
     # Se indexa por posición: los títulos cambian con el idioma y el control
     # no puede perder la estación elegida al cambiarlo.
     elegido = st.segmented_control(
@@ -2874,10 +2992,7 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
     # devuelve None: se recuerda la última válida.
     if elegido is not None:
         st.session_state["maq_estacion_ok"] = elegido
-    idx = st.session_state.get("maq_estacion_ok", 0)
-    # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. Arranca
-    # encendida: es lo primero que ve quien entra a esta pestaña.
-    animado = st.toggle(L("▶ Ver el viaje en movimiento",
+    st.toggle(L("▶ Ver el viaje en movimiento",
                           "▶ Watch the journey in motion"),
                         value=True, key="maq_viaje_anim",
                         help=L("Un punto recorre las seis estaciones en bucle "
@@ -2886,8 +3001,6 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
                                "A dot travels the six stations in a loop "
                                "(12 s per lap). The selector above still "
                                "picks the detail below."))
-    grafico(graficos.viaje_dato(titulos, [e["sub"] for e in estaciones],
-                                idx, T(), animado=animado), 185)
     est = estaciones[idx]
     html(f"<div class='estacion-cab'><span class='estacion-num'>{idx + 1}</span>"
          f"<span>{est['titulo']}</span></div>")
@@ -2921,18 +3034,15 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
             "<code>src/09</code>, and it's the same data feeding the other "
             "tabs and the presentation.") + "</div>")
 
-    st.divider()
 
-    # ---------- 2 · El embudo ----------
-    html("<h2>" + L("El embudo: de la encuesta al modelo",
-                    "The funnel: from survey to model") + "</h2>")
+def _maq_embudo(maq: dict) -> None:
+    """Cómo se hizo, pestaña 2: el embudo de filas con su porqué."""
     html("<div class='entradilla'>" + L(
-        "Cada filtro recorta filas y tiene un porqué: pasa el cursor por los "
-        "flujos para leerlo. Del módulo crudo a la muestra final del torneo.",
-        "Every filter trims rows and has a reason: hover over the flows to "
-        "read it. From the raw module to the tournament's final "
-        "sample.") + "</div>")
-    _sankey_embudo(maq)
+        "Cada filtro recorta filas y tiene un porqué, escrito junto al trozo "
+        "que se cae. Los porcentajes son sobre el total crudo.",
+        "Every filter trims rows and has a reason, written next to the piece "
+        "that falls off. Percentages are of the raw total.") + "</div>")
+    _embudo(maq)
     with st.expander(L("¿Qué principio hay aquí? · embudo",
                        "What's the principle here? · funnel")):
         html("<div class='sutil'>" + L(
@@ -2947,10 +3057,9 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
             "report changes, this page changes with it — or the generator "
             "aborts.") + "</div>")
 
-    st.divider()
 
-    # ---------- 3 · Rayos X de la predicción ----------
-    html("<h2>" + L("Rayos X de la predicción", "X-ray of a prediction") + "</h2>")
+def _maq_rayos(reg: dict) -> None:
+    """Cómo se hizo, pestaña 3: la predicción paso a paso, cronometrada."""
     html("<div class='entradilla'>" + L(
         "El mismo formulario de la primera pestaña; al estimar se ve cada "
         "paso real del cálculo, con su tiempo.",
@@ -3002,10 +3111,9 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
             "model arrived ready in the repository, with pinned "
             "versions.") + "</div>")
 
-    st.divider()
 
-    # ---------- 4 · Mueve una variable ----------
-    html("<h2>" + L("Mueve una variable", "Move one feature") + "</h2>")
+def _maq_mueve(reg: dict, art: dict) -> None:
+    """Cómo se hizo, pestaña 4: dependencia parcial de una variable."""
     html("<div class='entradilla'>" + L(
         "¿Cuánto cambiaría el ingreso estimado si esta característica fuera "
         "distinta y todo lo demás quedara igual? Es la pregunta clásica del "
@@ -3196,32 +3304,179 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
             "separately.") + "</div>")
 
 
+def seccion_maquinas(schema: dict, art: dict) -> None:
+    reg = schema["regresor"]
+    maq = cargar_maquinas()
+
+    cabecera(
+        L("Cómo se hizo: de la encuesta del INEI a la app",
+          "How it was built: from INEI's survey to this app"),
+        L("De la encuesta del INEI a esta app, paso a paso. Ninguna cifra se "
+          "calcula aquí: todo sale de los mismos archivos que alimentan las "
+          "demás secciones.",
+          "From INEI's survey to this app, step by step. No figure is computed "
+          "here: everything comes from the same files that feed the other "
+          "sections."),
+        L("Las cifras del embudo y los tamaños medidos viven en "
+          "<code>models/ui_maquinas.json</code>, generado por "
+          "<code>src/09_precomputar_ui.py</code> leyendo el embudo auditado de "
+          "<code>INFORME_AUDITORIA.md §4</code> y midiendo los archivos en "
+          "disco. Va en un artefacto hermano de <code>ui_artifacts.json</code> "
+          "porque la presentación congelada cita el tamaño en disco de este "
+          "último: no puede crecer ni un byte.",
+          "The funnel figures and measured sizes live in "
+          "<code>models/ui_maquinas.json</code>, generated by "
+          "<code>src/09_precomputar_ui.py</code> by reading the audited funnel "
+          "in <code>INFORME_AUDITORIA.md §4</code> and measuring the files on "
+          "disk. It's a sibling artifact of <code>ui_artifacts.json</code> "
+          "because the frozen presentation cites the latter's size on disk: "
+          "it can't grow by a single byte."),
+        seccion=L("máquinas", "engine room"),
+        eyebrow=L("Sala de máquinas · MLOps de punta a punta",
+                  "Engine room · end-to-end MLOps"))
+
+    if not maq:
+        aviso(L("Falta <code>models/ui_maquinas.json</code>. Genéralo con "
+                "<code>python src/09_precomputar_ui.py --solo-maquinas</code>.",
+                "<code>models/ui_maquinas.json</code> is missing. Generate it "
+                "with <code>python src/09_precomputar_ui.py "
+                "--solo-maquinas</code>."))
+        return
+
+    # ---- De un vistazo: el viaje + tres cifras + una frase ----
+    estaciones = _estaciones(schema, art, maq)
+    titulos = [e["titulo"] for e in estaciones]
+    # El selector de estación vive en la primera pestaña, DEBAJO del SVG: se
+    # lee su valor de session_state antes de dibujar, para que el viaje
+    # resalte la estación ya elegida en este mismo rerun.
+    # st.segmented_control DESELECCIONA al pulsar la opción ya activa y
+    # devuelve None: se recuerda la última válida.
+    if st.session_state.get("maq_estacion") is not None:
+        st.session_state["maq_estacion_ok"] = st.session_state["maq_estacion"]
+    idx = st.session_state.get("maq_estacion_ok", 0)
+    # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. Arranca
+    # encendida: es lo primero que ve quien entra a esta sección.
+    animado = st.session_state.get("maq_viaje_anim", True)
+    grafico(graficos.viaje_dato(titulos, [e["sub"] for e in estaciones],
+                                idx, T(), animado=animado), 185, vistazo=True)
+    emb, tam = maq["embudo"], maq["tamanos"]
+    crudo = emb["etapas"][0]["filas"]
+    modelado = emb["split"]["train"] + emb["split"]["test"]
+    b_modelos = sum(v for k, v in tam["modelos_bytes"].items()
+                    if k.endswith(".joblib"))
+    vistazo_resumen(
+        [(f"{n(crudo)} → {n(modelado)}",
+          L("filas: del módulo de empleo crudo a la muestra que entrena y "
+            "evalúa", "rows: from the raw employment module to the sample "
+            "that trains and evaluates")),
+         (_mb(tam["data_bytes"]),
+          L(f"de microdatos que nunca entran al repositorio (el repo "
+            f"versionado pesa {_mb(tam['repo_versionado_bytes'])})",
+            f"of microdata that never enter the repository (the versioned "
+            f"repo weighs {_mb(tam['repo_versionado_bytes'])})")),
+         (_mb(b_modelos),
+          L("pesan los dos modelos que carga la app",
+            "is the weight of the two models the app loads"))],
+        L("Todo lo caro se calcula una vez, fuera de la app; la app solo lee "
+          "artefactos y responde.",
+          "Everything expensive is computed once, outside the app; the app "
+          "only reads artifacts and answers."),
+        fila=True)
+
+    t_viaje, t_embudo, t_rayos, t_mueve = st.tabs([
+        L("El viaje, estación por estación", "The journey, station by station"),
+        L("El embudo", "The funnel"),
+        L("Rayos X de la predicción", "X-ray of a prediction"),
+        L("Mueve una variable", "Move one feature")])
+    with t_viaje:
+        _maq_viaje(estaciones, titulos, idx)
+    with t_embudo:
+        _maq_embudo(maq)
+    with t_rayos:
+        _maq_rayos(reg)
+    with t_mueve:
+        _maq_mueve(reg, art)
+
+
 # --------------------------------------------------------------------------
 # Créditos: la firma del proyecto al pie de cada página
 # --------------------------------------------------------------------------
+DOCENTE = "Orlando Advíncula Zeballos"
+
+
 def pie_creditos() -> None:
+    """
+    Autoría completa en TODAS las secciones: sin sidebar, el pie es el único
+    lugar que se ve en cualquier página. Lleva también el mapa de la app (qué
+    hace cada sección) y el límite de uso, que antes vivían en el sidebar.
+    """
     grupo = " · ".join(GRUPO)
+    mapa = "".join(f"<li><b>{titulo_seccion(c)}</b> — {descripcion_seccion(c)}</li>"
+                   for c in CLAVES_SECCION)
     html(f"<div class='pie'>"
          f"<div class='pie-autor'>{L('Hecho por', 'Built by')} "
          f"<b>{AUTOR}</b> · <a href='{PORTAFOLIO}' target='_blank' "
          f"rel='noopener'>{PORTAFOLIO.removeprefix('https://')}</a> · "
-         f"<a href='{REPO}' target='_blank' rel='noopener'>GitHub ↗</a></div>"
+         f"<a href='{REPO}' target='_blank' rel='noopener'>"
+         + L("Código y metodología en GitHub ↗", "Code & methodology on GitHub ↗")
+         + "</a></div>"
          f"<div>{L('Grupo del curso de Machine Learning (ENEI):', 'Machine Learning course group (ENEI, Peru):')} "
-         f"{grupo} · {L('Docente', 'Instructor')}: Orlando Advíncula Zeballos</div>"
+         f"{grupo} · {L('Docente', 'Instructor')}: {DOCENTE}</div>"
+         f"<ul class='pie-mapa'>{mapa}</ul>"
+         f"<div>"
+         + L("Herramienta demostrativa sobre microdatos públicos del INEI. No "
+             "es un instrumento de fiscalización laboral.",
+             "A demonstration tool built on INEI public microdata. Not a "
+             "labor-enforcement instrument.")
+         + f"</div>"
          f"<div>{L('Datos', 'Data')}: INEI — ENAHO 2025 · "
          f"{L('Código', 'Code')}: Apache-2.0 · v{VERSION}</div>"
          f"</div>")
 
 
 # --------------------------------------------------------------------------
+# Barra superior: marca, secciones, idioma y tema
+# --------------------------------------------------------------------------
+def barra_superior() -> None:
+    """
+    Los tres selectores van ligados a la URL (ver `sincronizar_url`), así que
+    `?sec=torneo&lang=en&theme=terminal` abre justo eso y se puede compartir.
+
+    `required=True` es la guarda contra el re-clic: un control segmentado
+    normal deselecciona al pulsar la opción activa, y la app quedaba sin
+    sección. Sin `default`: el valor ya está en la sesión (`iniciar_estado`).
+    """
+    tooltip = escape(L("Con el grupo ENEI: ", "With the ENEI group: ")
+                     + ", ".join(GRUPO) + " · "
+                     + L("Docente", "Instructor") + f": {DOCENTE}", quote=True)
+    with st.container(horizontal=True, vertical_alignment="center",
+                      gap="small", key="barra"):
+        st.markdown(f"<div class='marca-barra'><span class='rombo'>◆</span>"
+                    f"<span class='quien' title='{tooltip}'>{AUTOR}</span>"
+                    f"</div>", unsafe_allow_html=True, width="content")
+        st.segmented_control(
+            L("Sección", "Section"), CLAVES_SECCION,
+            format_func=titulo_corto, key="sec", required=True,
+            label_visibility="collapsed", width="content")
+        st.segmented_control(
+            "Idioma / Language", list(i18n.IDIOMAS),
+            format_func=str.upper, key="lang", required=True,
+            label_visibility="collapsed", width="content")
+        # Las opciones salen de PALETAS: añadir un tema allí lo hace aparecer
+        # aquí, y quitarlo lo hace desaparecer. No hay lista que mantener.
+        st.segmented_control(
+            L("Tema", "Theme"), opciones_tema(),
+            format_func=etiqueta_tema, key="theme", required=True,
+            label_visibility="collapsed", width="content")
+
+
+# --------------------------------------------------------------------------
 def main() -> None:
-    iniciar_idioma()
+    iniciar_estado()
     st.set_page_config(
         page_title=L("ENAHO — ingreso e informalidad",
                      "ENAHO — income & informality in Peru"),
-        page_icon="◈", layout="wide", initial_sidebar_state="auto")
-    st.session_state.setdefault("tema", TEMA_POR_DEFECTO)
-    st.session_state.setdefault("seccion", "ingreso")
+        page_icon="◈", layout="wide")
     html(estilos.css(T()))
 
     if not (DIR_MODELS / "feature_schema.json").exists():
@@ -3232,61 +3487,15 @@ def main() -> None:
         st.stop()
 
     schema, art = cargar_schema(), cargar_artefactos()
-
-    with st.sidebar:
-        # Idioma primero: es lo que decide si alguien sigue leyendo.
-        lang = st.segmented_control(
-            "Idioma / Language", list(i18n.IDIOMAS),
-            default=i18n.idioma(),
-            format_func=lambda k: {"es": "ES · Español",
-                                   "en": "EN · English"}[k],
-            key="sel_idioma", label_visibility="collapsed")
-        if lang and lang != i18n.idioma():
-            st.session_state["idioma"] = lang
-            st.query_params["lang"] = lang
-            st.rerun()
-        html("<div class='marca'>INEI · ENAHO 2025 · "
-             + L("Perú", "Peru") + "</div>"
-             "<div class='marca-titulo'>"
-             + L("Ingreso laboral<br>e informalidad",
-                 "Labor income<br>&amp; informality")
-             + "</div>")
-        html(f"<div class='sutil' style='margin:-12px 0 16px 0'>"
-             f"<a href='{REPO}' target='_blank' "
-             f"style='color:{T()['acento_alto']};text-decoration:none'>"
-             + L("Código y metodología en GitHub ↗",
-                 "Code & methodology on GitHub ↗") + "</a></div>")
-        for clave, icono in SECCIONES:
-            activo = st.session_state["seccion"] == clave
-            if st.button(titulo_seccion(clave), key=f"nav_{clave}", icon=icono,
-                         type="primary" if activo else "secondary"):
-                st.session_state["seccion"] = clave
-                st.rerun()
-            html(f"<div class='nav-desc'>{descripcion_seccion(clave)}</div>")
-        st.write("")
-        # Las opciones salen de PALETAS: añadir un tema allí lo hace aparecer
-        # aquí, y quitarlo lo hace desaparecer. No hay lista que mantener.
-        opciones = opciones_tema()
-        actual = tema_activo()
-        nuevo = st.segmented_control(
-            L("Tema", "Theme"), opciones, default=actual,
-            format_func=etiqueta_tema, key="sel_tema",
-            label_visibility="collapsed")
-        if nuevo and nuevo != actual:
-            st.session_state["tema"] = nuevo
-            st.rerun()
-        html(f"<div class='sidebar-firma'>"
-             f"<div class='eyebrow'>{L('Autoría', 'Authors')}</div>"
-             f"<div><b>{AUTOR}</b></div>"
-             f"<div>{' · '.join(GRUPO)}</div>"
-             f"<div class='sutil' style='margin-top:8px'>"
-             + L("Herramienta demostrativa sobre microdatos públicos del INEI. "
-                 "No es un instrumento de fiscalización laboral.",
-                 "A demonstration tool built on INEI public microdata. Not a "
-                 "labor-enforcement instrument.")
-             + "</div></div>")
+    barra_superior()
+    sincronizar_url()
 
     seccion = st.session_state["seccion"]
+    # Se anima al entrar a una sección, no al rerun por un cambio de tema o
+    # idioma, ni al rerun de un fragment (que no pasa por aquí: lee el False
+    # que se deja al final).
+    st.session_state["_animar"] = seccion != st.session_state.get("_ultima_seccion")
+    st.session_state["_ultima_seccion"] = seccion
     if seccion == "ingreso":
         seccion_ingreso(schema, art)
     elif seccion == "informalidad":
@@ -3298,6 +3507,7 @@ def main() -> None:
     else:
         seccion_ficha(schema, art)
     pie_creditos()
+    st.session_state["_animar"] = False
 
 
 if __name__ == "__main__":

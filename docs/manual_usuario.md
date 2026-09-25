@@ -34,17 +34,24 @@ del Perú (ENAHO 2025, INEI):
   S/ 611 (MAE de test, `reports/comparacion_torneo.csv`): sirve para ordenar
   y comparar perfiles, no para calcular cuánto debería pagarse a alguien.
 
-## 2. Las cuatro secciones
+## 2. Las cinco secciones
 
-La barra lateral izquierda tiene cuatro botones de navegación, un enlace al
-código en GitHub y un interruptor de **tema claro/oscuro**.
+La barra superior tiene la navegación entre secciones, el idioma (ES/EN) y
+el tema (claro, oscuro, terminal). Las tres elecciones viven en la URL
+(`?sec=`, `?lang=`, `?theme=`), así que cualquier vista se puede compartir
+con un enlace. El pie de cada sección lleva la autoría completa, el mapa de
+secciones y el enlace al código en GitHub.
 
 | Sección | Qué hace |
 |---|---|
-| **Estimación de ingreso** | Llenas un perfil y obtienes el ingreso mensual típico estimado, con su contexto (mediana poblacional, casos comparables). |
-| **Empleo informal** | El mismo perfil produce una probabilidad de empleo informal, con un umbral ajustable que muestra las consecuencias operativas de cada elección. |
-| **Torneo de modelos** | La historia del proyecto: cómo una regresión inicial con resultados implausibles se diagnosticó y se convirtió en un torneo de nueve modelos. |
-| **Ficha técnica** | Las métricas, la validación, las limitaciones declaradas y la procedencia de los datos. |
+| **Ingreso** | Llenas un perfil y obtienes el ingreso mensual típico estimado, con su contexto (mediana poblacional, casos comparables). |
+| **Informalidad** | El mismo perfil produce una probabilidad de empleo informal, con un umbral ajustable que muestra las consecuencias operativas de cada elección. |
+| **Torneo** | Cómo una regresión inicial con resultados implausibles se diagnosticó y se convirtió en un torneo de nueve especificaciones. |
+| **Ficha** | Las métricas de cada modelo, la validación, las limitaciones declaradas y la procedencia de los datos. |
+| **Cómo se hizo** | El recorrido del dato desde la encuesta hasta la app: embudo de filas, la predicción paso a paso y el efecto de mover una variable. |
+
+Torneo, Ficha y Cómo se hizo abren con un resumen de un vistazo (un gráfico,
+tres cifras y una frase); el detalle está en pestañas debajo.
 
 ## 3. Cómo llenar el formulario
 
