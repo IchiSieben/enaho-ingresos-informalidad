@@ -395,3 +395,20 @@ da 0,250. En el ingreso mensual (brecha 0,415) es menor en las seis
 - Descartado: mantener «seis de seis», que es falso, y quitar el contraste,
   que tiene respaldo para el resultado por hora.
 - Revertir: `git revert` del commit «D-35».
+
+**D-36 · Fase 5: criterios del QA de cierre (2026-09-26).**
+- Barrido de idioma (`docs/qa/barrido_idioma.py`). Una línea se marca si
+  tiene al menos 3 palabras funcionales del otro idioma y más que del propio,
+  o 2 y ninguna del propio. En la vista EN se listan además las líneas con
+  tildes, ñ, ¿ o ¡. Quedan permitidos los nombres propios (créditos,
+  departamentos, pestañas), los nombres de columnas del modelo (salen de
+  `ui_artifacts.json`, que no se toca) y los títulos de obras citadas, que
+  van en su idioma original. Resultado: 0 marcadas en las dos direcciones.
+  Descartado: un detector de idioma entrenado (dependencia nueva, y falla
+  en líneas cortas).
+- Capturas finales: 7 secciones × 3 temas × 2 idiomas × 4 tamaños (1366×768,
+  1920×1080, 2560×1080 y 390×844) en `../capturas_v2/final/`, fuera del repo.
+- Un `index.lock` vacío, creado en el mismo segundo que el commit `64ede88`,
+  bloqueaba git. Se movió a `_papelera_claude/` en vez de borrarlo. No se tocó
+  ningún proceso de git que Claude no hubiera lanzado. Revertir: devolverlo a
+  `.git/`. No hace falta.
