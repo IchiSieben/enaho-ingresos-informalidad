@@ -29,13 +29,16 @@ with sync_playwright() as p:
         for lang in IDIOMAS:
             for tema in TEMAS:
                 pg = b.new_page(viewport={"width": ancho, "height": alto})
-                pg.goto(f"{BASE}/?lang={lang}&theme={tema}", timeout=120000)
-                pg.wait_for_selector(".st-key-sec button", timeout=120000)
-                pg.wait_for_selector(".pie", timeout=120000)
-                pg.wait_for_timeout(2500)
                 for s in SECCIONES:
-                    pg.locator(".st-key-sec button").nth(ORDEN_BARRA.index(s)).click()
-                    pg.wait_for_timeout(3000)
+                    # Carga directa por URL: con el clic en la barra, una sección
+                    # lenta (Investigación) se fotografiaba con el contenido de la
+                    # anterior todavía en pantalla.
+                    pg.goto(f"{BASE}/?sec={s}&lang={lang}&theme={tema}", timeout=120000)
+                    pg.wait_for_selector(".pie", timeout=120000)
+                    pg.wait_for_function(
+                        "!document.querySelector('[data-testid=\"stStatusWidget\"]')",
+                        timeout=120000)
+                    pg.wait_for_timeout(2500)
                     pg.screenshot(path=str(DEST / f"{s}_{lang}_{tema}_{ancho}x{alto}.png"),
                                   timeout=120000)
                 pg.close()
