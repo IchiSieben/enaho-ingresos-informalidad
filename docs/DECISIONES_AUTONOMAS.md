@@ -399,11 +399,18 @@ da 0,250. En el ingreso mensual (brecha 0,415) es menor en las seis
 **D-36 · Fase 5: criterios del QA de cierre (2026-09-26).**
 - Barrido de idioma (`docs/qa/barrido_idioma.py`). Una línea se marca si
   tiene al menos 3 palabras funcionales del otro idioma y más que del propio,
-  o 2 y ninguna del propio. En la vista EN se listan además las líneas con
-  tildes, ñ, ¿ o ¡. Quedan permitidos los nombres propios (créditos,
-  departamentos, pestañas), los nombres de columnas del modelo (salen de
-  `ui_artifacts.json`, que no se toca) y los títulos de obras citadas, que
-  van en su idioma original. Resultado: 0 marcadas en las dos direcciones.
+  o 2 y ninguna del propio. En la vista EN también se marcan las líneas con
+  tildes, ñ, ¿ o ¡.
+  - Cruce exacto: los 253 literales ES y 252 EN de los pares `L(es, en)`
+    (de 10 caracteres o más) se buscan, con límites de palabra, en la vista
+    del otro idioma.
+  - Solo se permiten los créditos, los departamentos, los nombres de columnas
+    del modelo (salen de `ui_artifacts.json`, que no se toca) y los títulos de
+    obras citadas, que van en su idioma original.
+  - Las pestañas y «Perú» no están permitidos: en la vista EN no deben
+    aparecer. Una primera versión los permitía; el advisor lo señaló y se
+    retiraron.
+  - Resultado: 0 marcadas en las dos direcciones.
   Descartado: un detector de idioma entrenado (dependencia nueva, y falla
   en líneas cortas).
 - Capturas finales: 7 secciones × 3 temas × 2 idiomas × 4 tamaños (1366×768,

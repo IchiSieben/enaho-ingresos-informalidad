@@ -72,4 +72,7 @@ Citas (títulos en su idioma original):
 ### maquinas · 146 líneas · 0 marcadas · 0 citas
 
 
-**Total marcadas (sin citas): 0**
+Literales cruzados: 253 ES y 252 EN.
+
+
+**Total marcadas (sin citas, con tildes): 0**
