@@ -1356,6 +1356,71 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
   .viaje-det .pasos-viaje {{ grid-template-columns: 1fr; }}
 }}
 
+/* ---------- v2, Fase 4: glosario, portada e investigación ---------- */
+/* Término con definición: tooltip CSS que se abre con el cursor y con el
+   teclado (tabindex=0 + :focus). Sin JavaScript. */
+.termino {{ position: relative; border-bottom: 1px dotted var(--acento);
+           cursor: help; outline: none; }}
+.termino:focus-visible {{ box-shadow: 0 0 0 2px var(--acento); border-radius: 2px; }}
+.termino-def {{ position: absolute; left: 0; top: calc(100% + 6px); z-index: 20;
+               width: max-content; max-width: 32ch; padding: var(--e2) var(--e3);
+               background: var(--superficie-alta); color: var(--texto);
+               border: 1px solid var(--borde); border-radius: var(--r-sm);
+               font-size: {F['mini']}; line-height: 1.5; font-weight: 400;
+               letter-spacing: 0; text-transform: none; white-space: normal;
+               box-shadow: {T['sombra_tarjeta']};
+               opacity: 0; visibility: hidden; transition: opacity 120ms ease; }}
+.termino:hover .termino-def, .termino:focus .termino-def {{ opacity: 1; visibility: visible; }}
+.glosario {{ display: grid; grid-template-columns: max-content 1fr; gap: var(--e2) var(--e4);
+            max-width: 90ch; font-size: {F['mini']}; line-height: 1.55; }}
+.glosario dt {{ font-weight: 600; color: var(--texto); }}
+.glosario dd {{ margin: 0; color: var(--texto-medio); }}
+
+/* Etiquetas de afirmación: hallazgo propio / consistente / lectura nuestra. */
+.etq {{ display: inline-block; font-family: {FUENTE_MONO}; font-size: {F['micro']};
+       letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px;
+       border-radius: var(--r-sm); border: 1px solid var(--borde); white-space: nowrap;
+       vertical-align: 1px; }}
+.etq-propio {{ color: var(--acento-alto); border-color: var(--acento); }}
+.etq-consistente {{ color: {T['senal_buena_texto']}; border-color: {T['senal_buena']};
+                   background: {T['senal_buena_fondo']}; }}
+.etq-lectura {{ color: {T['senal_media_texto']}; border-color: {T['senal_media']};
+               background: {T['senal_media_fondo']}; }}
+
+/* Portada: cifras del primer pantallazo, personajes y recorrido. */
+.portada-cifras {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+                  gap: var(--e3); margin: var(--e2) 0 var(--e3); }}
+.personajes, .escuelas {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+                         gap: var(--e3); }}
+.personaje, .escuela {{ background: var(--superficie); border: 1px solid var(--borde-sutil);
+                       border-radius: var(--r-lg); padding: var(--e4); }}
+.personaje .ficticio {{ font-family: {FUENTE_MONO}; font-size: {F['micro']};
+                       letter-spacing: 0.1em; text-transform: uppercase; color: var(--texto-tenue); }}
+.personaje h3, .escuela h3 {{ font-size: {F['medio']}; margin: var(--e1) 0 var(--e2); }}
+.personaje p, .escuela p {{ font-size: {F['mini']}; line-height: 1.6; margin: 0 0 var(--e2);
+                           color: var(--texto-medio); }}
+.personaje .tasa {{ font-family: {FUENTE_MONO}; color: var(--acento-alto); font-size: {F['medio']}; }}
+.escuela .datos {{ border-top: 1px solid var(--borde-sutil); padding-top: var(--e2);
+                  color: var(--texto); }}
+.paso-recorrido {{ font-size: {F['mini']}; color: var(--texto-medio); line-height: 1.5;
+                  min-height: 3em; }}
+
+/* Tablas de investigación (cruces, departamentos). */
+.tabla-inv {{ width: 100%; border-collapse: collapse; font-size: {F['mini']}; line-height: 1.5; }}
+.tabla-inv th {{ text-align: left; font-family: {FUENTE_MONO}; font-size: {F['micro']};
+                letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-tenue);
+                border-bottom: 1px solid var(--borde); padding: var(--e2); }}
+.tabla-inv td {{ border-bottom: 1px solid var(--borde-sutil); padding: var(--e2);
+                vertical-align: top; color: var(--texto); }}
+.tabla-inv td.num {{ font-family: {FUENTE_MONO}; text-align: right; white-space: nowrap; }}
+.mapa .dep {{ transition: opacity 120ms ease; cursor: default; }}
+.mapa:hover .dep {{ opacity: 0.55; }}
+.mapa .dep:hover {{ opacity: 1; stroke: var(--texto); stroke-width: 1.2; }}
+@media (max-width: 900px) {{
+  .portada-cifras {{ grid-template-columns: 1fr; }}
+  .glosario {{ grid-template-columns: 1fr; }}
+}}
+
 /* Variantes de un gráfico por ancho (viaje del dato): la fila horizontal
    hasta 700 px, la apilada por debajo. El contenedor de Streamlit de la
    variante oculta también se oculta, para no dejar su hueco. */

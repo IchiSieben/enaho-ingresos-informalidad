@@ -1355,3 +1355,140 @@ def embudo(etapas: list[tuple[str, int]],
         yy += 16 * len(lineas) + 4
     partes.append("</svg>")
     return "".join(partes)
+
+
+# --------------------------------------------------------------------------
+# 12. Contexto (v2, Fase 4): mapa por departamento y barras con intervalo
+# --------------------------------------------------------------------------
+def _mezcla(c0: str, c1: str, t: float) -> str:
+    a = [int(c0[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(c1[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * t):02X}" for x, y in zip(a, b))
+
+
+def rampa_mapa(T: dict, k: int = 5) -> list[str]:
+    """k tonos del fondo de acento al acento: más intenso = más alto."""
+    return [_mezcla(T["acento_fondo"], T["acento"], (i + 1) / k) for i in range(k)]
+
+
+def _anillos(geom: dict) -> list[list]:
+    if geom["type"] == "Polygon":
+        return geom["coordinates"]
+    return [anillo for poligono in geom["coordinates"] for anillo in poligono]
+
+
+def mapa_departamentos(geo: dict, valores: dict[str, float | None],
+                       titulos: dict[str, str], cortes: list[float], T: dict,
+                       etiqueta: str, fmt=lambda v: pc(v, 0),
+                       ancho: int = 420) -> str:
+    """
+    Coroplético del Perú por departamento, sin JavaScript. `valores` y
+    `titulos` van por código de UBIGEO (dos dígitos); el título de cada
+    polígono (<title>) es el tooltip nativo y lleva el n. `cortes` son los
+    k−1 límites entre tramos; un valor None se pinta neutro (no se muestra).
+    Proyección equirrectangular con el coseno de la latitud media: a esta
+    escala la deformación no se nota y no hace falta una librería.
+    """
+    pts = [p for f in geo["features"] for a in _anillos(f["geometry"]) for p in a]
+    lon0, lon1 = min(p[0] for p in pts), max(p[0] for p in pts)
+    lat0, lat1 = min(p[1] for p in pts), max(p[1] for p in pts)
+    k = math.cos(math.radians((lat0 + lat1) / 2))
+    esc = (ancho - 20) / ((lon1 - lon0) * k)
+    alto_mapa = (lat1 - lat0) * esc
+    rampa = rampa_mapa(T, len(cortes) + 1)
+
+    def xy(p):
+        return f"{10 + (p[0] - lon0) * k * esc:.1f},{10 + (lat1 - p[1]) * esc:.1f}"
+
+    def tramo(v: float) -> int:
+        return sum(v >= c for c in cortes)
+
+    ley_y = alto_mapa + 30
+    alto = int(ley_y + 34)
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' class='mapa' "
+              f"aria-label='{escape(etiqueta, quote=True)}'>"]
+    for f in geo["features"]:
+        cod = f["properties"]["depto"]
+        v = valores.get(cod)
+        relleno = rampa[tramo(v)] if v is not None else T["superficie_alta"]
+        d = " ".join("M" + " L".join(xy(p) for p in anillo) + " Z"
+                     for anillo in _anillos(f["geometry"]))
+        partes.append(f"<path class='dep' d='{d}' fill='{relleno}' "
+                      f"stroke='{T['fondo']}' stroke-width='0.8'>"
+                      f"<title>{escape(titulos.get(cod, cod))}</title></path>")
+    # Leyenda: un cuadro por tramo con su rango.
+    bordes = [None] + list(cortes) + [None]
+    paso = (ancho - 20) / len(rampa)
+    partes.append(f"<text x='10' y='{ley_y - 8:.0f}' class='et'>{escape(etiqueta)}</text>")
+    for i, color in enumerate(rampa):
+        x = 10 + i * paso
+        lo, hi = bordes[i], bordes[i + 1]
+        rango = (f"< {fmt(hi)}" if lo is None else f"≥ {fmt(lo)}" if hi is None
+                 else f"{fmt(lo)}–{fmt(hi)}")
+        partes.append(f"<rect x='{x:.1f}' y='{ley_y:.0f}' width='{paso - 4:.1f}' "
+                      f"height='8' rx='2' fill='{color}'/>")
+        partes.append(f"<text x='{x:.1f}' y='{ley_y + 22:.0f}' class='vs' "
+                      f"fill='{T['texto_medio']}'>{escape(rango)}</text>")
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+def barras_intervalo(filas: list[tuple[str, float, float, float, bool]], T: dict,
+                     etiqueta: str, fmt=lambda v: pc(v, 0), cero: bool = True,
+                     referencias: list[tuple[str, float]] | None = None,
+                     ancho: int = 640) -> str:
+    """
+    Una barra por fila con su intervalo de confianza al 95 %: (rótulo, valor,
+    límite inferior, límite superior, destacada). `referencias` son líneas
+    verticales rotuladas (p. ej. una cifra de la literatura); se dibujan
+    punteadas para que no se confundan con nuestros datos.
+    """
+    fila, arriba = 34, 30
+    alto = arriba + len(filas) * fila + 24
+    izq, der = 190, 70
+    vals = [v for _, v, lo, hi, _ in filas for v in (v, lo, hi)]
+    vals += [v for _, v in (referencias or [])] + ([0.0] if cero else [])
+    v0, v1 = min(vals), max(vals)
+    marg = (v1 - v0) * 0.06 or 1.0
+    v0, v1 = v0 - (marg if v0 < 0 else 0), v1 + marg
+    ix = ancho - izq - der
+
+    def x(v: float) -> float:
+        return izq + (v - v0) / (v1 - v0) * ix
+
+    partes = [f"<svg viewBox='0 0 {ancho} {alto}' role='img' "
+              f"aria-label='{escape(etiqueta, quote=True)}'>",
+              f"<text x='{izq}' y='14' class='et'>{escape(etiqueta)}</text>"]
+    if cero and v0 < 0 < v1:
+        partes.append(f"<line x1='{x(0):.1f}' x2='{x(0):.1f}' y1='{arriba - 6}' "
+                      f"y2='{alto - 20}' stroke='{T['borde']}'/>")
+    for rot, v in referencias or []:
+        partes.append(f"<line x1='{x(v):.1f}' x2='{x(v):.1f}' y1='{arriba - 6}' "
+                      f"y2='{alto - 20}' stroke='{T['texto_tenue']}' "
+                      f"stroke-dasharray='3 3'/>")
+        partes.append(f"<text x='{x(v):.1f}' y='{alto - 6}' class='vs' "
+                      f"text-anchor='middle' fill='{T['texto_tenue']}'>{escape(rot)}</text>")
+    for i, (rot, v, lo, hi, dest) in enumerate(filas):
+        y = arriba + i * fila
+        base = x(0) if cero and v0 < 0 < v1 else x(v0)
+        x0, x1 = sorted((base, x(v)))
+        color = T["acento"] if dest else T["dato_tenue"]
+        partes.append(f"<text x='{izq - 10}' y='{y + 14}' class='vl' text-anchor='end' "
+                      f"fill='{T['texto'] if dest else T['texto_medio']}'>"
+                      f"{escape(_truncar(rot, izq - 20))}</text>")
+        partes.append(f"<rect class='anim-barra' style='animation-delay:{i * 40}ms' "
+                      f"x='{x0:.1f}' y='{y}' width='{max(x1 - x0, 1):.1f}' height='18' "
+                      f"rx='3' fill='{color}'/>")
+        partes.append(f"<line x1='{x(lo):.1f}' x2='{x(hi):.1f}' y1='{y + 9}' y2='{y + 9}' "
+                      f"stroke='{T['texto']}' stroke-width='1.5'/>")
+        for xx in (x(lo), x(hi)):
+            partes.append(f"<line x1='{xx:.1f}' x2='{xx:.1f}' y1='{y + 4}' y2='{y + 14}' "
+                          f"stroke='{T['texto']}' stroke-width='1.5'/>")
+        # La cifra va siempre a la derecha de la barra y de su intervalo; en
+        # un valor negativo, eso es pasada la línea del cero, fuera de la barra.
+        lado = max(x(v), x(hi), base) + 8
+        partes.append(f"<text x='{lado:.1f}' y='{y + 14}' class='vs' "
+                      f"fill='{T['acento_alto'] if dest else T['texto_medio']}'>"
+                      f"{escape(fmt(v))}</text>")
+    partes.append("</svg>")
+    return "".join(partes)

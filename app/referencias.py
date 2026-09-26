@@ -319,6 +319,82 @@ REFERENCIAS: list[dict] = [
     },
 ]
 
+# v2, Fase 4 (pestaña Investigación). Se agregan al FINAL para no cambiar la
+# numeración de las llamadas que ya existen. Texto crudo verificado en
+# docs/fase2/raw/ (chen2012.txt, nopo2008.txt, nopo_atal_winder.txt,
+# maloney2004.txt); filas 22, 28, 37 y 38 de docs/MATRIZ_AFIRMACIONES.md.
+REFERENCIAS += [
+    {
+        "id": "chen2012",
+        "cita": "Chen, M. A. (2012). <i>The Informal Economy: Definitions, "
+                "Theories and Policies</i>. WIEGO Working Paper n.º 1. WIEGO.",
+        "url": "https://www.wiego.org/wp-content/uploads/2019/09/Chen_WIEGO_WP1.pdf",
+        "acceso": "abierto",
+        "nota": "Las cuatro escuelas de pensamiento sobre la informalidad "
+                "(dualista, estructuralista, legalista y voluntarista), pp. 4-5.",
+        "cita_en": "Chen, M. A. (2012). <i>The Informal Economy: Definitions, "
+                   "Theories and Policies</i>. WIEGO Working Paper No. 1. WIEGO.",
+        "nota_en": "The four schools of thought on informality (dualist, "
+                   "structuralist, legalist and voluntarist), pp. 4-5.",
+        "verificacion": "contenido",
+    },
+    {
+        "id": "maloney2004",
+        "cita": "Maloney, W. F. (2004). «Informality Revisited». <i>World "
+                "Development</i> 32(7), pp. 1159-1178.",
+        "url": "https://doi.org/10.1016/j.worlddev.2004.01.008",
+        "acceso": "abierto",
+        "nota": "Propone leer buena parte del sector informal como un sector "
+                "microempresarial voluntario, no como un sector en desventaja. "
+                "Versión abierta: https://www.ilo.org/media/153361/download.",
+        "cita_en": "Maloney, W. F. (2004). “Informality Revisited”. <i>World "
+                   "Development</i> 32(7), pp. 1159-1178.",
+        "nota_en": "Argues that much of the informal sector is a voluntary "
+                   "micro-entrepreneurial sector rather than a disadvantaged "
+                   "one. Open version: https://www.ilo.org/media/153361/download.",
+        "verificacion": "contenido",
+    },
+    {
+        "id": "nopo2008",
+        "cita": "Ñopo, H. (2008). «Matching as a Tool to Decompose Wage Gaps». "
+                "<i>The Review of Economics and Statistics</i> 90(2), pp. 290-299.",
+        "url": "https://docs.iza.org/dp981.pdf",
+        "acceso": "abierto",
+        "nota": "Perú 1986-2000: brecha de género de 45 %, de la que 28 puntos "
+                "no se explican por características observables (resumen). "
+                "Enlace a la versión de autor (IZA DP 981); DOI de la revista: "
+                "10.1162/rest.90.2.290.",
+        "cita_en": "Ñopo, H. (2008). “Matching as a Tool to Decompose Wage "
+                   "Gaps”. <i>The Review of Economics and Statistics</i> "
+                   "90(2), pp. 290-299.",
+        "nota_en": "Peru 1986-2000: a 45% gender wage gap, of which 28 points "
+                   "are not explained by observable traits (abstract). Link to "
+                   "the author's version (IZA DP 981); journal DOI: "
+                   "10.1162/rest.90.2.290.",
+        "verificacion": "contenido",
+    },
+    {
+        "id": "nopo_atal_winder2009",
+        "cita": "Ñopo, H., Atal, J. P. y Winder, N. (2009). <i>New Century, Old "
+                "Disparities: Gender and Ethnic Wage Gaps in Latin America</i>. "
+                "Banco Interamericano de Desarrollo (versión revisada: IZA DP "
+                "5085, 2010).",
+        "url": "https://docs.iza.org/dp5085.pdf",
+        "acceso": "abierto",
+        "nota": "18 países de América Latina: la brecha no explicada es mayor "
+                "entre trabajadores informales, independientes y de empresas "
+                "pequeñas (resumen).",
+        "cita_en": "Ñopo, H., Atal, J. P. and Winder, N. (2009). <i>New Century, "
+                   "Old Disparities: Gender and Ethnic Wage Gaps in Latin "
+                   "America</i>. Inter-American Development Bank (revised "
+                   "version: IZA DP 5085, 2010).",
+        "nota_en": "18 Latin American countries: the unexplained gap is larger "
+                   "among informal, self-employed and small-firm workers "
+                   "(abstract).",
+        "verificacion": "contenido",
+    },
+]
+
 INDICE = {r["id"]: i + 1 for i, r in enumerate(REFERENCIAS)}
 
 
