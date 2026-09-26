@@ -14,8 +14,8 @@ authors:
     email: yoichi.palacios@gmail.com
     orcid: ""
     website: "https://ichisieben.dev"
-version: 1.0.0
-date-released: "2026-08-14"
+version: 1.2.0
+date-released: "2026-09-26"
 license: Apache-2.0
 url: "https://enaho-ingresos-informalidad.streamlit.app"
 repository-code: "https://github.com/IchiSieben/enaho-ingresos-informalidad"

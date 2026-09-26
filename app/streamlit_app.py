@@ -4017,11 +4017,11 @@ def _brechas(ctx: dict, T_: dict) -> None:
             f"<td class='num'>{d(gen['oaxaca'][y][c][ref_]['no_explicada']['valor'], 3)}</td></tr>"
             for y in ("log_hora", "log_mes") for c in ("A", "B")
             for ref_ in ("pooled", "hombres", "mujeres"))
-        html("<table class='tabla-inv'><tr><th>" + L("Ingreso", "Pay") + "</th><th>"
+        html("<div class='tabla-scroll'><table class='tabla-inv'><tr><th>" + L("Ingreso", "Pay") + "</th><th>"
              + L("Controles", "Controls") + "</th><th>" + L("Referencia", "Reference")
              + "</th><th>" + L("Brecha", "Gap") + "</th><th>" + L("Explicada", "Explained")
              + "</th><th>" + L("No explicada", "Unexplained") + "</th></tr>"
-             + filas_o + "</table><div class='sutil' style='margin-top:8px'>" + L(
+             + filas_o + "</table></div><div class='sutil' style='margin-top:8px'>" + L(
                  "Controles A: educación, experiencia, área y dominio. B: A más rama, "
                  "categoría y tamaño (malos controles: también son resultados). La "
                  "parte no explicada tiene el mismo signo en las seis variantes por "
@@ -4099,10 +4099,10 @@ def _territorio(ctx: dict, T_: dict) -> None:
             f"<td class='num'>{sol(grupos[c]['ingreso_mediano']['valor'])}</td>"
             f"<td class='num'>{n(grupos[c]['n'])}</td></tr>"
             for c in orden if grupos[c]["mostrar"])
-        html("<table class='tabla-inv'><tr><th>" + L("Departamento", "Department")
+        html("<div class='tabla-scroll'><table class='tabla-inv'><tr><th>" + L("Departamento", "Department")
              + "</th><th>" + L("Informal", "Informal") + "</th><th>"
              + L("Ingreso mediano", "Median income") + "</th><th>n</th></tr>"
-             + filas + "</table>")
+             + filas + "</table></div>")
     html("<div class='sutil'>" + etiqueta_afirmacion("propio") + " " + L(
         "Ponderado con el factor de expansión; la media de los departamentos "
         f"reproduce la tasa de la muestra ({pc(ctx['departamentos']['control_nacional'], 1)}). "
@@ -4147,10 +4147,10 @@ def _cruces(ctx: dict) -> None:
         "Each finding with its source and its label: <b>own finding</b> (from our "
         "data), <b>consistent with the literature</b> (a verified source says the "
         "same) or <b>our reading</b> (interpretation).") + "</div>"
-        "<table class='tabla-inv'><tr><th>" + L("Hallazgo", "Finding") + "</th><th>"
+        "<div class='tabla-scroll'><table class='tabla-inv'><tr><th>" + L("Hallazgo", "Finding") + "</th><th>"
         + L("Diálogo con", "In dialogue with") + "</th><th>" + L("Etiqueta", "Label")
         + "</th></tr>" + "".join(f"<tr><td>{h}</td><td>{f}</td><td>{etiqueta_afirmacion(e)}</td></tr>"
-                                 for h, f, e in filas) + "</table>")
+                                 for h, f, e in filas) + "</table></div>")
     html("<div class='sutil' style='margin-top:8px'>" + L(
         f"Penalidad por hora a igual perfil: {pc(pen['A']['pct'], 1)}. Todas las "
         "cifras de esta pestaña son asociaciones, no efectos causales.",
@@ -4199,11 +4199,11 @@ def _lengua(ctx: dict) -> None:
         f"<td class='num'>{pc(brecha[lg]['pct'], 1) if lg in brecha else '—'}</td>"
         f"<td class='num'>{n(g['n'])}</td></tr>"
         for lg, g in grupos.items() if g["mostrar"])
-    html("<table class='tabla-inv'><tr><th>" + L("Lengua materna", "Mother tongue")
+    html("<div class='tabla-scroll'><table class='tabla-inv'><tr><th>" + L("Lengua materna", "Mother tongue")
          + "</th><th>" + L("Informal", "Informal") + "</th><th>"
          + L("Ingreso mediano", "Median income") + "</th><th>"
          + L("Brecha por hora vs. castellano", "Hourly gap vs. Spanish") + "</th><th>n</th></tr>"
-         + filas + "</table>")
+         + filas + "</table></div>")
 
 
 def seccion_investigacion(schema: dict, art: dict) -> None:

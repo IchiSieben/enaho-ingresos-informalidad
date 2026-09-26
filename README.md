@@ -37,6 +37,43 @@ coefficients exposed an error in the source data — INEI's missing-value code
 read as real income — and became the first entry in a tournament of nine
 specifications.
 
+### What's new in v1.2.0
+
+The app now has **seven tabs**: «Inicio / Start» (the new default landing —
+"Start here: Peru in 60 seconds" — population and Lima share estimated from
+ENAHO, 34,856,707 people with 33.4% in Metropolitan Lima, official INEI
+informality 70.2%, four clearly-labeled **fictional** characters, why it
+matters, and a guided tour), Ingreso, Informalidad, **Investigación**
+(new), Torneo, Ficha, Cómo se hizo. Deep links such as `?sec=investigacion`
+keep working.
+
+The new Research tab adds: the four schools of thought on informality
+(Chen 2012) as comparison cards, each labeled «lectura nuestra» where the
+reading is ours and not a cited result; the informality penalty on hourly
+income (−40.7% with human-capital and geography controls, −21.1% once
+industry, occupational category and firm size are added — the latter are
+"bad controls," themselves outcomes); the gender gap via Oaxaca-Blinder
+(0.262 log points, with an unexplained component of 0.25–0.29 log points,
+larger than the total gap and stable in sign across six specifications — a
+**finding of our own, distinct from Ñopo (2008)** for Peru 1986–2000, where
+the unexplained part was smaller than the total gap); returns to education
+by segment (9.4%/year for employees vs. 4.5% for the self-employed — the
+ordering is consistent with Yamada (2007), though 2025 levels are not
+compared to his 2004 figures as a decline); a choropleth map by department
+(plain SVG, no JavaScript, boundaries from geoBoundaries, public domain);
+and a findings↔literature table with three labels (hallazgo propio /
+consistente con la literatura / lectura nuestra). Mother-tongue gaps are
+computed but stay hidden (`MOSTRAR_LENGUA = False`) pending author review.
+
+A bilingual glossary with keyboard-accessible tooltips (`:hover` and
+`:focus`) now backs the technical terms in "Inicio" and "Investigación."
+
+New scripts: `src/10_contexto.py` (run with `python src/10_contexto.py --B
+200`; needs the raw microdata in `data/`, which is never committed) produces
+`models/ui_contexto.json` and `reports/10_contexto.md`; `src/10b_mapa_geo.py`
+produces `models/peru_departamentos.geojson`. Every autonomous decision behind
+this release is logged in `docs/DECISIONES_AUTONOMAS.md`.
+
 ### 1. The autopsy: where all of this starts
 
 An early regression the group ran on this data produced the following
@@ -353,6 +390,48 @@ muestra el camino**. Una regresión inicial con coeficientes implausibles
 destapó un error en los datos de origen —el código de faltante del INEI leído
 como un ingreso real— y se convirtió en la primera pieza de un torneo de
 nueve especificaciones.
+
+### Qué hay de nuevo en la v1.2.0
+
+La app tiene ahora **siete pestañas**: «Inicio / Start» (nuevo aterrizaje por
+defecto —«Empieza aquí: el Perú en 60 segundos»— con población y proporción
+en Lima estimadas con la ENAHO, 34.856.707 personas con 33,4 % en Lima
+Metropolitana, informalidad oficial del INEI 70,2 %, cuatro personajes
+**claramente rotulados como ficticios**, por qué importa, y un recorrido
+guiado), Ingreso, Informalidad, **Investigación** (nueva), Torneo, Ficha,
+Cómo se hizo. Los enlaces profundos como `?sec=investigacion` siguen
+funcionando.
+
+La nueva pestaña Investigación agrega: las cuatro escuelas de pensamiento
+sobre la informalidad (Chen 2012) como tarjetas comparables, cada «qué dicen
+nuestros datos» rotulado como «lectura nuestra» y no como resultado citado;
+la penalidad de la informalidad sobre el ingreso por hora (−40,7 % con
+controles de capital humano y geografía, −21,1 % al sumar rama, categoría
+ocupacional y tamaño de empresa —estos últimos son «malos controles», porque
+también son resultados—); la brecha de género vía Oaxaca-Blinder (0,262 log
+puntos, con una parte no explicada de 0,25 a 0,29 log puntos, **mayor** que
+la brecha total y de signo estable en las seis especificaciones —un
+**hallazgo propio, distinto de Ñopo (2008)** para el Perú 1986–2000, donde la
+parte no explicada era menor que la brecha total—); retornos a la educación
+por segmento (9,4 % anual para asalariados frente a 4,5 % para
+independientes —el orden es coherente con Yamada (2007), aunque los niveles
+de 2025 no se comparan con sus cifras de 2004 como una caída—); un mapa
+coroplético por departamento (SVG plano, sin JavaScript, límites de
+geoBoundaries, dominio público); y una tabla de cruces hallazgo↔literatura
+con tres etiquetas (hallazgo propio / consistente con la literatura /
+lectura nuestra). Las brechas por lengua materna se calculan pero quedan
+ocultas (`MOSTRAR_LENGUA = False`) hasta que el autor las revise.
+
+Un glosario bilingüe con tooltips accesibles por teclado (`:hover` y
+`:focus`) respalda ahora los términos técnicos de «Inicio» e
+«Investigación».
+
+Scripts nuevos: `src/10_contexto.py` (se corre con `python src/10_contexto.py
+--B 200`; necesita los microdatos crudos en `data/`, que nunca se
+commitean) produce `models/ui_contexto.json` y `reports/10_contexto.md`;
+`src/10b_mapa_geo.py` produce `models/peru_departamentos.geojson`. Cada
+decisión autónoma detrás de esta versión queda registrada en
+`docs/DECISIONES_AUTONOMAS.md`.
 
 ### 1. La autopsia: de dónde parte todo
 

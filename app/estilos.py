@@ -1419,6 +1419,12 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 @media (max-width: 900px) {{
   .portada-cifras {{ grid-template-columns: 1fr; }}
   .glosario {{ grid-template-columns: 1fr; }}
+  /* Medido a 390 px: la tabla de Oaxaca (6 columnas) y la de cruces se
+     salían del contenedor. Cada tabla va en un envoltorio con desplazamiento
+     propio: la página no se mueve. */
+  .tabla-scroll {{ overflow-x: auto; max-width: 100%; }}
+  .etq {{ white-space: normal; }}
+  .termino-def {{ max-width: min(32ch, 80vw); }}
 }}
 
 /* Variantes de un gráfico por ancho (viaje del dato): la fila horizontal
