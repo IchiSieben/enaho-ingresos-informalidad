@@ -1,7 +1,7 @@
 {
  "meta": {
-  "generado": "2026-09-26T20:37:33+00:00",
-  "commit": "324e722",
+  "generado": "2026-09-26T21:04:52+00:00",
+  "commit": "d69944f",
   "script": "src/10_contexto.py",
   "n": 47632,
   "n_hora": 47000,
@@ -153,6 +153,32 @@
       ]
      },
      "n": 47000,
+     "detalle_pooled": {
+      "educacion_experiencia": {
+       "valor": 0.0113,
+       "ee": 0.0048,
+       "ic95": [
+        0.0038,
+        0.0213
+       ]
+      },
+      "area": {
+       "valor": -0.0259,
+       "ee": 0.002,
+       "ic95": [
+        -0.0296,
+        -0.022
+       ]
+      },
+      "dominio": {
+       "valor": -0.0092,
+       "ee": 0.0017,
+       "ic95": [
+        -0.012,
+        -0.0059
+       ]
+      }
+     },
      "pooled": {
       "explicada": {
        "valor": -0.0237,
@@ -218,6 +244,56 @@
       ]
      },
      "n": 47000,
+     "detalle_pooled": {
+      "educacion_experiencia": {
+       "valor": 0.0101,
+       "ee": 0.0028,
+       "ic95": [
+        0.005,
+        0.0162
+       ]
+      },
+      "area": {
+       "valor": -0.0181,
+       "ee": 0.0016,
+       "ic95": [
+        -0.0209,
+        -0.0151
+       ]
+      },
+      "dominio": {
+       "valor": -0.0063,
+       "ee": 0.0015,
+       "ic95": [
+        -0.0089,
+        -0.0035
+       ]
+      },
+      "rama": {
+       "valor": 0.0083,
+       "ee": 0.0068,
+       "ic95": [
+        -0.004,
+        0.0208
+       ]
+      },
+      "categoria": {
+       "valor": -0.0038,
+       "ee": 0.0046,
+       "ic95": [
+        -0.0135,
+        0.0049
+       ]
+      },
+      "tamano_empresa": {
+       "valor": -0.0026,
+       "ee": 0.0017,
+       "ic95": [
+        -0.0062,
+        0.0003
+       ]
+      }
+     },
      "pooled": {
       "explicada": {
        "valor": -0.0124,
@@ -285,6 +361,40 @@
       ]
      },
      "n": 47632,
+     "detalle_pooled": {
+      "educacion_experiencia": {
+       "valor": 0.0132,
+       "ee": 0.0054,
+       "ic95": [
+        0.0045,
+        0.024
+       ]
+      },
+      "horas": {
+       "valor": 0.0627,
+       "ee": 0.0044,
+       "ic95": [
+        0.0547,
+        0.0716
+       ]
+      },
+      "area": {
+       "valor": -0.0282,
+       "ee": 0.0021,
+       "ic95": [
+        -0.0326,
+        -0.0242
+       ]
+      },
+      "dominio": {
+       "valor": -0.0103,
+       "ee": 0.0019,
+       "ic95": [
+        -0.0139,
+        -0.0068
+       ]
+      }
+     },
      "pooled": {
       "explicada": {
        "valor": 0.0374,
@@ -350,6 +460,64 @@
       ]
      },
      "n": 47632,
+     "detalle_pooled": {
+      "educacion_experiencia": {
+       "valor": 0.0127,
+       "ee": 0.0033,
+       "ic95": [
+        0.0068,
+        0.0195
+       ]
+      },
+      "horas": {
+       "valor": 0.0564,
+       "ee": 0.0038,
+       "ic95": [
+        0.0494,
+        0.0644
+       ]
+      },
+      "area": {
+       "valor": -0.0176,
+       "ee": 0.0015,
+       "ic95": [
+        -0.0208,
+        -0.0147
+       ]
+      },
+      "dominio": {
+       "valor": -0.006,
+       "ee": 0.0015,
+       "ic95": [
+        -0.0084,
+        -0.0032
+       ]
+      },
+      "rama": {
+       "valor": 0.0208,
+       "ee": 0.006,
+       "ic95": [
+        0.0095,
+        0.0312
+       ]
+      },
+      "categoria": {
+       "valor": -0.0113,
+       "ee": 0.0054,
+       "ic95": [
+        -0.0213,
+        -0.0006
+       ]
+      },
+      "tamano_empresa": {
+       "valor": -0.0032,
+       "ee": 0.0021,
+       "ic95": [
+        -0.0072,
+        0.0009
+       ]
+      }
+     },
      "pooled": {
       "explicada": {
        "valor": 0.0519,
@@ -528,7 +696,44 @@
     },
     "celdas": 1751
    }
+  },
+  "medias_por_sexo": {
+   "Hombre": {
+    "anios_educ": 10.71,
+    "edad": 40.89,
+    "horas_total": 46.73,
+    "pct_urbano": 81.42,
+    "pct_lima_metropolitana": 31.87,
+    "pct_superior": 34.53,
+    "pct_informal": 62.75,
+    "pct_independiente": 37.02,
+    "n": 27049
+   },
+   "Mujer": {
+    "anios_educ": 10.67,
+    "edad": 40.7,
+    "horas_total": 42.15,
+    "pct_urbano": 87.66,
+    "pct_lima_metropolitana": 37.22,
+    "pct_superior": 41.18,
+    "pct_informal": 66.01,
+    "pct_independiente": 39.33,
+    "n": 20583
+   }
   }
+ },
+ "peru": {
+  "poblacion": 34856707,
+  "pct_region": {
+   "costa": 56.97,
+   "sierra": 30.5,
+   "selva": 12.53
+  },
+  "pct_lima_metropolitana": 33.38,
+  "ocupados_14": 18460375,
+  "n_personas": 107346,
+  "n_ocupados": 57716,
+  "fuente": "ENAHO 2025, módulos 200 y 500; FACPOB07 y FAC500A"
  },
  "retornos": {
   "total": {

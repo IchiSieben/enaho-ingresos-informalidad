@@ -209,12 +209,10 @@ está en `reports/10_contexto.md`.
   −23,7 % y entre independientes −40,0 %. Es una diferencia condicional, no
   un efecto: hay selección.
 - **Brecha de género por hora:** 0,262 log puntos. La parte explicada es
-  cercana a cero o negativa: entre quienes trabajan, las mujeres tienen igual
-  o más educación. La parte no explicada va de 0,25 a 0,29, con signo estable
-  en las seis variantes. Ñopo da resultados parecidos: Δ = 15,4 %, Δ0 = 20,6 %
-  y soporte común > 95 %. Es lo mismo que describe Ñopo (2008) para el Perú
-  (filas 37–38 de la matriz): una parte no explicada mayor que la brecha
-  total.
+  cercana a cero o negativa. La parte no explicada va de 0,25 a 0,29, con
+  signo estable en las seis variantes. Ñopo: Δ = 15,4 %, Δ0 = 20,6 % y soporte
+  común > 95 %. **[Corregido en D-23: el mecanismo y la cita de este punto
+  estaban mal.]**
 - **Retornos a la educación:** 9,4 % en asalariados y 4,5 % en
   independientes. El orden es el de Yamada (2007), con 12,5 % y 6,5 % en
   2004; los niveles 2025 son menores. Esto último no se interpreta: los
@@ -225,3 +223,106 @@ está en `reports/10_contexto.md`.
   encargo.
 - Revertir: borrar `models/ui_contexto.json`. La app de la Fase 4 no debe
   romperse si el archivo falta.
+
+**D-23 · Corrección de D-22 (alarma de contraste con la literatura).** D-22
+decía dos cosas sin respaldo; el commit con el error queda en el historial,
+sin reescribirlo:
+1. *«Es lo mismo que describe Ñopo (2008) para el Perú.»* Falso. En Ñopo
+   (2008), Perú 1986–2000 (fila 37 de la matriz), la brecha de 45 % se reparte
+   en 11 + 6 puntos explicados y 28 sin explicar: la parte no explicada es
+   **menor** que la brecha. En nuestros datos es **mayor**, porque la parte
+   explicada es negativa. Tampoco lo respalda Ñopo, Atal y Winder (2009),
+   fila 38. Queda como **hallazgo propio, distinto de Ñopo (2008)**. No
+   lleva la etiqueta «consistente con la literatura». Lo que sí coincide con
+   las dos fuentes es el signo: hay una brecha no explicada a favor de los
+   hombres.
+2. *«Las mujeres ocupadas tienen igual o más educación.»* Era una inferencia
+   desde el signo de la parte explicada, sin verificar. La descomposición
+   detallada, ya en el artefacto (`detalle_pooled`), dice otra cosa. Con
+   controles A y por hora, educación y experiencia aportan +0,011, a favor de
+   los hombres. Área aporta −0,026 y dominio −0,009. Lo que vuelve negativa
+   la parte explicada es la geografía: las mujeres ocupadas son más urbanas
+   (87,7 % frente a 81,4 %) y están más en Lima Metropolitana (37,2 % frente
+   a 31,9 %), donde se gana más por hora. En años de educación la diferencia
+   es mínima (10,67 frente a 10,71), aunque más mujeres tienen educación
+   superior (41,2 % frente a 34,5 %).
+- Unidades: Oaxaca trabaja sobre medias de logaritmos (0,262 ≈ 30 % entre
+  medias geométricas). Ñopo trabaja sobre medias aritméticas relativas a la
+  media femenina (15,4 %). No se contradicen. La nota está en el reporte y
+  debe ir a la capa 2 de la app.
+- Regla para la Fase 4: la app no escribe ningún «porqué» de la brecha que no
+  salga de `detalle_pooled` o de `medias_por_sexo`.
+
+## Fase 4 · Arquitectura (reemplaza la parada «antes de la arquitectura»)
+
+**D-24 · Navegación de siete pestañas.** Orden: Empieza aquí · Ingreso ·
+Informalidad · Investigación · Torneo · Ficha · Cómo se hizo. «Empieza aquí»
+(`inicio`) es la sección por defecto, como pide el encargo, y los enlaces
+`?sec=` siguen funcionando. Si la barra se parte en dos filas a 1366 px, se
+acortan los rótulos antes de tocar el layout, y se vuelve a medir el
+pliegue de las siete secciones en ES y EN.
+- Revertir la portada por defecto: `SECCION_POR_DEFECTO = "ingreso"`.
+
+**D-25 · Dónde vive el código.** Las secciones siguen en
+`streamlit_app.py`, igual que las otras cinco: moverlas a módulos obligaría a
+importar sus ayudantes (`html`, `L`, `cabecera`, `ref`…) desde el script
+principal, y Streamlit lo ejecuta como `__main__`. Van a módulos nuevos solo
+la lectura del artefacto (`app/contexto.py`: carga tolerante a que falte el
+archivo, y `MOSTRAR_LENGUA = False`), el glosario (`app/glosario.py`) y el
+mapa (`graficos.mapa_departamentos`, declarado en `GRAFICOS_REQUERIDOS`).
+- Descartado: un módulo por sección, por el riesgo de import circular
+  descrito arriba.
+
+**D-26 · Portada «Empieza aquí», aterrizaje en dos tiempos.** El primer
+pantallazo lleva el titular, tres cifras y el botón del recorrido. Las cifras
+son la población y la parte que vive en Lima Metropolitana (estimadas con la
+ENAHO, `ui_contexto.peru`, rotuladas así) y la tasa oficial del INEI (ya
+citada, `inei_informal`). Debajo va lo demás:
+- Qué es un empleo informal, con cuatro personajes **ficticios, rotulados
+  como tales**: vendedora de mercado, taxista, agricultor y trabajadora del
+  hogar. Cada uno lleva la tasa observada de su rama, leída de
+  `ui_artifacts.clasificador.tasas_observadas.rama`. Lo que significa para
+  la pensión, la salud y el crédito es cualitativo y sin cifras.
+- Por qué importa.
+- Qué hace la app: el recorrido guiado, cinco pasos con un botón que abre
+  cada pestaña.
+- **La comparación con América Latina y la OCDE se omite.** Ninguna cifra
+  pasó por `verificar_citas.py`. Queda como pendiente.
+
+**D-27 · Pestaña «Investigación».** Lleva:
+- Las cuatro escuelas (Chen 2012, fila 22, verificada), como tarjetas
+  comparables. Cada «qué dicen nuestros datos» es **lectura nuestra**, con
+  números del artefacto. La legalista se apoya en De Soto (fila 27), que ya
+  es «lectura nuestra», y se dice.
+- Los análisis de la Fase 3 en capa 1 y capa 2. La brecha de género se
+  rotula como hallazgo propio, distinto de Ñopo 2008 (D-23).
+- El mapa y la tabla de cruces hallazgo ↔ literatura, con las tres
+  etiquetas.
+- Ética y límites de la focalización.
+- La lengua materna, solo si `MOSTRAR_LENGUA` es verdadera.
+
+**D-28 · Mapa sin JavaScript.** SVG coroplético generado en Python desde
+`models/peru_departamentos.geojson`, con proyección equirrectangular
+corregida por el coseno de la latitud media. Se cachea con
+`st.cache_data`, así que se calcula una vez por proceso. Cinco tramos de
+color con los tokens del tema. Hover vía `<title>` (probado: el markdown lo
+conserva) y un resaltado CSS. El n de cada departamento va en el título. Al
+lado va una tabla accesible con los mismos datos.
+
+**D-29 · Glosario.** Un solo módulo con términos bilingües y una función,
+`termino(clave, texto)`, que devuelve un `<span tabindex=0>` con la
+definición en un tooltip CSS (`:hover` y `:focus`). Así funciona con
+teclado: está probado que `tabindex`, `role` y `title` sobreviven al
+saneado. Las definiciones no llevan cifras.
+
+**D-30 · Hilo narrativo y tests.** Ingreso e Informalidad llevan una línea de
+cruce con enlace a la pestaña Investigación (`?sec=investigacion`,
+`target=_self`), sin reescribir lo que hay. Tests nuevos:
+- contrato del mapa;
+- la lengua no aparece con la bandera en falso;
+- la app no se cae si falta `ui_contexto.json`;
+- toda etiqueta «consistente con la literatura» apunta a una referencia con
+  `verificacion == "contenido"`.
+
+El README y `CITATION.cff` 1.2.0 se escriben al final, con las cifras ya
+fijas.

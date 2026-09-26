@@ -197,7 +197,8 @@ def retornos(df: pd.DataFrame) -> dict:
 # --------------------------------------------------------------------------
 # 2a. Oaxaca-Blinder de dos partes
 # --------------------------------------------------------------------------
-def oaxaca(X: np.ndarray, y: np.ndarray, w: np.ndarray, hombre: np.ndarray) -> dict:
+def oaxaca(X: np.ndarray, y: np.ndarray, w: np.ndarray, hombre: np.ndarray,
+           grupos: dict[str, np.ndarray] | None = None) -> dict:
     """
     Brecha en log(hombres − mujeres) = explicada + no explicada, con tres
     coeficientes de referencia. «pooled» es Fortin (2008) / Jann (2008): la
@@ -214,7 +215,23 @@ def oaxaca(X: np.ndarray, y: np.ndarray, w: np.ndarray, hombre: np.ndarray) -> d
         expl = float((xm - xf) @ b)
         res[ref] = {"explicada": expl, "no_explicada": brecha - expl}
     res["brecha"] = brecha
+    # Parte explicada por bloque de variables, con la referencia pooled: dice
+    # QUÉ diferencia de dotaciones empuja la parte explicada (D-22).
+    res["detalle"] = {g: float((xm - xf)[i] @ bp[i]) for g, i in (grupos or {}).items()}
     return res
+
+
+def grupos_columnas(nombres: list[str]) -> dict[str, np.ndarray]:
+    """Índices de columnas por bloque: educación y experiencia, horas, y cada categórica."""
+    bloque = {"anios_educ": "educacion_experiencia", "exper": "educacion_experiencia",
+              "exper2": "educacion_experiencia", "log_horas": "horas"}
+    out: dict[str, list[int]] = {}
+    for i, n in enumerate(nombres):
+        if n == "const":
+            continue
+        g = bloque.get(n) or next(c for c in CAT_B if n.startswith(c + "_"))
+        out.setdefault(g, []).append(i)
+    return {g: np.array(i) for g, i in out.items()}
 
 
 def genero_oaxaca(df: pd.DataFrame, B: int) -> dict:
@@ -223,11 +240,16 @@ def genero_oaxaca(df: pd.DataFrame, B: int) -> dict:
         for nombre, cat in (("A", CAT_A), ("B", CAT_B)):
             num = NUM_A + ([] if y == "log_hora" else ["log_horas"])
             d = df.dropna(subset=[y] + num + cat).reset_index(drop=True)
-            X, _ = matriz(d, num, cat)
+            X, nombres = matriz(d, num, cat)
+            gr = grupos_columnas(nombres)
             yv, w, h = d[y].to_numpy(), d["FAC500A"].to_numpy(), d["hombre"].to_numpy()
-            punto = oaxaca(X, yv, w, h)
-            repl = [oaxaca(X, yv, w * mb, h) for mb in pesos_bootstrap(d["CONGLOME"], B, SEMILLA)]
-            r = {"brecha": resumen(punto["brecha"], [x["brecha"] for x in repl]), "n": int(len(d))}
+            punto = oaxaca(X, yv, w, h, gr)
+            repl = [oaxaca(X, yv, w * mb, h, gr)
+                    for mb in pesos_bootstrap(d["CONGLOME"], B, SEMILLA)]
+            r = {"brecha": resumen(punto["brecha"], [x["brecha"] for x in repl]),
+                 "n": int(len(d)),
+                 "detalle_pooled": {g: resumen(v, [x["detalle"][g] for x in repl])
+                                    for g, v in punto["detalle"].items()}}
             for ref in ("pooled", "hombres", "mujeres"):
                 r[ref] = {k: resumen(punto[ref][k], [x[ref][k] for x in repl])
                           for k in ("explicada", "no_explicada")}
@@ -238,6 +260,61 @@ def genero_oaxaca(df: pd.DataFrame, B: int) -> dict:
               for c in ("A", "B") for ref in ("pooled", "hombres", "mujeres")}
     out["signo_estable"] = len(signos) == 1
     return out
+
+
+def medias_por_sexo(df: pd.DataFrame) -> dict:
+    """Dotaciones promedio (ponderadas) de hombres y mujeres ocupados."""
+    d = df.assign(
+        urbano_=(df["area"] == "Urbana").astype(float),
+        lima_=(df["dominio"] == "Lima Metropolitana").astype(float),
+        superior_=df["nivel_educ"].isin(["Superior técnica", "Superior universitaria",
+                                         "Posgrado"]).astype(float),
+        informal_=df["informal"].astype(float),
+        independiente_=(df["categoria"] == "Independiente").astype(float))
+    cols = {"anios_educ": "anios_educ", "edad": "edad", "horas_total": "horas_total",
+            "urbano_": "pct_urbano", "lima_": "pct_lima_metropolitana",
+            "superior_": "pct_superior", "informal_": "pct_informal",
+            "independiente_": "pct_independiente"}
+    out = {}
+    for sexo, g in d.groupby("sexo"):
+        w = g["FAC500A"].to_numpy()
+        out[sexo] = {v: round(media_p(g[c].to_numpy(float), w)
+                              * (100 if v.startswith("pct") else 1), 2)
+                     for c, v in cols.items()}
+        out[sexo]["n"] = int(len(g))
+    return out
+
+
+def peru_en_cifras() -> dict:
+    """
+    El Perú en cifras, estimado con la propia ENAHO 2025 (hallazgo propio, no
+    la proyección oficial): población con FACPOB07 sobre los miembros del
+    hogar (P204 = 1) y ocupados de 14+ con FAC500A.
+    """
+    m2 = leer_enaho(DIR_RAW / "1031-Modulo02" / "1031-Modulo02" / "Enaho01-2025-200.csv",
+                    LLAVES_PERSONA + ["DOMINIO", "P204", "FACPOB07"])
+    m2 = m2[pd.to_numeric(m2["P204"], errors="coerce") == 1]
+    w = pd.to_numeric(m2["FACPOB07"].astype(str).str.replace(",", "."),
+                      errors="coerce").fillna(0)
+    dom = pd.to_numeric(m2["DOMINIO"], errors="coerce")
+    region = dom.map({1: "costa", 2: "costa", 3: "costa", 8: "costa",
+                      4: "sierra", 5: "sierra", 6: "sierra", 7: "selva"})
+    total = float(w.sum())
+    m5 = leer_enaho(DIR_RAW / "1031-Modulo05" / "1031-Modulo05" / "Enaho01a-2025-500.csv",
+                    LLAVES_PERSONA + ["OCU500", "P208A", "FAC500A"])
+    ocu = m5[(pd.to_numeric(m5["OCU500"], errors="coerce") == 1)
+             & (pd.to_numeric(m5["P208A"], errors="coerce") >= 14)]
+    w5 = pd.to_numeric(ocu["FAC500A"].astype(str).str.replace(",", "."),
+                       errors="coerce").fillna(0)
+    return {
+        "poblacion": round(total),
+        "pct_region": {r: round(float(w[region == r].sum()) / total * 100, 2)
+                       for r in ("costa", "sierra", "selva")},
+        "pct_lima_metropolitana": round(float(w[dom == 8].sum()) / total * 100, 2),
+        "ocupados_14": round(float(w5.sum())),
+        "n_personas": int(len(m2)), "n_ocupados": int(len(ocu)),
+        "fuente": "ENAHO 2025, módulos 200 y 500; FACPOB07 y FAC500A",
+    }
 
 
 # --------------------------------------------------------------------------
@@ -359,6 +436,16 @@ def reporte(r: dict) -> str:
         "",
         "Todo es **descriptivo o de asociación**. Ninguna cifra de este reporte es un efecto causal.",
         "",
+          "## 0. El Perú según la ENAHO 2025 (estimado con los factores de expansión)",
+        "",
+        f"Población estimada: {mil(r['peru']['poblacion'])} personas (miembros del "
+        f"hogar, FACPOB07). Costa {pc(r['peru']['pct_region']['costa'])} %, sierra "
+        f"{pc(r['peru']['pct_region']['sierra'])} %, selva "
+        f"{pc(r['peru']['pct_region']['selva'])} %; Lima Metropolitana "
+        f"{pc(r['peru']['pct_lima_metropolitana'])} %. Ocupados de 14 años o más: "
+        f"{mil(r['peru']['ocupados_14'])}. Es una estimación muestral, no la proyección "
+        "oficial de población del INEI.",
+        "",
         "## 1. Penalidad de la informalidad (log ingreso por hora)",
         "",
         "| Especificación | Coef. | IC 95 % | Equivale a | n |",
@@ -398,10 +485,31 @@ def reporte(r: dict) -> str:
                          f"{pc(o[ref]['no_explicada']['valor'], 3)} "
                          f"(±{pc(1.96 * o[ref]['no_explicada']['ee'], 3)}) |")
     L += ["",
+          "Parte explicada por bloque (referencia pooled, log puntos; + = favorece a "
+          "los hombres):",
+          "",
+          "| Resultado | Controles | Bloque | Contribución |", "|---|---|---|---|"]
+    for y, ety in (("log_hora", "Por hora"), ("log_mes", "Mensual")):
+        for c in ("A", "B"):
+            for g, v in r["genero"]["oaxaca"][y][c]["detalle_pooled"].items():
+                L.append(f"| {ety} | {c} | {g} | {pc(v['valor'], 3)} "
+                         f"(±{pc(1.96 * v['ee'], 3)}) |")
+    ms = r["genero"]["medias_por_sexo"]
+    L += ["", "Dotaciones promedio ponderadas:", "",
+          "| | " + " | ".join(ms) + " |", "|---|" + "---|" * len(ms)]
+    for k in ms[next(iter(ms))]:
+        L.append(f"| {k} | " + " | ".join(mil(ms[s][k]) if k == "n" else pc(ms[s][k], 2)
+                                           for s in ms) + " |")
+    L += ["",
           "Signo de la parte no explicada (por hora) estable entre las seis variantes: "
           f"**{'sí' if r['genero']['oaxaca']['signo_estable'] else 'NO — señal de alarma'}**.",
           "",
           "### Ñopo (2008), ingreso por hora, como fracción del promedio femenino",
+          "",
+          "Unidades: Oaxaca trabaja sobre la media de los logaritmos (una media "
+          "geométrica); 0,262 log puntos son ≈ 30 % entre medias geométricas. Ñopo "
+          "trabaja sobre medias aritméticas del ingreso por hora, relativas a la media "
+          "femenina. Δ = 15 % no contradice al 0,262: miden medias distintas.",
           "",
           "| Celdas | Δ total | Δ0 no explicada | ΔH | ΔM | ΔX | Soporte H | Soporte M | Celdas |",
           "|---|---|---|---|---|---|---|---|---|"]
@@ -480,6 +588,7 @@ def main() -> None:
     if not oax["signo_estable"]:
         alarmas.append("Oaxaca: la parte no explicada por hora cambia de signo entre variantes.")
     nop = genero_nopo(df, B)
+    medias = medias_por_sexo(df)
     ret = retornos(df)
 
     dep = {"grupos": tabla_grupos(df, "depto", B)}
@@ -513,7 +622,8 @@ def main() -> None:
                  "n_min": N_MIN, "pesos": "FAC500A",
                  "varianza": "bootstrap por conglomerado (CONGLOME), sin estratos"},
         "penalidad": pen,
-        "genero": {"oaxaca": oax, "nopo": nop},
+        "genero": {"oaxaca": oax, "nopo": nop, "medias_por_sexo": medias},
+        "peru": peru_en_cifras(),
         "retornos": ret,
         "departamentos": dep,
         "lengua": len_,

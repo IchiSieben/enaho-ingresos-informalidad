@@ -28,7 +28,7 @@ ART = json.loads((RAIZ / "models" / "ui_contexto.json").read_text(encoding="utf-
 
 def test_claves_de_primer_nivel():
     assert set(ART) == {"meta", "penalidad", "genero", "retornos", "departamentos",
-                        "lengua", "alarmas"}
+                        "lengua", "alarmas", "peru"}
     for k in ("n", "n_hora", "informal_pct", "B", "semilla", "n_min", "commit"):
         assert k in ART["meta"]
     assert ART["meta"]["B"] >= 200, "el artefacto publicado va con B >= 200"
@@ -62,6 +62,21 @@ def test_descomposiciones_suman():
         o = ART["genero"]["nopo"][c]
         partes = sum(o[k]["valor"] for k in ("d0", "dH", "dM", "dX"))
         assert partes == pytest.approx(o["delta"]["valor"], abs=5e-4)
+
+
+def test_detalle_de_oaxaca_suma_la_explicada():
+    for y in ("log_hora", "log_mes"):
+        for c in ("A", "B"):
+            o = ART["genero"]["oaxaca"][y][c]
+            suma = sum(v["valor"] for v in o["detalle_pooled"].values())
+            assert suma == pytest.approx(o["pooled"]["explicada"]["valor"], abs=5e-4)
+
+
+def test_peru_en_cifras():
+    p = ART["peru"]
+    assert sum(p["pct_region"].values()) == pytest.approx(100, abs=0.05)
+    assert 0 < p["pct_lima_metropolitana"] < p["pct_region"]["costa"]
+    assert p["ocupados_14"] < p["poblacion"]
 
 
 def test_etiquetas_nuevas_tienen_traduccion():

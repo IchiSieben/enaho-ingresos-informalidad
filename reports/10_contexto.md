@@ -1,10 +1,14 @@
 # 10 · Contexto: brechas, penalidad, retornos y territorio
 
-Generado por `src/10_contexto.py` el 2026-09-26 (commit `324e722`).
+Generado por `src/10_contexto.py` el 2026-09-26 (commit `d69944f`).
 Muestra: 47.632 ocupados con ingreso > 0 (casos completos del torneo); 47.000 con horas > 0 para el ingreso por hora. Pesos FAC500A. Tasa ponderada de informalidad en esta muestra: 64,1 %.
 Varianza: bootstrap de 200 réplicas por conglomerado (semilla 42); las regresiones llevan errores robustos por conglomerado. Sin estratos: errores algo mayores, en la dirección conservadora.
 
 Todo es **descriptivo o de asociación**. Ninguna cifra de este reporte es un efecto causal.
+
+## 0. El Perú según la ENAHO 2025 (estimado con los factores de expansión)
+
+Población estimada: 34.856.707 personas (miembros del hogar, FACPOB07). Costa 57,0 %, sierra 30,5 %, selva 12,5 %; Lima Metropolitana 33,4 %. Ocupados de 14 años o más: 18.460.375. Es una estimación muestral, no la proyección oficial de población del INEI.
 
 ## 1. Penalidad de la informalidad (log ingreso por hora)
 
@@ -38,9 +42,50 @@ Advertencia de selección: quien trabaja en la informalidad no es una muestra al
 | Mensual | B | 0,415 | hombres | 0,054 (±0,022) | 0,361 (±0,027) |
 | Mensual | B | 0,415 | mujeres | 0,069 (±0,035) | 0,346 (±0,032) |
 
+Parte explicada por bloque (referencia pooled, log puntos; + = favorece a los hombres):
+
+| Resultado | Controles | Bloque | Contribución |
+|---|---|---|---|
+| Por hora | A | educacion_experiencia | 0,011 (±0,009) |
+| Por hora | A | area | -0,026 (±0,004) |
+| Por hora | A | dominio | -0,009 (±0,003) |
+| Por hora | B | educacion_experiencia | 0,010 (±0,005) |
+| Por hora | B | area | -0,018 (±0,003) |
+| Por hora | B | dominio | -0,006 (±0,003) |
+| Por hora | B | rama | 0,008 (±0,013) |
+| Por hora | B | categoria | -0,004 (±0,009) |
+| Por hora | B | tamano_empresa | -0,003 (±0,003) |
+| Mensual | A | educacion_experiencia | 0,013 (±0,011) |
+| Mensual | A | horas | 0,063 (±0,009) |
+| Mensual | A | area | -0,028 (±0,004) |
+| Mensual | A | dominio | -0,010 (±0,004) |
+| Mensual | B | educacion_experiencia | 0,013 (±0,006) |
+| Mensual | B | horas | 0,056 (±0,007) |
+| Mensual | B | area | -0,018 (±0,003) |
+| Mensual | B | dominio | -0,006 (±0,003) |
+| Mensual | B | rama | 0,021 (±0,012) |
+| Mensual | B | categoria | -0,011 (±0,011) |
+| Mensual | B | tamano_empresa | -0,003 (±0,004) |
+
+Dotaciones promedio ponderadas:
+
+| | Hombre | Mujer |
+|---|---|---|
+| anios_educ | 10,71 | 10,67 |
+| edad | 40,89 | 40,70 |
+| horas_total | 46,73 | 42,15 |
+| pct_urbano | 81,42 | 87,66 |
+| pct_lima_metropolitana | 31,87 | 37,22 |
+| pct_superior | 34,53 | 41,18 |
+| pct_informal | 62,75 | 66,01 |
+| pct_independiente | 37,02 | 39,33 |
+| n | 27.049 | 20.583 |
+
 Signo de la parte no explicada (por hora) estable entre las seis variantes: **sí**.
 
 ### Ñopo (2008), ingreso por hora, como fracción del promedio femenino
+
+Unidades: Oaxaca trabaja sobre la media de los logaritmos (una media geométrica); 0,262 log puntos son ≈ 30 % entre medias geométricas. Ñopo trabaja sobre medias aritméticas del ingreso por hora, relativas a la media femenina. Δ = 15 % no contradice al 0,262: miden medias distintas.
 
 | Celdas | Δ total | Δ0 no explicada | ΔH | ΔM | ΔX | Soporte H | Soporte M | Celdas |
 |---|---|---|---|---|---|---|---|---|
