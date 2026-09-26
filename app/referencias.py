@@ -39,6 +39,7 @@ REFERENCIAS: list[dict] = [
                    "Human Behavior and Social Institutions no. 2. NBER / Columbia "
                    "University Press.",
         "nota_en": "Chapter 5, table 5.1: the canonical equation and its R².",
+        "verificacion": "contenido",
     },
     {
         "id": "card1999",
@@ -55,6 +56,7 @@ REFERENCIAS: list[dict] = [
                    "Economics</i>, vol. 3A, ch. 30, pp. 1801-1863. Elsevier.",
         "nota_en": "Author's open version (Berkeley CLE WP no. 2). Table 1: R² of "
                    "the equation on CPS 1994-96.",
+        "verificacion": "contenido",
     },
     {
         "id": "lemieux2006",
@@ -76,6 +78,7 @@ REFERENCIAS: list[dict] = [
         "nota_en": "Author's open version (UBC). Relevance and limits of the "
                    "specification; discusses fit in terms of functional form, not "
                    "R².",
+        "verificacion": "contenido",
     },
     {
         "id": "heckman2006",
@@ -94,6 +97,7 @@ REFERENCIAS: list[dict] = [
                    "Education</i>, vol. 1, ch. 7, pp. 307-458. Elsevier.",
         "nota_en": "Open version (NBER WP 11544). What each specification identifies"
                    " and the limits of potential experience.",
+        "verificacion": "contenido",
     },
     {
         "id": "duan1983",
@@ -113,6 +117,7 @@ REFERENCIAS: list[dict] = [
         "nota_en": "The retransformation correction the model uses. There is no "
                    "legal open version, so the link is the DOI: it resolves in a "
                    "browser even though the publisher blocks automated requests.",
+        "verificacion": "metadatos",
     },
     {
         "id": "belloni2014",
@@ -129,6 +134,7 @@ REFERENCIAS: list[dict] = [
                    "Treatment Effects”. <i>Journal of Economic Perspectives</i> "
                    "28(2), pp. 29-50.",
         "nota_en": "Rationale and caveats for post-Lasso (specification E7).",
+        "verificacion": "contenido",
     },
     {
         "id": "athey2019",
@@ -145,6 +151,7 @@ REFERENCIAS: list[dict] = [
                    " 11(1), pp. 685-725.",
         "nota_en": "Open version (arXiv). The framework for reading the gap between "
                    "linear regression and trees.",
+        "verificacion": "contenido",
     },
     {
         "id": "sohnesen2016",
@@ -164,6 +171,7 @@ REFERENCIAS: list[dict] = [
         "nota_en": "Comparison of machine learning and regression on household "
                    "surveys. The DOI points to the journal version (Poverty & Public"
                    " Policy 9(1), 2017), which is paywalled.",
+        "verificacion": "contenido",
     },
     {
         "id": "psacharopoulos2018",
@@ -181,6 +189,7 @@ REFERENCIAS: list[dict] = [
                    "Literature</i>. Policy Research Working Paper 8402. World Bank.",
         "nota_en": "1,120 estimates across 139 countries: global private return ≈ 9%"
                    " per year; Latin America and the Caribbean, 11.0%.",
+        "verificacion": "contenido",
     },
     {
         "id": "yamada2007",
@@ -197,23 +206,41 @@ REFERENCIAS: list[dict] = [
                    "Universidad del Pacífico.",
         "nota_en": "Returns by segment in Peru: 12.5% per year for wage earners "
                    "versus 6.5% for the self-employed (2004).",
+        "verificacion": "contenido",
     },
     {
         "id": "inei_informal",
-        "cita": "INEI (2025). <i>Producción y empleo informal en el Perú: "
-                "Cuenta Satélite de la Economía Informal 2022-2024</i>. "
-                "Instituto Nacional de Estadística e Informática, Lima.",
+        "cita": "INEI (2026). <i>Perú: Comportamiento de los Indicadores del "
+                "Mercado Laboral a Nivel Nacional y en 27 Ciudades. "
+                "Enero-Diciembre 2025 | Cuarto Trimestre 2025</i>. Informe "
+                "Técnico, febrero 2026. Instituto Nacional de Estadística e "
+                "Informática, Lima.",
         "url": "https://www.gob.pe/institucion/inei/informes-publicaciones/"
-               "7564428-produccion-y-empleo-informal-en-el-peru-cuenta-satelite-"
-               "de-la-economia-informal-2022-2024",
+               "7739601-peru-comportamiento-de-los-indicadores-del-mercado-"
+               "laboral-a-nivel-nacional-y-27-ciudades-cuarto-trimestre-2025",
         "acceso": "abierto",
-        "nota": "Las tasas oficiales de empleo informal contra las que se "
-                "valida la regla del target.",
-        "cita_en": "INEI (2025). <i>Producción y empleo informal en el Perú: Cuenta "
-                   "Satélite de la Economía Informal 2022-2024</i>. National "
-                   "Institute of Statistics and Informatics (INEI), Lima.",
-        "nota_en": "The official informal-employment rates against which the target "
-                   "rule is validated.",
+        "nota": "Cuadro 1.20 (empleo informal nacional 70,2 %), Gráfico 1.15 "
+                "(urbano 64,5 %, rural 94,8 %) y Cuadro 1.22 (por tamaño de "
+                "empresa: 88,6 % en 1-10 trabajadores, 44,0 % en 11-50, "
+                "15,6 % en 51 y más), año 2025, pp. 26-28. La tasa oficial se "
+                "mide con la Encuesta Permanente de Empleo Nacional (EPEN); "
+                "la de este proyecto se reconstruye sobre la ENAHO. Son "
+                "encuestas distintas, así que el contraste es una "
+                "referencia, no una validación contra la misma fuente.",
+        "cita_en": "INEI (2026). <i>Peru: Labor Market Indicators at the "
+                   "National Level and in 27 Cities. January-December 2025 | "
+                   "Fourth Quarter 2025</i>. Technical Report, February 2026. "
+                   "National Institute of Statistics and Informatics (INEI), "
+                   "Lima.",
+        "nota_en": "Table 1.20 (national informal employment 70.2%), Chart "
+                   "1.15 (urban 64.5%, rural 94.8%) and Table 1.22 (by firm "
+                   "size: 88.6% in 1-10 workers, 44.0% in 11-50, 15.6% in 51+"
+                   "), year 2025, pp. 26-28. The official rate is measured "
+                   "with the National Permanent Employment Survey (EPEN); "
+                   "this project's rate is rebuilt from the ENAHO. They are "
+                   "different surveys, so the contrast is a reference, not a "
+                   "validation against the same source.",
+        "verificacion": "contenido",
     },
     {
         "id": "oit_17ciet",
@@ -236,6 +263,7 @@ REFERENCIAS: list[dict] = [
                    " criterion), which is the one this project uses. Not to be "
                    "confused with the 15th ICLS (1993), which defines the informal "
                    "SECTOR by enterprise characteristics.",
+        "verificacion": "contenido",
     },
     {
         "id": "saito2015",
@@ -255,6 +283,7 @@ REFERENCIAS: list[dict] = [
                    "e0118432.",
         "nota_en": "Why we look at PR-AUC and not only ROC-AUC with imbalanced "
                    "classes.",
+        "verificacion": "contenido",
     },
     {
         "id": "loayza2008",
@@ -269,6 +298,7 @@ REFERENCIAS: list[dict] = [
                    " el Perú”. <i>Revista Estudios Económicos</i> no. 15, pp. 43-64."
                    " Central Reserve Bank of Peru.",
         "nota_en": "Economic context of informality in Peru.",
+        "verificacion": "contenido",
     },
     {
         "id": "perry2007",
@@ -285,6 +315,7 @@ REFERENCIAS: list[dict] = [
                    "Exit and Exclusion</i>. World Bank.",
         "nota_en": "Framework of informality as exclusion versus informality as "
                    "choice.",
+        "verificacion": "contenido",
     },
 ]
 

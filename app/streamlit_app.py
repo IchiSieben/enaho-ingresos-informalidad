@@ -1358,17 +1358,23 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
         + L("La regla se derivó de dos preguntas de la encuesta: a los "
             "independientes y empleadores se les pregunta si tienen RUC "
             "(registro tributario); a los dependientes, si les aportan a un "
-            "sistema de pensiones. La derivación se validó contra la tasa "
-            "oficial: reconstruida sobre todos los ocupados da "
+            "sistema de pensiones. La derivación se contrasta, como "
+            "referencia, con la tasa oficial: reconstruida sobre todos los "
+            "ocupados da "
             f"{pc(cifras_texto()['informalidad_reconstruida']['pct_ponderado'], 1)}"
-            " frente al 70,2 % que publica el INEI para 2025.",
+            " frente al 70,2 % que publica el INEI para 2025. No es una "
+            "validación contra la misma fuente: la oficial se mide con la "
+            "EPEN y la nuestra se reconstruye sobre la ENAHO.",
             "The rule was derived from two survey questions: the "
             "self-employed and employers are asked whether they have a RUC "
             "(tax registration); employees, whether anyone contributes to a "
-            "pension scheme for them. The derivation was validated against "
-            "the official rate: rebuilt over all employed people it gives "
+            "pension scheme for them. The derivation is compared, as a "
+            "reference, against the official rate: rebuilt over all "
+            "employed people it gives "
             f"{pc(cifras_texto()['informalidad_reconstruida']['pct_ponderado'], 1)}"
-            " vs. the 70.2% INEI publishes for 2025.")
+            " vs. the 70.2% INEI publishes for 2025. This is not a "
+            "validation against the same source: the official rate is "
+            "measured with the EPEN and ours is rebuilt from the ENAHO.")
         + ref("inei_informal"),
         seccion=L("informalidad", "informality"),
         eyebrow=L("Clasificación · Gradient Boosting",
@@ -2129,17 +2135,22 @@ def _ficha_clasificador(clas: dict, a: dict, abl: list) -> None:
     html("<div class='sutil' style='margin-top:10px;max-width:78ch'>" + L(
         f"Baseline de PR-AUC = prevalencia ({d(clas['prevalencia_train'], 3)} "
         f"muestral; {d(clas['prevalencia_ponderada'], 3)} ponderada). La regla "
-        f"del target se validó contra la tasa oficial: reconstruida sobre "
+        f"del target se contrasta, como referencia y no como validación, "
+        f"con la tasa oficial: reconstruida sobre "
         f"todos los ocupados da {pc(reconstruida, 1)} frente al 70,2 % que "
         f"publica el "
-        f"INEI{ref('inei_informal')}{gradiente}. La definición de empleo "
-        f"informal que se replica es la internacional de la OIT "
-        f"(17.ª CIET){ref('oit_17ciet')}.",
+        f"INEI{ref('inei_informal')}{gradiente} — la oficial se mide con la "
+        f"EPEN y la nuestra con la ENAHO, son encuestas distintas. La "
+        f"definición de empleo informal que se replica es la internacional "
+        f"de la OIT (17.ª CIET){ref('oit_17ciet')}.",
         f"PR-AUC baseline = prevalence ({d(clas['prevalencia_train'], 3)} "
         f"sample; {d(clas['prevalencia_ponderada'], 3)} weighted). The target "
-        f"rule was validated against the official rate: rebuilt over all "
+        f"rule is compared, as a reference and not a validation, against "
+        f"the official rate: rebuilt over all "
         f"employed people it gives {pc(reconstruida, 1)} vs. the 70.2% INEI "
-        f"publishes{ref('inei_informal')}{gradiente}. The definition of "
+        f"publishes{ref('inei_informal')}{gradiente} — the official rate is "
+        f"measured with the EPEN and ours with the ENAHO, different surveys. "
+        f"The definition of "
         f"informal employment replicated here is the ILO's international one "
         f"(17th ICLS){ref('oit_17ciet')}.") + "</div>")
 
@@ -2342,13 +2353,16 @@ def _ficha_limites(clas: dict, reg: dict, meta: dict) -> None:
           "That's why the classifier's prevalence is lower than the official "
           "rate."),
         L("<b>Experiencia potencial, no real.</b> Se usa edad − años de "
-          f"educación − 6 (truncada en 0; {negativa} de casos negativos). En "
-          "trabajadores de baja educación sobreestima la experiencia efectiva "
-          "(Heckman, Lochner & Todd, 2006)",
+          f"educación − 6 (truncada en 0; {negativa} de casos negativos), "
+          "como en Heckman, Lochner y Todd (2006)",
           "<b>Potential, not actual, experience.</b> We use age − years of "
-          f"schooling − 6 (floored at 0; {negativa} of cases negative). For "
-          "low-education workers it overstates actual experience (Heckman, "
-          "Lochner & Todd, 2006)") + ref("heckman2006") + ".",
+          f"schooling − 6 (floored at 0; {negativa} of cases negative), as "
+          "in Heckman, Lochner & Todd (2006)") + ref("heckman2006")
+        + L(". Lectura nuestra, no un resultado publicado: si la trayectoria "
+            "laboral tuvo interrupciones, la experiencia efectiva es menor "
+            "que la potencial.",
+            ". Our own reading, not a published result: if a work history "
+            "had interruptions, actual experience is lower than potential."),
         L("<b>Categoría ocupacional ramifica el target del clasificador.</b> "
           "Su importancia alta es por construcción, no un hallazgo.",
           "<b>Employment category branches the classifier's target.</b> Its "

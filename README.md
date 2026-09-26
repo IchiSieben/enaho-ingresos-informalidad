@@ -144,7 +144,7 @@ factor):
 A uniform bias of ~3 points, and explainable: pension affiliation includes
 self-financed affiliations. The model's firm-size gradient also runs in the
 same direction as the official pattern: INEI reports 88.6% informality in
-firms of **1 to 10 workers** and 15.6% in those with more than 50 [8]. That
+firms of **1 to 10 workers** and 15.6% in those with more than 50 [11]. That
 publication's brackets are not this project's (here, "Up to 20" gives 81.1%
 weighted), so what matches is the direction and magnitude of the gradient,
 not each individual figure.
@@ -460,7 +460,7 @@ Sesgo uniforme de ~3 pts, explicable: la afiliación a pensiones incluye
 afiliaciones autofinanciadas. Además, el gradiente por tamaño de empresa del
 modelo va en el mismo sentido que el patrón oficial: el INEI reporta 88,6 %
 de informalidad en empresas de **1 a 10 trabajadores** y 15,6 % en las de más
-de 50 [8]. Los tramos de esa publicación no son los de este proyecto (aquí,
+de 50 [11]. Los tramos de esa publicación no son los de este proyecto (aquí,
 «Hasta 20» da 81,1 % ponderado), así que lo que coincide es la dirección y la
 magnitud del gradiente, no cada cifra.
 
