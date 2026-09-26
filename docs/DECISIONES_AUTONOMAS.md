@@ -136,3 +136,92 @@ cursor.
 **D-15 · Pista de uso.** Es un solo micro-texto, «Haz clic en una estación
 para ver su detalle abajo», en el viaje. No se añadió ningún tutorial: el
 recorrido guiado queda para «Empieza aquí» (Fase 4).
+
+## Fase 3 · Propuesta (reemplaza la parada «DETENTE tras proponer»)
+
+**D-16 · Qué se construye y en qué orden (valor × viabilidad).** Todo sale de
+`src/10_contexto.py` y se escribe en `models/ui_contexto.json` (escritura
+atómica) y en `reports/10_contexto.md`:
+1. Penalidad de la informalidad: WLS de log(ingreso por hora) con
+   `informal`, con dos juegos de controles y por categoría ocupacional.
+2. Brecha de género: Oaxaca-Blinder de dos partes y Ñopo (emparejamiento
+   exacto por celdas), con el soporte común reportado.
+3. Retornos a la educación por segmento: asalariados vs. independientes y
+   formales vs. informales. Se contrasta con Yamada (2007) y con
+   Psacharopoulos y Patrinos (2018), ya verificados en la matriz (filas 7 y 8).
+4. Mapa por departamento: tasa de informalidad e ingreso mediano, ponderados
+   y con su n. El GeoJSON es un paso aparte: solo entra con licencia abierta
+   verificada en la página de la fuente.
+5. Lengua materna, agregada: castellano, quechua, aimara y «otra lengua
+   originaria» (códigos 3 y 10–15 del diccionario 2025). El código 3 es
+   «otra lengua nativa», que no es necesariamente amazónica; por eso el
+   rótulo no dice «amazónicas». Se calcula; la app no
+   la muestra (`MOSTRAR_LENGUA = False`).
+- Descartado: la etnicidad (P558C). El encargo no la pide, es sensible, y la
+  categoría 9 tiene n = 40.
+
+**D-17 · Muestra.** Es la misma de 47.632 que narra la app
+(`torneo_frame.parquet`, casos completos). No se usan las 47.899 del
+dataset de modelado. Su tasa ponderada de informalidad es 64,1 %. El 67,3 %
+del reporte de la Fase 1 es otra población: todos los ocupados de 14 años o
+más, antes del filtro de casos completos. El test de agregación compara el
+mapa contra la muestra propia, no contra el 67,3 %.
+
+**D-18 · Variable de resultado.** La principal es log(ingreso por hora):
+`ingreso_mes / (horas_total × 52/12)`. El ingreso mensual mezcla el salario
+con las horas trabajadas, y las mujeres trabajan menos horas remuneradas. La
+secundaria es log(ingreso mensual). El ingreso y las horas suman
+ocupación principal y secundaria en `03_fase1_preparacion.py`, así que
+cubren lo mismo. Se excluyen las filas con 0 horas.
+
+**D-19 · Pesos y varianza.** FAC500A en todo. Los errores estándar de las
+regresiones son robustos por conglomerado (CONGLOME). Para Oaxaca, Ñopo y
+las medianas se usa un bootstrap de conglomerados con semilla fija. No se
+usan los estratos, lo cual da errores algo más grandes: es la dirección
+conservadora.
+
+**D-20 · Señales de alarma.** Oaxaca se corre con dos juegos de controles:
+(A) capital humano y geografía, y (B) A más rama, categoría y tamaño, que
+son «malos controles» porque también son resultados. Se corre con tres
+coeficientes de referencia: pooled con dummy de grupo, hombres y mujeres. Si
+la parte no explicada cambia de signo entre variantes, o una celda que se
+mostraría tiene n < 100, el resultado se marca `mostrar: false` y se anota
+aquí. No se para el trabajo.
+
+**D-21 · GeoJSON de departamentos.** Sale de geoBoundaries gbOpen PER ADM1,
+versión simplificada y fijada al commit `90a1d52`. La API de geoBoundaries
+declara la licencia como Public Domain (origen: Wikimedia Commons). Se
+redondea a 3 decimales (unos 100 m) y queda en 123 KB, así que se versiona
+en `models/peru_departamentos.geojson` (lo genera `src/10b_mapa_geo.py`).
+geoBoundaries separa Lima Metropolitana de Lima provincias; la ENAHO los
+junta en el código 15, así que los dos polígonos llevan el 15.
+- Descartado: GADM (sus términos restringen la redistribución) y Natural
+  Earth (no verificado en esta sesión; geoBoundaries ya cumple).
+- Revertir: borrar el archivo y el script. El test del mapa falla a
+  propósito.
+
+## Fase 3 · Resultados (reemplaza la parada «DETENTE con los resultados»)
+
+**D-22 · Sin señales de alarma.** Corrida con B = 200, semilla 42; el detalle
+está en `reports/10_contexto.md`.
+- **Penalidad por hora de la informalidad**, con controles A: −40,7 %. Con
+  controles B (rama, categoría y tamaño): −21,1 %. Entre asalariados es
+  −23,7 % y entre independientes −40,0 %. Es una diferencia condicional, no
+  un efecto: hay selección.
+- **Brecha de género por hora:** 0,262 log puntos. La parte explicada es
+  cercana a cero o negativa: entre quienes trabajan, las mujeres tienen igual
+  o más educación. La parte no explicada va de 0,25 a 0,29, con signo estable
+  en las seis variantes. Ñopo da resultados parecidos: Δ = 15,4 %, Δ0 = 20,6 %
+  y soporte común > 95 %. Es lo mismo que describe Ñopo (2008) para el Perú
+  (filas 37–38 de la matriz): una parte no explicada mayor que la brecha
+  total.
+- **Retornos a la educación:** 9,4 % en asalariados y 4,5 % en
+  independientes. El orden es el de Yamada (2007), con 12,5 % y 6,5 % en
+  2004; los niveles 2025 son menores. Esto último no se interpreta: los
+  años, la muestra y la especificación son distintos.
+- **Departamentos:** los 25 tienen n ≥ 878. Madre de Dios es el más chico.
+- **Lengua materna:** los cuatro grupos tienen n ≥ 667. Queda oculta en la
+  app (`MOSTRAR_LENGUA = False`) hasta que el autor la revise, como pide el
+  encargo.
+- Revertir: borrar `models/ui_contexto.json`. La app de la Fase 4 no debe
+  romperse si el archivo falta.

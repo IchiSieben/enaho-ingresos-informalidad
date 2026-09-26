@@ -128,6 +128,17 @@ VALORES: dict[str, str] = {
     "Empleado": "Salaried employee", "Empleador": "Employer",
     "Independiente": "Self-employed", "Obrero": "Wage laborer",
     "Trabajador del hogar": "Domestic worker",
+    # contexto (ui_contexto.json): lengua materna y departamentos. Los
+    # departamentos son nombres propios y no se traducen; van aquí para que
+    # el test de cobertura los vea.
+    "Castellano": "Spanish", "Quechua": "Quechua", "Aimara": "Aymara",
+    "Otra lengua originaria": "Other Indigenous language",
+    **{d: d for d in (
+        "Amazonas", "Áncash", "Apurímac", "Arequipa", "Ayacucho", "Cajamarca",
+        "Callao", "Cusco", "Huancavelica", "Huánuco", "Ica", "Junín",
+        "La Libertad", "Lambayeque", "Lima", "Loreto", "Madre de Dios",
+        "Moquegua", "Pasco", "Piura", "Puno", "San Martín", "Tacna", "Tumbes",
+        "Ucayali")},
     # etiquetas de variables
     "Años de educación aprobados": "Years of schooling completed",
     "Edad (años)": "Age (years)",
