@@ -1416,13 +1416,10 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
                      "MAE increase when shuffled (S/)"),
             etiquetas=etiquetas),
             30 + len(imp["variables"]) * 30 + 18)
-    html("<div class='sutil' style='margin-top:12px'>" + L(
-        "¿Cuánto paga cada año de estudio, y cuánto de la brecha entre hombres "
-        "y mujeres no se explica? Está en "
-        + enlace_seccion("investigacion", "Investigación →"),
-        "How much does each school year pay, and how much of the gap between "
-        "men and women goes unexplained? See "
-        + enlace_seccion("investigacion", "Research →")) + "</div>")
+    cruce(L("¿Cuánto paga cada año de estudio, y cuánto de la brecha entre "
+            "hombres y mujeres no se explica?",
+            "How much does each school year pay, and how much of the gap "
+            "between men and women goes unexplained?"), "ingreso")
     chips_codigo([(L("código: el regresor y su corrección de Duan →",
                      "code: the regressor and its Duan correction →"),
                    "src/07_guardar_regresor.py")])
@@ -1470,13 +1467,10 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
                   "Classification · Gradient Boosting"))
 
     _informalidad_en_vivo(schema, art)
-    html("<div class='sutil' style='margin-top:12px'>" + L(
-        "¿Qué pasa con el ingreso cuando el empleo es informal, a igual perfil? "
-        "La penalidad y las escuelas de pensamiento están en "
-        + enlace_seccion("investigacion", "Investigación →"),
-        "What happens to pay when the job is informal, for the same profile? "
-        "The penalty and the schools of thought are in "
-        + enlace_seccion("investigacion", "Research →")) + "</div>")
+    cruce(L("¿Qué pasa con el ingreso cuando el empleo es informal, a igual "
+            "perfil? La penalidad y las escuelas de pensamiento.",
+            "What happens to pay when the job is informal, for the same "
+            "profile? The penalty and the schools of thought."), "informalidad")
     chips_codigo([(L("código: entrenamiento del clasificador →",
                      "code: classifier training →"),
                    "src/06_entrenar_clasificador.py")])
@@ -3614,18 +3608,24 @@ def _ir_a(seccion: str) -> None:
     st.session_state["sec"] = seccion
 
 
-def boton_ir(seccion: str, texto: str, clave: str, primario: bool = False) -> None:
+def boton_ir(seccion: str, texto: str, clave: str, primario: bool = False,
+             tipo: str | None = None) -> None:
     st.button(texto, key=clave, on_click=_ir_a, args=(seccion,),
-              type="primary" if primario else "secondary",
+              type=tipo or ("primary" if primario else "secondary"),
               icon=":material/arrow_forward:")
 
 
-def enlace_seccion(seccion: str, texto: str) -> str:
-    """Enlace a otra pestaña dentro de la app (misma pestaña del navegador)."""
-    # Lleva idioma y tema: sincronizar_url() limpia luego los que son defecto.
-    lang, tema = st.session_state["lang"], st.session_state["theme"]
-    return (f"<a href='?sec={seccion}&lang={lang}&theme={tema}' "
-            f"target='_self'>{texto}</a>")
+def cruce(pregunta: str, clave: str) -> None:
+    """
+    Hilo narrativo (D-30): una pregunta y un botón hacia Investigación. Es un
+    botón y no un enlace porque el enlace recarga la página, abre una sesión
+    nueva y se pierde el perfil armado (D-34).
+    """
+    with st.container(horizontal=True, vertical_alignment="center", gap="small",
+                      key=f"cruce_{clave}"):
+        html(f"<div class='sutil'>{pregunta}</div>")
+        boton_ir("investigacion", L("Ver en Investigación", "See in Research"),
+                 f"ir_{clave}", tipo="tertiary")
 
 
 def _millones(x: float) -> str:
@@ -3886,11 +3886,12 @@ def _escuelas(art: dict, ctx: dict) -> None:
            "registering, so it can't tell whether red tape is the reason.")),
         (L("Voluntarista", "Voluntarist"),
          L("Informales que eligen serlo tras sopesar costos y beneficios, sin "
-           "culpar al trámite.",
+           "culpar al trámite. Buena parte del sector sería voluntario.",
            "Informal operators who choose it after weighing costs and benefits, "
-           "without blaming red tape."),
+           "without blaming red tape. Much of the sector would be voluntary.")
+         + ref("maloney2004"),
          L("Poca penalidad donde se elige: entre independientes.",
-           "Little penalty where it's a choice: among the self-employed.") + ref("maloney2004"),
+           "Little penalty where it's a choice: among the self-employed."),
          L(f"La penalidad por hora es mayor entre independientes "
            f"({pc(abs(pen['log_hora']['independientes']['pct']), 0)}) que entre "
            f"asalariados ({pc(abs(pen['log_hora']['asalariados']['pct']), 0)}). En "
@@ -3904,7 +3905,8 @@ def _escuelas(art: dict, ctx: dict) -> None:
     ]
     tarjetas_e = "".join(
         f"<div class='escuela'><h3>{nom}</h3><p>{que}</p>"
-        f"<p><b>{L('Predice', 'Predicts')}:</b> {pred}</p>"
+        f"<p><b>{L('Predeciría', 'Would predict')}:</b> {pred} "
+        f"{etiqueta_afirmacion('lectura')}</p>"
         f"<p class='datos'><b>{L('Nuestros datos', 'Our data')}:</b> {datos} "
         f"{etiqueta_afirmacion('lectura')}</p></div>"
         for nom, que, pred, datos in esc)
@@ -3979,14 +3981,14 @@ def _brechas(ctx: dict, T_: dict) -> None:
         fmt=lambda v: d(v, 1)), 200)
     urb_h, urb_m = ms["Hombre"]["pct_urbano"], ms["Mujer"]["pct_urbano"]
     html("<div class='entradilla'>" + L(
-        f"¿Por qué la parte explicada es negativa? No es la educación: ese bloque "
-        f"suma {d(det['educacion_experiencia']['valor'] * 100, 1)} a favor de los "
-        f"hombres. Es el lugar: las mujeres que trabajan son más urbanas "
+        f"¿Por qué la parte explicada es negativa? Ni la educación ni la "
+        f"experiencia: ese bloque suma {d(det['educacion_experiencia']['valor'] * 100, 1)} "
+        f"log puntos × 100 a favor de los hombres. Es el lugar: las mujeres que trabajan son más urbanas "
         f"({pc(urb_m, 0)} frente a {pc(urb_h, 0)}) y están más en Lima, donde se "
         "gana más por hora; eso, por sí solo, predeciría que ganen más. ",
-        f"Why is the explained part negative? Not schooling: that block adds "
-        f"{d(det['educacion_experiencia']['valor'] * 100, 1)} in men's favor. It's "
-        f"place: working women are more urban ({pc(urb_m, 0)} vs. {pc(urb_h, 0)}) "
+        f"Why is the explained part negative? Neither schooling nor experience: "
+        f"that block adds {d(det['educacion_experiencia']['valor'] * 100, 1)} log "
+        f"points × 100 in men's favor. It's place: working women are more urban ({pc(urb_m, 0)} vs. {pc(urb_h, 0)}) "
         "and more concentrated in Lima, where hourly pay is higher; on its own, "
         "that would predict they earn more. ") + etiqueta_afirmacion("propio") + "</div>")
     nop = gen["nopo"]["A"]
@@ -3994,16 +3996,17 @@ def _brechas(ctx: dict, T_: dict) -> None:
         f"Contraste con la literatura: {glosario.termino('nopo')} (2008) "
         + ref("nopo2008") + " encontró para el Perú de 1986-2000 una brecha "
         "donde la parte no explicada era menor que el total. Aquí es mayor: "
-        "el patrón es nuestro, no una réplica. Sí coincide la existencia de una "
-        "brecha no explicada a favor de los hombres, como en América Latina "
-        + ref("nopo_atal_winder2009") + ". ",
+        "el patrón es nuestro, no una réplica. " + etiqueta_afirmacion("propio")
+        + " Sí coincide la existencia de una brecha no explicada a favor de los "
+        "hombres, como en América Latina " + ref("nopo_atal_winder2009") + ". "
+        + etiqueta_afirmacion("consistente"),
         f"Against the literature: {glosario.termino('nopo')} (2008) "
         + ref("nopo2008") + " found for Peru in 1986-2000 a gap whose "
         "unexplained part was smaller than the total. Here it is larger: the "
-        "pattern is ours, not a replication. What does match is an unexplained "
-        "gap in men's favor, as across Latin America "
-        + ref("nopo_atal_winder2009") + ". ") + etiqueta_afirmacion("consistente")
-        + "</div>")
+        "pattern is ours, not a replication. " + etiqueta_afirmacion("propio")
+        + " What does match is an unexplained gap in men's favor, as across "
+        "Latin America " + ref("nopo_atal_winder2009") + ". "
+        + etiqueta_afirmacion("consistente")) + "</div>")
     with st.expander(L("Capa 2: especificaciones, Ñopo y unidades",
                        "Layer 2: specifications, Ñopo and units")):
         filas_o = "".join(
@@ -4058,16 +4061,17 @@ def _brechas(ctx: dict, T_: dict) -> None:
         fmt=lambda v: pc(v, 1)), 250)
     html("<div class='sutil'>" + L(
         "El orden coincide con Yamada (2007) " + ref("yamada2007")
-        + ": más retorno para asalariados que para independientes. Los niveles "
-        "de 2025 son menores que los de 2004 y que el promedio regional "
+        + ": más retorno para asalariados que para independientes. "
+        + etiqueta_afirmacion("consistente") + " Los niveles de 2025 son "
+        "menores que los de 2004 y que el promedio regional "
         + ref("psacharopoulos2018") + "; con años, muestras y "
-        "especificaciones distintas, eso no se interpreta como una caída. ",
+        "especificaciones distintas, eso no se interpreta como una caída.",
         "The ordering matches Yamada (2007) " + ref("yamada2007")
-        + ": higher returns for employees than for the self-employed. The 2025 "
-        "levels are below 2004's and the regional average "
-        + ref("psacharopoulos2018") + "; with different years, samples and "
-        "specifications, that isn't read as a decline. ")
-        + etiqueta_afirmacion("consistente") + "</div>")
+        + ": higher returns for employees than for the self-employed. "
+        + etiqueta_afirmacion("consistente") + " The 2025 levels are below "
+        "2004's and the regional average " + ref("psacharopoulos2018")
+        + "; with different years, samples and specifications, that isn't "
+        "read as a decline.") + "</div>")
 
 
 def _territorio(ctx: dict, T_: dict) -> None:
@@ -4246,8 +4250,10 @@ def seccion_investigacion(schema: dict, art: dict) -> None:
             [(pc(pen["pct"], 0), L("ingreso por hora de un empleo informal, a igual perfil",
                                    "hourly pay in an informal job, same profile")),
              (pc(_pct_log(oax["pooled"]["no_explicada"]["valor"]), 0),
-              L("de brecha de género por hora que no explican educación ni lugar",
-                "of the hourly gender gap not explained by schooling or place")),
+              L("diferencia por hora entre hombres y mujeres que no explican "
+                "educación, experiencia ni lugar",
+                "hourly pay difference between men and women left unexplained "
+                "by schooling, experience or place")),
              (pc(ret["asalariados"]["coef"] * 100, 1) + " / " + pc(ret["independientes"]["coef"] * 100, 1),
               L("retorno por año de estudio: asalariados / independientes",
                 "return per school year: employees / self-employed"))],

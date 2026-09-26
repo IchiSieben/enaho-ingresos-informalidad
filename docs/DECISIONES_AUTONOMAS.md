@@ -350,3 +350,24 @@ verificadas contra texto crudo (filas 22, 28, 37 y 38 de la matriz). Se
 agregan al final de `REFERENCIAS`, así que la numeración de las llamadas
 existentes no cambia. Un test exige que toda frase «consistente con la
 literatura» cite solo referencias con `verificacion == "contenido"`.
+
+**D-34 · Correcciones antes del push (revisión del advisor).**
+- El vistazo de Investigación decía «33 % de la brecha de género que no se
+  explica», y eso se lee como un tercio de la brecha. En realidad es
+  exp(0,286) − 1: una diferencia de pago. Ahora dice «diferencia por hora
+  entre hombres y mujeres que no explican educación, experiencia ni lugar».
+  La parte no explicada es mayor que el 100 % de la brecha: 28,6 frente a
+  26,2 log puntos × 100.
+- La cita de Maloney (2004) estaba en la «predicción» de la tarjeta
+  voluntarista, pero la fila 28 de la matriz solo verifica que buena parte
+  del sector es voluntario. La cita pasa a la descripción. Las cuatro
+  predicciones («Predeciría») son derivación nuestra y llevan «lectura
+  nuestra». Es el mismo tipo de error que D-23.
+- Cada etiqueta va ahora justo después de la frase que rotula. El contraste
+  con Psacharopoulos y Patrinos y la diferencia con Ñopo 2008 quedaron
+  fuera de la etiqueta «consistente».
+- El test de «consistente» ahora también lee las filas de la tabla de
+  cruces.
+- Los cruces de Ingreso e Informalidad eran enlaces `<a href>`: recargaban
+  la página, abrían otra sesión y perdían el perfil. Ahora son botones con
+  callback. Probado en Chromium: no recarga, y al volver el perfil sigue ahí.

@@ -70,6 +70,15 @@ def test_consistente_solo_con_referencias_de_contenido():
         ids = re.findall(r'ref\("([^"]+)"\)', b)
         assert ids, "afirmación «consistente» sin referencia"
         assert all(verif[i] == "contenido" for i in ids), ids
+    # Tabla de cruces: filas (hallazgo, fuente, etiqueta) en _cruces().
+    cruces = codigo[codigo.index("def _cruces("):codigo.index("def _etica(")]
+    filas = re.findall(r'\(L\(.*?\),\s*(.*?),\s*"(propio|consistente|lectura)"\)',
+                       cruces, flags=re.S)
+    assert len(filas) >= 5, "no se leyeron las filas de _cruces"
+    for fuente, etiqueta in filas:
+        if etiqueta == "consistente":
+            ids = re.findall(r'ref\("([^"]+)"\)', fuente)
+            assert ids and all(verif[i] == "contenido" for i in ids), fuente
 
 
 def test_glosario_sin_cifras_y_bilingue():
