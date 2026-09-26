@@ -990,6 +990,202 @@ def viaje_dato_vertical(titulos: list[str], subtitulos: list[str],
 # --------------------------------------------------------------------------
 # 11. Miniatura de dependencia parcial (el panorama del explorador)
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Viaje del dato, 1.6: HTML + CSS, sin JavaScript ni iframes
+# --------------------------------------------------------------------------
+_ICONOS = {
+    "play": "<path d='M8 5v14l11-7z'/>",
+    "pausa": "<path d='M7 5h4v14H7zM13 5h4v14h-4z'/>",
+    "prev": "<path d='M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z'/>",
+    "next": "<path d='M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z'/>",
+}
+
+
+def _icono(nombre: str) -> str:
+    return (f"<svg viewBox='0 0 24 24' width='18' height='18' aria-hidden='true' "
+            f"fill='currentColor'>{_ICONOS[nombre]}</svg>")
+
+
+def viaje_interactivo(estaciones: list[dict], textos: dict[str, str],
+                      nombre: str = "viaje", seg: float = 3.0,
+                      pausa_en: float = 0.72) -> str:
+    """
+    El viaje del dato como bloque HTML con su propio <style>. Reemplaza en la
+    app a los dos SVG con SMIL (`viaje_dato` / `viaje_dato_vertical`), que no
+    se podían pausar desde CSS ni elegir estación con un clic.
+
+    Cómo funciona sin JavaScript: cada control es un <label> que envuelve un
+    <input type=radio> oculto, todos con el mismo `name`. El estado es qué
+    radio está marcado —«auto» (o ninguno), «pausa» o el número de una
+    estación— y el CSS lo lee con `:has()`. Verificado en Chromium con
+    Streamlit 1.61: el markdown conserva <input> y <label>; el atributo
+    `checked` NO se puede usar (React vuelve controlado el radio y deja de
+    responder), por eso «ninguno marcado» equivale a «auto»; y el estado
+    sobrevive a un rerun si el HTML es idéntico byte a byte (por eso aquí no
+    hay colores del tema: todo va por variables CSS de estilos.py).
+
+    Cada estación trae `titulo`, `sub` y `vivo`: las lecturas que se muestran
+    en sucesión mientras el punto está en ella (en la limpieza, las filas que
+    quedan tras cada recorte). Nada se calcula aquí: el texto llega armado
+    desde ui_maquinas.json.
+
+    `seg` segundos por estación (6 × 3 = 18 s por vuelta); el punto se queda
+    quieto el primer `pausa_en` de cada tramo y viaja en el resto.
+    """
+    n = len(estaciones)
+    if n < 2:
+        raise ValueError("el viaje necesita al menos dos estaciones")
+    total = n * seg
+    V = f".{nombre}"
+    centro = [(i + 0.5) / n * 100 for i in range(n)]
+
+    def pc_(t: float) -> str:          # instante → porcentaje de la vuelta
+        return f"{max(0.0, min(100.0, t / total * 100)):.3f}%"
+
+    css: list[str] = []
+    # Punto y estela: quietos en cada estación, viajan al final del tramo.
+    kx, ky, ke = [], [], []
+    for i in range(n):
+        for t in (i * seg, i * seg + seg * pausa_en):
+            kx.append(f"{pc_(t)} {{ left: {centro[i]:.3f}%; }}")
+            ky.append(f"{pc_(t)} {{ top: {centro[i]:.3f}%; }}")
+            ke.append(f"{pc_(t)} {{ width: {centro[i] - centro[0]:.3f}%; }}")
+    kx.append(f"100% {{ left: {centro[-1]:.3f}%; }}")
+    ky.append(f"100% {{ top: {centro[-1]:.3f}%; }}")
+    ke.append(f"100% {{ width: {centro[-1] - centro[0]:.3f}%; }}")
+    css.append(f"@keyframes {nombre}-x {{ {' '.join(kx)} }}")
+    css.append(f"@keyframes {nombre}-y {{ {' '.join(ky)} }}")
+    css.append(f"@keyframes {nombre}-estela {{ {' '.join(ke)} }}")
+    # `--p` es la posición en % del riel: en fila se lee como `left`, en
+    # columna como `top` (estilos.py); la animación pisa una u otra.
+    css.append(f"{V} .viaje-punto {{ --p: {centro[0]:.3f}; "
+               f"animation: {nombre}-x {total:g}s linear infinite; }}")
+    css.append(f"{V} .viaje-estela {{ animation: {nombre}-estela {total:g}s "
+               f"linear infinite; }}")
+
+    def ventana(clave: str, t0: float, t1: float, on: str, off: str) -> None:
+        # Encendido en [t0, t1) de la vuelta, con rampas cortas de 1,5 %.
+        a, b, r = t0 / total * 100, t1 / total * 100, 1.5
+        pasos = [f"0% {{ {off if a > 0 else on} }}"]
+        if a > 0:
+            pasos += [f"{max(0.0, a - r):.3f}% {{ {off} }}", f"{a:.3f}% {{ {on} }}"]
+        pasos.append(f"{max(a, b - r):.3f}% {{ {on} }}")
+        if b < 100:
+            pasos.append(f"{b:.3f}% {{ {off} }}")
+        pasos.append(f"100% {{ {off if b < 100 else on} }}")
+        css.append(f"@keyframes {nombre}-{clave} {{ {' '.join(pasos)} }}")
+
+    luz_on = ("background: var(--acento-fondo); border-color: var(--acento); "
+              "color: var(--texto);")
+    luz_off = ("background: var(--superficie-alta); border-color: var(--borde); "
+               "color: var(--texto-medio);")
+    for i, est in enumerate(estaciones):
+        ventana(f"luz{i}", i * seg, (i + 1) * seg, luz_on, luz_off)
+        css.append(f"{V} .est-{i} {{ animation: {nombre}-luz{i} {total:g}s "
+                   f"linear infinite; }}")
+        k = max(1, len(est["vivo"]))
+        paso = seg * pausa_en / k
+        for j in range(k):
+            t0 = i * seg + j * paso
+            t1 = (i + 1) * seg if j == k - 1 else t0 + paso
+            ventana(f"v{i}-{j}", t0, t1, "opacity: 1;", "opacity: 0;")
+            css.append(f"{V} .vivo-{i}-{j} {{ animation: {nombre}-v{i}-{j} "
+                       f"{total:g}s linear infinite; }}")
+
+    # Estados. «Auto» = ningún radio marcado, o el de «auto».
+    auto = [f"{V}:not(:has(input:checked))",
+            f"{V}:has(input[value='auto']:checked)"]
+    pausa = f"{V}:has(input[value='pausa']:checked)"
+    fija = f"{V}:has(input.r-est:checked)"
+
+    def en(estados: list[str], sel: str) -> str:
+        return ", ".join(f"{e} {s}" for e in estados for s in sel.split(", "))
+
+    css.append(en(auto, ".vc-pausa, .vp-auto, .vn-auto, .es-auto")
+               + " { display: inline-flex; }")
+    css.append(en([pausa], ".vc-play, .vp-auto, .vn-auto, .es-pausa")
+               + " { display: inline-flex; }")
+    css.append(f"{pausa} .anim {{ animation-play-state: paused; }}")
+    css.append(f"{fija} .anim {{ animation: none !important; }}")
+    css.append(f"{fija} .vc-play {{ display: inline-flex; }}")
+    for i in range(n):
+        e = f"{V}:has(input.r-est[value='{i}']:checked)"
+        ult = max(1, len(estaciones[i]["vivo"])) - 1
+        css.append(f"{e} .est-{i} {{ {luz_on} box-shadow: 0 0 0 1px var(--acento); }}")
+        css.append(f"{e} .viaje-punto {{ --p: {centro[i]:.3f}; }}")
+        css.append(f"{e} .viaje-estela {{ width: {centro[i] - centro[0]:.3f}%; }}")
+        css.append(f"{e} .vivo-{i}-{ult} {{ opacity: 1; }}")
+        css.append(f"{e} .es-{i} {{ display: inline-flex; }}")
+        if i > 0:
+            css.append(f"{e} .vp-{i} {{ display: inline-flex; }}")
+        if i < n - 1:
+            css.append(f"{e} .vn-{i} {{ display: inline-flex; }}")
+        # El detalle vive en una pestaña (otro elemento de Streamlit): se
+        # alcanza desde el ancestro común, stMain.
+        css.append(f"section[data-testid='stMain']:has({V} input.r-est"
+                   f"[value='{i}']:checked) .viaje-det-{i} {{ display: block; }}")
+    css.append(f"section[data-testid='stMain']:not(:has({V} input.r-est:checked)) "
+               f".viaje-det-0 {{ display: block; }}")
+    # Movimiento reducido: sin animación, la estación 1 queda encendida.
+    quieta = f"{V}:not(:has(input.r-est:checked))"
+    ult0 = max(1, len(estaciones[0]["vivo"])) - 1
+    css.append("@media (prefers-reduced-motion: reduce) { "
+               f"{V} .anim {{ animation: none !important; }} "
+               f"{quieta} .est-0 {{ {luz_on} }} "
+               f"{quieta} .vivo-0-{ult0} {{ opacity: 1; }} }}")
+    # Angosto: estaciones apiladas; el riel pasa a la izquierda y el punto
+    # baja en vez de avanzar.
+    css.append("@media (max-width: 700px) { "
+               f"{V} .viaje-punto {{ animation-name: {nombre}-y; }} "
+               f"{V} .viaje-estela {{ display: none; }} }}")
+
+    # ---- Marcado ----
+    def radio(valor: str, clase: str) -> str:
+        return f"<input type='radio' name='{nombre}' value='{valor}' class='{clase}'>"
+
+    def boton(clase: str, valor: str, clase_r: str, icono: str, titulo: str) -> str:
+        return (f"<label class='vc {clase}' title='{escape(titulo, quote=True)}'>"
+                f"{radio(valor, clase_r)}{_icono(icono)}"
+                f"<span class='sr'>{escape(titulo)}</span></label>")
+
+    ctl = [boton("vc-pausa", "pausa", "r-ctl", "pausa", textos["pausar"]),
+           boton("vc-play", "auto", "r-ctl", "play", textos["reproducir"]),
+           boton("vc-prev vp-auto", str(n - 1), "r-est", "prev", textos["anterior"])]
+    ctl += [boton(f"vc-prev vp-{i}", str(i - 1), "r-est", "prev", textos["anterior"])
+            for i in range(1, n)]
+    ctl.append(boton("vc-next vn-auto", "0", "r-est", "next", textos["siguiente"]))
+    ctl += [boton(f"vc-next vn-{i}", str(i + 1), "r-est", "next", textos["siguiente"])
+            for i in range(n - 1)]
+    estado = [f"<span class='es-auto'>{escape(textos['auto'])}</span>",
+              f"<span class='es-pausa'>{escape(textos['pausa'])}</span>"]
+    estado += [f"<span class='es-{i}'>"
+               f"{escape(textos['estacion'].format(i=i + 1, n=n))} · "
+               f"{escape(e['titulo'])}</span>" for i, e in enumerate(estaciones)]
+
+    cajas = [f"<label class='est est-{i} anim' "
+             f"title='{escape(textos['elegir'], quote=True)}'>"
+             f"{radio(str(i), 'r-est')}<span class='est-num'>{i + 1}</span>"
+             f"<b>{escape(e['titulo'])}</b><span class='est-sub'>{escape(e['sub'])}"
+             f"</span></label>" for i, e in enumerate(estaciones)]
+    vivos = [f"<span class='vivo vivo-{i}-{j} anim'>{escape(v)}</span>"
+             for i, e in enumerate(estaciones)
+             for j, v in enumerate(e["vivo"] or [e["sub"]])]
+
+    return (f"<div class='{nombre} viaje-bloque' role='group' "
+            f"aria-label='{escape(textos['rotulo'], quote=True)}'>"
+            f"<div class='viaje-ctl'>{''.join(ctl)}"
+            f"<span class='viaje-estado'>{''.join(estado)}</span>"
+            f"<span class='viaje-pista'>{escape(textos['pista'])}</span></div>"
+            f"<div class='viaje-mapa' style='--n:{n}'><div class='viaje-riel'>"
+            f"<span class='viaje-estela anim'></span>"
+            f"<span class='viaje-punto anim'></span></div>"
+            f"<div class='viaje-fila'>{''.join(cajas)}</div></div>"
+            f"<div class='viaje-vivo'>"
+            f"<span class='eyebrow'>{escape(textos['en_vivo'])}</span>"
+            f"<span class='vivo-pila'>{''.join(vivos)}</span></div>"
+            f"<style>{' '.join(css)}</style></div>")
+
+
 def miniatura_pd(valores, efecto, tipo: str, T: dict,
                  ancho: int = 200, alto: int = 64) -> str:
     """Curva o barras sin ejes ni rótulos: solo la forma, para la grilla."""

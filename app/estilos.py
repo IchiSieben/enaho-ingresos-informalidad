@@ -221,6 +221,12 @@ def css(T: dict[str, str]) -> str:
   --texto-medio: {T['texto_medio']};
   --texto-tenue: {T['texto_tenue']};
   --acento: {T['acento']};
+  --acento-alto: {T['acento_alto']};
+  --acento-fondo: {T['acento_fondo']};
+  --superficie-borde: {T['borde']};
+  --dato: {T['dato']};
+  --dato-tenue: {T['dato_tenue']};
+  --boton-texto: {T['boton_texto']};
   --e1: {E['1']}; --e2: {E['2']}; --e3: {E['3']}; --e4: {E['4']};
   --e6: {E['6']}; --e8: {E['8']}; --e12: {E['12']};
   --r-sm: {R['sm']}; --r-md: {R['md']}; --r-lg: {R['lg']};
@@ -909,6 +915,9 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 .cabecera h1 {{ margin: 0 !important; }}
 [data-testid="stElementContainer"]:has(.cab-entradilla) {{ margin-top: -4px; }}
 .st-key-cab_titulo [data-testid="stPopover"] button {{ white-space: nowrap; }}
+/* El título ocupa todo el ancho libre: el detalle queda siempre en el borde
+   derecho, sin importar lo largo que sea cada pregunta. */
+.st-key-cab_titulo > [data-testid="stElementContainer"]:first-child {{ flex: 1 1 0; min-width: 0; }}
 .entradilla {{ font-size: {F['medio']}; max-width: 75ch; color: {T['texto_medio']}; }}
 
 /* Franja de cifras clave: la portada ejecutiva */
@@ -1249,6 +1258,76 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 }}
 .sidebar-firma b {{ color: {T['texto']}; }}
 
+/* ---------- Viaje del dato (1.6): HTML + CSS, controles con radios ---------
+   Los tiempos y los estados los genera graficos.viaje_interactivo en su
+   propio <style>; aquí va solo la forma, con las variables del tema. */
+.viaje-bloque {{ margin: var(--e2) 0 var(--e3) 0; }}
+.viaje-bloque input {{ position: absolute; opacity: 0; width: 1px; height: 1px;
+                      margin: 0; pointer-events: none; }}
+.viaje-bloque .sr {{ position: absolute; width: 1px; height: 1px; overflow: hidden;
+                    clip: rect(0 0 0 0); white-space: nowrap; }}
+.viaje-ctl {{ display: flex; align-items: center; gap: var(--e2); flex-wrap: wrap;
+             margin-bottom: var(--e3); }}
+.vc {{ display: none; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: var(--r-md);
+      border: 1px solid var(--borde); background: var(--superficie);
+      color: var(--texto); cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease; }}
+.vc:hover {{ background: var(--acento-fondo); border-color: var(--acento);
+            color: var(--acento-alto); }}
+.vc:has(input:focus-visible), .est:has(input:focus-visible) {{
+  outline: 2px solid var(--acento); outline-offset: 2px; }}
+.viaje-estado > span {{ display: none; font-family: {FUENTE_MONO}; font-size: {F['mini']};
+                       color: var(--texto-medio); margin-left: var(--e1); }}
+.viaje-pista {{ margin-left: auto; font-size: {F['mini']}; color: var(--texto-tenue); }}
+.viaje-mapa {{ position: relative; padding-bottom: 26px; }}
+.viaje-fila {{ display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }}
+.est {{ position: relative; display: flex; flex-direction: column; align-items: center;
+       text-align: center; gap: 2px; margin: 0 14px; padding: 10px 8px 12px;
+       border: 1px solid var(--borde); border-radius: 8px;
+       background: var(--superficie-alta); color: var(--texto-medio); cursor: pointer;
+       transition: transform 150ms ease, border-color 150ms ease; }}
+.est:hover {{ transform: translateY(-2px); border-color: var(--acento); }}
+.est:not(:last-child)::after {{ content: "→"; position: absolute; right: -22px; top: 50%;
+                               transform: translateY(-50%); color: var(--dato);
+                               font-size: 14px; }}
+.est-num {{ font-family: {FUENTE_MONO}; font-size: 11px; color: var(--texto-tenue); }}
+.est b {{ font-size: 13px; font-weight: 600; color: inherit; line-height: 1.25; }}
+.est-sub {{ font-family: {FUENTE_MONO}; font-size: 13px; }}
+.viaje-riel {{ position: absolute; left: 0; right: 0; bottom: 8px; height: 3px; }}
+.viaje-riel::before {{ content: ""; position: absolute; top: 0; bottom: 0;
+                      left: calc(50% / var(--n, 6)); right: calc(50% / var(--n, 6));
+                      background: var(--dato-tenue); border-radius: 3px; }}
+.viaje-estela {{ position: absolute; top: 0; bottom: 0; left: calc(50% / var(--n));
+                width: 0; background: var(--acento); border-radius: 3px; }}
+.viaje-punto {{ position: absolute; left: calc(var(--p) * 1%); top: 50%;
+               width: 12px; height: 12px; border-radius: 50%;
+               background: var(--acento); transform: translate(-50%, -50%);
+               box-shadow: 0 0 0 4px var(--acento-fondo); }}
+.viaje-vivo {{ display: flex; align-items: baseline; gap: var(--e3); flex-wrap: wrap;
+              padding: var(--e2) var(--e3); background: var(--superficie);
+              border-left: 3px solid var(--acento); border-radius: var(--r-sm); }}
+.vivo-pila {{ display: grid; }}
+.vivo {{ grid-area: 1 / 1; opacity: 0; font-family: {FUENTE_MONO}; font-size: 18px;
+        color: var(--acento-alto); font-variant-numeric: tabular-nums; }}
+.viaje-det {{ display: none; }}
+.chips-codigo {{ margin-top: 10px; }}
+.viaje-det .pasos-viaje {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+                          gap: var(--e4); margin-bottom: var(--e3); }}
+@media (max-width: 700px) {{
+  .viaje-fila {{ grid-template-columns: 1fr; grid-auto-rows: 1fr; }}
+  .est {{ margin: 5px 0 5px 30px; flex-direction: row; justify-content: flex-start;
+         gap: 10px; text-align: left; }}
+  .est:not(:last-child)::after {{ content: none; }}
+  .est-sub {{ margin-left: auto; }}
+  .viaje-mapa {{ padding-bottom: 0; }}
+  .viaje-riel {{ left: 9px; right: auto; top: 0; bottom: 0; width: 3px; height: auto; }}
+  .viaje-riel::before {{ left: 0; right: 0; top: calc(50% / var(--n)); bottom: calc(50% / var(--n)); }}
+  .viaje-punto {{ left: 50%; top: calc(var(--p) * 1%); }}
+  .viaje-pista {{ margin-left: 0; width: 100%; }}
+  .viaje-det .pasos-viaje {{ grid-template-columns: 1fr; }}
+}}
+
 /* Variantes de un gráfico por ancho (viaje del dato): la fila horizontal
    hasta 700 px, la apilada por debajo. El contenedor de Streamlit de la
    variante oculta también se oculta, para no dejar su hueco. */
@@ -1268,7 +1347,8 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
   .st-key-barra {{ flex-wrap: wrap !important; row-gap: var(--e2) !important;
                   position: static !important; }}
   .st-key-ajustes {{ padding-left: 0; border-left: none; }}
-  .st-key-cab_titulo {{ flex-wrap: wrap !important; }}
+  .st-key-cab_titulo {{ flex-wrap: wrap !important; row-gap: var(--e1) !important; }}
+  .st-key-cab_titulo > [data-testid="stElementContainer"]:first-child {{ flex-basis: 100%; }}
   .st-key-sec {{ order: 3; width: 100% !important; max-width: 100%; overflow-x: auto; }}
   .st-key-sec > div {{ flex-wrap: nowrap !important; }}
   section[data-testid="stMain"] .st-key-barra .st-key-sec button {{ white-space: nowrap; flex-shrink: 0; }}

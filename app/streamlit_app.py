@@ -86,7 +86,7 @@ GRAFICOS_REQUERIDOS = [
     "proporcion", "embudo", "franja_probabilidad", "matriz_confusion",
     "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
     "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
-    "viaje_dato", "viaje_dato_vertical", "miniatura_pd",
+    "viaje_dato", "viaje_dato_vertical", "viaje_interactivo", "miniatura_pd",
 ]
 
 # Claves del artefacto sin las que una sección no puede dibujarse. Se listan
@@ -3030,49 +3030,96 @@ def lineas_pd() -> dict[str, str]:
     }
 
 
-def _maq_viaje(estaciones: list, titulos: list, idx: int) -> None:
-    """Cómo se hizo, pestaña 1: selector de estación y su detalle."""
-    # Se indexa por posición: los títulos cambian con el idioma y el control
-    # no puede perder la estación elegida al cambiarlo.
-    elegido = st.segmented_control(
-        L("Estación", "Station"), list(range(len(titulos))),
-        format_func=lambda i: f"{i + 1} · {titulos[i]}",
-        default=st.session_state.get("maq_estacion_ok", 0),
-        key="maq_estacion", label_visibility="collapsed")
-    # st.segmented_control DESELECCIONA al pulsar la opción ya activa y
-    # devuelve None: se recuerda la última válida.
-    if elegido is not None:
-        st.session_state["maq_estacion_ok"] = elegido
-    st.toggle(L("▶ Ver el viaje en movimiento",
-                          "▶ Watch the journey in motion"),
-                        value=True, key="maq_viaje_anim",
-                        help=L("Un punto recorre las seis estaciones en bucle "
-                               "(12 s por vuelta). El detalle de abajo lo "
-                               "sigue eligiendo el selector.",
-                               "A dot travels the six stations in a loop "
-                               "(12 s per lap). The selector above still "
-                               "picks the detail below."))
-    est = estaciones[idx]
-    html(f"<div class='estacion-cab'><span class='estacion-num'>{idx + 1}</span>"
-         f"<span>{est['titulo']}</span></div>")
-    c1, c2, c3 = st.columns(3, gap="medium")
-    for col, rotulo, texto in ((c1, L("Qué entra", "What goes in"), est["entra"]),
-                               (c2, L("Qué se decide", "What gets decided"),
-                                est["decide"]),
-                               (c3, L("Qué sale", "What comes out"), est["sale"])):
-        with col:
-            html(f"<div class='paso-viaje'><div class='eyebrow'>{rotulo}</div>"
-                 f"<div class='sutil'>{texto}</div></div>")
-    st.write("")
-    html("<div class='rejilla-tarjetas'>"
-         + "".join(tarjeta(et, v, llano=ll) for et, v, ll in est["tarjetas"])
-         + "</div>")
-    if est.get("nota"):
-        html(f"<div class='sutil' style='margin-top:8px'>{est['nota']}</div>")
-    if est.get("codigo"):
-        html("<div style='margin-top:10px'>"
-             + " ".join(_enlace_pie(t, r) for t, r in est["codigo"])
-             + "</div>")
+SEG_ESTACION = 3.0     # segundos por estación en el viaje animado
+
+
+def _lecturas_vivas(art: dict, maq: dict) -> list[list[str]]:
+    """
+    Lo que cambia «en vivo» mientras el punto pasa por cada estación, en el
+    mismo orden que `_estaciones`. Todo sale de ui_maquinas.json y del
+    artefacto; en la limpieza, las filas que quedan tras cada recorte.
+    """
+    emb, tam = maq.get("embudo", {}), maq.get("tamanos", {})
+    etapas = emb.get("etapas", [])
+    split = emb.get("split", {})
+    modelos = tam.get("modelos_bytes", {})
+    joblibs = [v for k, v in modelos.items() if k.endswith(".joblib")]
+    tabla = sorted(art.get("torneo", {}).get("tabla", []), key=lambda f: f["MAE_cv"])
+    filas = L("filas", "rows")
+    cadena = [" → ".join(n(e["filas"]) for e in etapas[:j + 1]) + f" {filas}"
+              for j in range(len(etapas))]
+    return [
+        [L(f"{n(etapas[0]['filas'])} filas crudas · {_mb(tam.get('data_bytes'))}",
+           f"{n(etapas[0]['filas'])} raw rows · {_mb(tam.get('data_bytes'))}")]
+        if etapas else [],
+        cadena,
+        [L(f"{n(split.get('train', 0))} entrenan · {n(split.get('test', 0))} "
+           f"esperan al final",
+           f"{n(split.get('train', 0))} train · {n(split.get('test', 0))} wait "
+           f"for the end"),
+         L(f"{len(tabla)} recetas · gana {tabla[0]['ID']} con "
+           f"{sol(tabla[0]['MAE_cv'], 1)} de error medio",
+           f"{len(tabla)} recipes · {tabla[0]['ID']} wins at "
+           f"{sol(tabla[0]['MAE_cv'], 1)} mean error") if tabla else "—"],
+        [f"{len(joblibs)} × .joblib · {_mb(sum(joblibs))}"] if joblibs else [],
+        [f"{k} · {_kb(modelos.get(k))}" for k in ("ui_artifacts.json",
+                                                   "feature_schema.json")
+         if modelos.get(k)],
+        [L(f"{_mb(tam.get('repo_versionado_bytes'))} suben a GitHub",
+           f"{_mb(tam.get('repo_versionado_bytes'))} go to GitHub"),
+         L(f"{_mb(tam.get('data_bytes'))} se quedan en local",
+           f"{_mb(tam.get('data_bytes'))} stay local")],
+    ]
+
+
+def _textos_viaje(n_est: int) -> dict[str, str]:
+    return {
+        "rotulo": L("Viaje del dato: de la encuesta del INEI a la nube",
+                    "Journey of the data: from INEI's survey to the cloud"),
+        "pausar": L("Pausar", "Pause"),
+        "reproducir": L("Reproducir", "Play"),
+        "anterior": L("Estación anterior", "Previous station"),
+        "siguiente": L("Estación siguiente", "Next station"),
+        "auto": L(f"En movimiento · {n(n_est * SEG_ESTACION)} s por vuelta",
+                  f"Playing · {n(n_est * SEG_ESTACION)} s per lap"),
+        "pausa": L("En pausa", "Paused"),
+        "estacion": L("Estación {i} de {n}", "Station {i} of {n}"),
+        "elegir": L("Ver el detalle de esta estación",
+                    "See this station's detail"),
+        "pista": L("Haz clic en una estación para ver su detalle abajo",
+                   "Click a station to see its detail below"),
+        "en_vivo": L("En esta estación", "At this station"),
+    }
+
+
+def _maq_viaje(estaciones: list) -> None:
+    """
+    Cómo se hizo, pestaña 1: el detalle de las seis estaciones. Van las seis
+    en el HTML y el CSS muestra la elegida en el diagrama (sin rerun). Sin
+    elegir, se ve la primera.
+    """
+    paneles = []
+    for i, est in enumerate(estaciones):
+        pasos = "".join(
+            f"<div class='paso-viaje'><div class='eyebrow'>{rotulo}</div>"
+            f"<div class='sutil'>{texto}</div></div>"
+            for rotulo, texto in ((L("Qué entra", "What goes in"), est["entra"]),
+                                  (L("Qué se decide", "What gets decided"),
+                                   est["decide"]),
+                                  (L("Qué sale", "What comes out"), est["sale"])))
+        tarjetas = "".join(tarjeta(et, v, llano=ll) for et, v, ll in est["tarjetas"])
+        nota = (f"<div class='sutil' style='margin-top:8px'>{est['nota']}</div>"
+                if est.get("nota") else "")
+        codigo = ("<div class='chips-codigo'>"
+                  + " ".join(_enlace_pie(t, r) for t, r in est["codigo"])
+                  + "</div>") if est.get("codigo") else ""
+        paneles.append(
+            f"<div class='viaje-det viaje-det-{i}'>"
+            f"<div class='estacion-cab'><span class='estacion-num'>{i + 1}</span>"
+            f"<span>{est['titulo']}</span></div>"
+            f"<div class='pasos-viaje'>{pasos}</div>"
+            f"<div class='rejilla-tarjetas'>{tarjetas}</div>{nota}{codigo}</div>")
+    html("".join(paneles))
     with st.expander(L("¿Qué principio hay aquí? · viaje",
                        "What's the principle here? · journey")):
         html("<div class='sutil'>" + L(
@@ -3396,26 +3443,15 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
 
     # ---- De un vistazo: el viaje + tres cifras + una frase ----
     estaciones = _estaciones(schema, art, maq)
-    titulos = [e["titulo"] for e in estaciones]
-    # El selector de estación vive en la primera pestaña, DEBAJO del SVG: se
-    # lee su valor de session_state antes de dibujar, para que el viaje
-    # resalte la estación ya elegida en este mismo rerun.
-    # st.segmented_control DESELECCIONA al pulsar la opción ya activa y
-    # devuelve None: se recuerda la última válida.
-    if st.session_state.get("maq_estacion") is not None:
-        st.session_state["maq_estacion_ok"] = st.session_state["maq_estacion"]
-    idx = st.session_state.get("maq_estacion_ok", 0)
-    # La animación vive DENTRO del SVG (SMIL): sin reruns ni sleeps. Arranca
-    # encendida: es lo primero que ve quien entra a esta sección.
-    animado = st.session_state.get("maq_viaje_anim", True)
-    subs = [e["sub"] for e in estaciones]
-    # Dos variantes del mismo viaje; el CSS muestra una según el ancho. A
-    # 390 px la fila horizontal escalaba a la mitad y no se leía.
-    grafico(graficos.viaje_dato(titulos, subs, idx, T(), animado=animado),
-            185, vistazo=True, clase="solo-ancho")
-    grafico(graficos.viaje_dato_vertical(titulos, subs, idx, T(),
-                                         animado=animado),
-            440, vistazo=True, clase="solo-angosto")
+    # 1.6: el viaje es HTML + CSS con controles propios (▶/❚❚, ◀ ▶ y clic en
+    # cada estación), sin rerun ni JavaScript: ver graficos.viaje_interactivo.
+    # No lleva `clase_quieta()`: el estado de los radios sobrevive a un rerun
+    # solo si el HTML no cambia ni un byte.
+    vivos = _lecturas_vivas(art, maq)
+    html("<div class='vistazo-grafico'>" + graficos.viaje_interactivo(
+        [{"titulo": e["titulo"], "sub": e["sub"], "vivo": v}
+         for e, v in zip(estaciones, vivos)],
+        _textos_viaje(len(estaciones)), seg=SEG_ESTACION) + "</div>")
     emb, tam = maq["embudo"], maq["tamanos"]
     crudo = emb["etapas"][0]["filas"]
     modelado = emb["split"]["train"] + emb["split"]["test"]
@@ -3446,7 +3482,7 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
         L("Rayos X de la predicción", "X-ray of a prediction"),
         L("Mueve una variable", "Move one feature")])
     with t_viaje:
-        _maq_viaje(estaciones, titulos, idx)
+        _maq_viaje(estaciones)
     with t_embudo:
         _maq_embudo(maq)
     with t_rayos:

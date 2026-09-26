@@ -85,3 +85,32 @@ a los bordes.
 el cursor, cursor de mano, anillo de foco y la activa en acento pleno. Idioma
 y tema van en un contenedor propio (`ajustes`), a la derecha y tras una línea
 vertical. En móvil bajan a su propia fila.
+
+## Fase 1.6 · D. La animación de «Cómo se hizo»
+
+**D-12 · Opción elegida: (a) ampliada. HTML + CSS con radios y `:has()`, sin
+JavaScript y sin componente.** Una prueba en Chromium con Streamlit 1.61
+(`st.markdown` con `unsafe_allow_html`) dio lo siguiente. Conserva `<input
+type=radio name=…>` y `<label>`, y las reglas con `:has()` se aplican. El
+atributo `checked` no se puede usar: React vuelve controlado el radio y deja
+de responder al clic. Por eso «ningún radio marcado» equivale a «auto». El
+estado sobrevive a un rerun si el HTML es idéntico byte a byte. Con eso sale
+todo lo que pedía la opción (b) sin sus costos: ▶/❚❚, ◀ ▶ estación por
+estación y clic en una estación del diagrama que selecciona su detalle abajo,
+sin rerun.
+- Descartado (b), componente bidireccional: exigía `st.components` (lo
+  prohíbe un test aprobado, `3a5317b`) o un componente v2 con JS propio, que
+  es más frágil de mantener y reinstala el viaje a Python en cada clic.
+- Descartado SMIL: no se pausa desde CSS (la queja original).
+- Diseño: 3 s por estación, 18 s por vuelta. El punto se detiene el 72 % del
+  tramo y viaja en el resto. Las lecturas «en vivo» (84.853 → 57.716 → 47.899
+  → 47.632 filas; 38.105 / 9.527; 9 recetas; MB y KB) salen de
+  `ui_maquinas.json` y del artefacto (`_lecturas_vivas`), y cada una tiene su
+  ventana de tiempo. Con movimiento reducido queda quieto en la estación 1.
+  En móvil las estaciones se apilan y el punto baja.
+- Los seis detalles van en el HTML de la pestaña. El CSS muestra el elegido
+  desde el ancestro común (`stMain:has(...)`); sin elegir, se ve el 1.
+- `graficos.viaje_dato` y `viaje_dato_vertical` (SMIL) ya no los usa la app.
+  Se conservan porque los cubren los tests de contrato. **Propuesta:**
+  retirarlos junto con `css_iframe` y `envolver`.
+- Revertir: `git revert` del commit de D. El selector y el toggle vuelven.
