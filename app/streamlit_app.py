@@ -36,6 +36,7 @@ Uso:
 from __future__ import annotations
 
 import json
+import random
 import re
 import sys
 from html import escape
@@ -582,11 +583,52 @@ def _aplicar_perfil(prefijo: str, features: list[dict]) -> None:
         memoria[nombre] = v
 
 
+def perfil_al_azar(features: list[dict], rng: random.Random) -> dict:
+    """
+    Una combinación válida del schema: cada numérica dentro de su rango y
+    cada categórica entre sus opciones. La única regla cruzada es la de la
+    experiencia potencial (edad − años de educación − 6): la edad se sortea
+    después, desde educación + 6, para que no salga negativa. `rng` se
+    inyecta para que el test sea determinista.
+    """
+    por_nombre = {f["nombre"]: f for f in features}
+    valores: dict = {}
+    for feat in features:
+        nombre = feat["nombre"]
+        if nombre in DERIVADAS:
+            continue
+        if feat["tipo"] == "numerico":
+            valores[nombre] = rng.randint(int(feat["min"]), int(feat["max"]))
+        else:
+            valores[nombre] = rng.choice(list(feat["opciones"]))
+    if "edad" in valores and "anios_educ" in valores:
+        edad = por_nombre["edad"]
+        desde = max(int(edad["min"]), valores["anios_educ"] + 6)
+        valores["edad"] = rng.randint(min(desde, int(edad["max"])), int(edad["max"]))
+    return valores
+
+
+def _aplicar_azar(prefijo: str, features: list[dict]) -> None:
+    """Callback de «Perfil al azar»: como un perfil de ejemplo, pero sorteado."""
+    memoria = st.session_state.setdefault(f"valores_{prefijo}", {})
+    for nombre, v in perfil_al_azar(features, random.Random()).items():
+        st.session_state[f"{prefijo}_{nombre}"] = v
+        memoria[nombre] = v
+    # Ya no corresponde a ningún ejemplo: se apaga la pastilla elegida.
+    st.session_state[f"perfil_{prefijo}"] = None
+
+
 def selector_perfiles(prefijo: str, features: list[dict]) -> None:
-    with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+    with st.container(horizontal=True, vertical_alignment="center", gap="small",
+                      key=f"perfiles_{prefijo}"):
         html("<div class='eyebrow' style='white-space:nowrap'>"
              + L("Perfil · ejemplos de un clic", "Profile · one-click examples")
              + "</div>")
+        st.button(L("Perfil al azar", "Random profile"), icon=":material/shuffle:",
+                  key=f"azar_{prefijo}", type="tertiary",
+                  help=L("Sortea una combinación válida del formulario.",
+                         "Draws a valid combination of the form."),
+                  on_click=_aplicar_azar, args=(prefijo, features))
         st.pills(L("Perfiles de ejemplo", "Example profiles"),
                  [p["id"] for p in PERFILES],
                  format_func=lambda k: next(p[i18n.idioma()] for p in PERFILES
@@ -1352,6 +1394,7 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
                      "MAE increase when shuffled (S/)"),
             etiquetas=etiquetas),
             30 + len(imp["variables"]) * 30 + 18)
+    chips_codigo([(L("código: el regresor y su corrección de Duan →", "code: the regressor and its Duan correction →"), "src/07_guardar_regresor.py")])
 
 
 # --------------------------------------------------------------------------
@@ -1396,6 +1439,9 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
                   "Classification · Gradient Boosting"))
 
     _informalidad_en_vivo(schema, art)
+    chips_codigo([(L("código: entrenamiento del clasificador →",
+                     "code: classifier training →"),
+                   "src/06_entrenar_clasificador.py")])
 
 
 @st.fragment
@@ -1591,6 +1637,7 @@ def _acto_ecuacion_inicial(aut: dict) -> None:
             f"<b>{d(aut['corrida_sucia']['r2'], 3)}</b> to "
             f"<b>{d(aut['corrida_limpia']['r2'], 3)}</b>, and every sign "
             f"becomes economically plausible.") + "</div>")
+    chips_codigo([(L("código: la autopsia del centinela →", "code: the sentinel autopsy →"), "src/02_fase0_autopsia.py")])
 
 
 def _acto_diagnostico(aut: dict) -> None:
@@ -1658,6 +1705,7 @@ def _acto_torneo(t: dict) -> None:
         "choosing by test after comparing nine specifications would mean "
         "selecting on the evaluation set. Test MAE is reported as an honest "
         "estimate of the already-chosen model.") + "</div>")
+    chips_codigo([(L("código: el torneo E1–E9 →", "code: the E1–E9 tournament →"), "src/04_torneo_regresion.py")])
 
 
 def seccion_torneo(schema: dict, art: dict) -> None:
@@ -2283,6 +2331,9 @@ def _ficha_clasificador(clas: dict, a: dict, abl: list) -> None:
                  f"actually happened once in this project, with the “welfare "
                  f"index”, which is why it was excluded.")
              + "</div></div>")
+    chips_codigo([(L("código: entrenamiento y umbral →", "code: training and threshold →"), "src/06_entrenar_clasificador.py"),
+                  (L("código: ablación →", "code: ablation →"), "src/08_ablacion_clasificador.py"),
+                  (L("código: ablación sin sexo →", "code: ablation without sex →"), "src/08b_ablacion_sexo.py")])
 
 
 def _ficha_regresor(reg: dict) -> None:
@@ -2328,6 +2379,7 @@ def _ficha_regresor(reg: dict) -> None:
              f"They're numbers on different scales: putting them side by side "
              f"without saying so would compare different things.")
          + "</div>")
+    chips_codigo([(L("código: guardado del regresor →", "code: saving the regressor →"), "src/07_guardar_regresor.py")])
 
 
 def _ficha_limites(clas: dict, reg: dict, meta: dict) -> None:
@@ -2544,6 +2596,15 @@ def _enlace_pie(texto: str, ruta: str) -> str:
     """Chip-enlace al archivo exacto en GitHub, en pestaña nueva."""
     return (f"<a class='chip-evidencia' target='_blank' rel='noopener' "
             f"href='{BLOB}/{quote(ruta)}'>{escape(texto)}</a>")
+
+
+def chips_codigo(pares: list[tuple[str, str]]) -> None:
+    """
+    Chips «ver el código →» al pie de un bloque: cada uno abre en GitHub el
+    script que produce lo que se acaba de ver. `pares` = (rótulo, ruta).
+    """
+    html("<div class='chips-codigo'>"
+         + " ".join(_enlace_pie(t, r) for t, r in pares) + "</div>")
 
 
 def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
@@ -3154,6 +3215,7 @@ def _maq_embudo(maq: dict) -> None:
             "subtractions add up and publishes them in the artifact. If the "
             "report changes, this page changes with it — or the generator "
             "aborts.") + "</div>")
+    chips_codigo([(L("código: la preparación y el embudo →", "code: preparation and the funnel →"), "src/03_fase1_preparacion.py")])
 
 
 def _maq_rayos(reg: dict) -> None:
@@ -3400,6 +3462,7 @@ def _maq_mueve(reg: dict, art: dict) -> None:
             "moved feature isn't strongly correlated with the others — which "
             "is why experience and experience² aren't moved "
             "separately.") + "</div>")
+    chips_codigo([(L("código: el precómputo de la dependencia parcial →", "code: precomputing partial dependence →"), "src/09_precomputar_ui.py")])
 
 
 def seccion_maquinas(schema: dict, art: dict) -> None:

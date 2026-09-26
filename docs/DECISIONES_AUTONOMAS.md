@@ -114,3 +114,25 @@ sin rerun.
   Se conservan porque los cubren los tests de contrato. **Propuesta:**
   retirarlos junto con `css_iframe` y `envolver`.
 - Revertir: `git revert` del commit de D. El selector y el toggle vuelven.
+
+## Fase 1.6 · E. Interactividad evidente
+
+**D-13 · «Perfil al azar»** es un botón terciario con el icono
+`:material/shuffle:`, junto al rótulo de los perfiles. Debajo de las pastillas
+ocupaba una fila entera, y a 1366×768 el gráfico de Informalidad salía del
+pliegue. Sortea cada variable dentro del schema. La única regla cruzada que
+aplica es edad ≥ educación + 6, para que la experiencia potencial no sea
+negativa. Al usarlo, se apaga la pastilla de ejemplo elegida.
+- Descartado: sortear con los pesos de la ENAHO (perfiles «típicos»). Sería
+  más realista, pero exige precomputar una tabla, y un sorteo uniforme dentro
+  del schema cumple lo pedido.
+
+**D-14 · Chips «ver el código →» nuevos.** Van al pie de 8 bloques: Ingreso
+(src/07), Informalidad (src/06), Acto 1 (src/02), Acto 3 (src/04), ficha del
+clasificador (src/06, 08, 08b), ficha del regresor (src/07), embudo (src/03)
+y «Mueve una variable» (src/09). Ahora se ven como botones: caja, hover y
+cursor.
+
+**D-15 · Pista de uso.** Es un solo micro-texto, «Haz clic en una estación
+para ver su detalle abajo», en el viaje. No se añadió ningún tutorial: el
+recorrido guiado queda para «Empieza aquí» (Fase 4).

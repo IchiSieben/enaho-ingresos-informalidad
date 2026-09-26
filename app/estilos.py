@@ -767,6 +767,34 @@ a.chip-evidencia {{
   white-space: nowrap;
 }}
 a.chip-evidencia:hover {{ border-bottom-color: {T['acento_alto']}; }}
+/* 1.6: los chips «ver el código →» se leen como botones: caja, hover y cursor. */
+.chips-codigo a.chip-evidencia, .chip-codigo {{
+  display: inline-block; padding: 3px 9px; margin: 0 6px 6px 0;
+  border: 1px solid {T['borde']}; border-radius: 999px; cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}}
+.chips-codigo a.chip-evidencia:hover, .chip-codigo:hover {{
+  background: {T['acento_fondo']}; border-color: {T['acento']};
+}}
+
+/* 1.6: lo clicable se ve clicable. Pills de perfiles, pestañas internas,
+   expanders y el botón de perfil al azar: cursor de mano y hover visible. */
+section[data-testid="stMain"] [data-testid="stButtonGroup"] button,
+section[data-testid="stMain"] [data-testid="stTab"],
+section[data-testid="stMain"] [data-testid="stExpander"] summary,
+section[data-testid="stMain"] [data-testid="stPopover"] button,
+section[data-testid="stMain"] [class*="st-key-azar_"] button {{ cursor: pointer; }}
+section[data-testid="stMain"] [class*="st-key-perfil_"] [data-testid="stButtonGroup"] button:hover {{
+  border-color: {T['acento']} !important; background: {T['acento']}1f !important;
+}}
+section[data-testid="stMain"] [data-testid="stTab"]:hover p {{ color: {T['acento_alto']} !important; }}
+section[data-testid="stMain"] [data-testid="stExpander"] summary:hover p {{ color: {T['acento_alto']}; }}
+/* Compacto: comparte fila con el rótulo de 11 px y no debe agrandarla. */
+section[data-testid="stMain"] [class*="st-key-azar_"] button {{
+  min-height: 0 !important; height: 22px; padding: 0 4px !important; }}
+section[data-testid="stMain"] [class*="st-key-azar_"] button p {{ font-size: {F['mini']} !important; }}
+section[data-testid="stMain"] [class*="st-key-azar_"] button:hover p,
+section[data-testid="stMain"] [class*="st-key-azar_"] button:hover span {{ color: {T['acento_alto']} !important; }}
 
 /* Pista: término con explicación al pasar el cursor. */
 .pista {{ border-bottom: 1px dotted {T['texto_tenue']}; cursor: help; }}
