@@ -11,8 +11,9 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-# Orden de las opciones en la barra superior (v1.2).
-ORDEN_BARRA = ["ingreso", "informalidad", "torneo", "ficha", "maquinas"]
+# Orden de las opciones en la barra superior (v2: siete pestañas).
+ORDEN_BARRA = ["inicio", "ingreso", "informalidad", "investigacion", "torneo", "ficha",
+               "maquinas"]
 
 BASE = sys.argv[1].rstrip("/")
 SALIDA = Path(sys.argv[2])
@@ -24,6 +25,12 @@ TAMANOS = [(1440, 900), (1366, 768)]
 # `vistazo-*` marcan el resumen y el gráfico clave (v1.2); en la línea base
 # (v1.1) se medía el primer iframe como gráfico clave.
 CLAVES = {
+    "inicio": {"pregunta": ["h1"],
+               "respuesta": [".portada-cifras"],
+               "grafico": [".vistazo-grafico"]},
+    "investigacion": {"pregunta": ["h1"],
+                      "respuesta": [".vistazo-cifras"],
+                      "grafico": [".vistazo-grafico"]},
     "ingreso": {"pregunta": ["h1"],
                 "controles": [".st-key-caja_form_reg"],
                 "respuesta": [".hero-cifra"],

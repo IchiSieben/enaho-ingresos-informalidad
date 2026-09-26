@@ -10,14 +10,15 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-# Orden de las opciones en la barra superior (v1.2).
-ORDEN_BARRA = ["ingreso", "informalidad", "torneo", "ficha", "maquinas"]
+# Orden de las opciones en la barra superior (v2: siete pestañas).
+ORDEN_BARRA = ["inicio", "ingreso", "informalidad", "investigacion", "torneo", "ficha",
+               "maquinas"]
 
 BASE = sys.argv[1].rstrip("/")
 DEST = Path(sys.argv[2])
 TEMAS = (sys.argv[3] if len(sys.argv) > 3 else "claro").split(",")
 IDIOMAS = (sys.argv[4] if len(sys.argv) > 4 else "es,en").split(",")
-SECCIONES = ["ingreso", "informalidad", "torneo", "ficha", "maquinas"]
+SECCIONES = ORDEN_BARRA
 TAMANOS = [tuple(int(v) for v in t.split("x")) for t in
            (sys.argv[5] if len(sys.argv) > 5 else "1440x900,1366x768").split(",")]
 DEST.mkdir(parents=True, exist_ok=True)

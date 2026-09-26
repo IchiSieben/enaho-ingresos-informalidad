@@ -25,7 +25,7 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parents[1]
 APP = str(RAIZ / "app" / "streamlit_app.py")
-SECS = ["ingreso", "informalidad", "torneo", "ficha", "maquinas"]
+SECS = ["inicio", "ingreso", "informalidad", "investigacion", "torneo", "ficha", "maquinas"]
 
 if not (RAIZ / "models" / "regresor_e9.joblib").exists():
     pytest.skip("sin modelos entrenados", allow_module_level=True)
@@ -67,7 +67,8 @@ def test_la_url_combinada_abre_justo_eso(sec, lang, theme):
 
 def test_url_limpia_es_la_portada():
     at = abrir()
-    assert estado(at) == ("ingreso", "es", "claro")
+    # La portada es la de SECCION_POR_DEFECTO («inicio» desde la v2, D-24).
+    assert estado(at) == ("inicio", "es", "claro")
     assert url(at) == {}
 
 
@@ -95,7 +96,7 @@ def test_parametros_ajenos_se_respetan():
 
 def test_valores_invalidos_caen_al_defecto_y_salen_de_la_url():
     at = abrir(sec="nada", lang="xx", theme="foo")
-    assert estado(at) == ("ingreso", "es", "claro")
+    assert estado(at) == ("inicio", "es", "claro")
     assert url(at) == {}
 
 

@@ -326,3 +326,27 @@ cruce con enlace a la pestaña Investigación (`?sec=investigacion`,
 
 El README y `CITATION.cff` 1.2.0 se escriben al final, con las cifras ya
 fijas.
+
+## Fase 4 · Construcción
+
+**D-31 · La pestaña de portada se llama «Inicio / Start».** Con la activa en
+negrita, «Empieza aquí» partía la barra en dos filas a 1366 px, y la
+sección que se abría bajaba 48 px. El título de la página sí dice «Empieza
+aquí · el Perú en 60 segundos». Medido con `docs/qa/medir_vistazo.py`: las 7
+secciones entran en el primer pantallazo a 1366×768, en ES y en EN, con el
+h1 a 142 px en todas.
+- Revertir: la clave `inicio` en `titulo_corto()`.
+
+**D-32 · Alcance del glosario.** El módulo y sus 14 términos se usan en la
+portada y en Investigación, y el glosario completo está en un expander de la
+portada. No se sembraron términos en el texto de las cinco pestañas
+anteriores: el encargo pide no reescribir lo que ya está bien.
+**Propuesta:** marcar RUC, PR-AUC y dependencia parcial en Informalidad,
+Ficha y «Cómo se hizo» con `glosario.termino()`, en un commit aparte.
+
+**D-33 · Cuatro referencias nuevas en la app.** Son `chen2012`,
+`maloney2004`, `nopo2008` y `nopo_atal_winder2009`. Las cuatro están
+verificadas contra texto crudo (filas 22, 28, 37 y 38 de la matriz). Se
+agregan al final de `REFERENCIAS`, así que la numeración de las llamadas
+existentes no cambia. Un test exige que toda frase «consistente con la
+literatura» cite solo referencias con `verificacion == "contenido"`.

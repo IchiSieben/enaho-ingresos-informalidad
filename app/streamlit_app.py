@@ -36,6 +36,7 @@ Uso:
 from __future__ import annotations
 
 import json
+import math
 import random
 import re
 import sys
@@ -49,7 +50,9 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import contexto
 import estilos
+import glosario
 import graficos
 import i18n
 import referencias
@@ -88,6 +91,7 @@ GRAFICOS_REQUERIDOS = [
     "curva_precision_cobertura", "curva_calibracion", "curva_roc", "curva_pr",
     "barras_importancia", "situador", "dependencia_parcial", "barras_mae",
     "viaje_dato", "viaje_dato_vertical", "viaje_interactivo", "miniatura_pd",
+    "mapa_departamentos", "barras_intervalo",
 ]
 
 # Claves del artefacto sin las que una sección no puede dibujarse. Se listan
@@ -145,23 +149,31 @@ def validar_artefactos(art: dict) -> dict:
 # (clave, icono). El título y la descripción dependen del idioma: salen de
 # titulo_seccion() / descripcion_seccion(), no de esta lista.
 SECCIONES = [
+    ("inicio", ":material/explore:"),
     ("ingreso", ":material/payments:"),
     ("informalidad", ":material/work_history:"),
+    ("investigacion", ":material/science:"),
     ("torneo", ":material/emoji_events:"),
     ("ficha", ":material/fact_check:"),
     ("maquinas", ":material/precision_manufacturing:"),
 ]
 
 
-SECCION_POR_DEFECTO = "ingreso"
+# v2 (D-24): la portada es «Empieza aquí». Para volver a abrir en Ingreso,
+# basta con cambiar esta constante.
+SECCION_POR_DEFECTO = "inicio"
 CLAVES_SECCION = [c for c, _ in SECCIONES]
 
 
 def titulo_corto(clave: str) -> str:
     """Rótulo de la barra superior: las cinco caben en una fila a 1366 px."""
     return {
+        # Rótulo corto: con «Empieza aquí» la barra se partía en dos filas a
+        # 1366 px (D-31). El título de la página sí dice «Empieza aquí».
+        "inicio": L("Inicio", "Start"),
         "ingreso": L("Ingreso", "Income"),
         "informalidad": L("Informalidad", "Informality"),
+        "investigacion": L("Investigación", "Research"),
         "torneo": L("Torneo", "Tournament"),
         "ficha": L("Ficha", "Model card"),
         "maquinas": L("Cómo se hizo", "Making of"),
@@ -170,8 +182,10 @@ def titulo_corto(clave: str) -> str:
 
 def titulo_seccion(clave: str) -> str:
     return {
+        "inicio": L("Empieza aquí", "Start here"),
         "ingreso": L("Estimación de ingreso", "Income estimate"),
         "informalidad": L("Empleo informal", "Informal employment"),
+        "investigacion": L("Investigación", "Research"),
         "torneo": L("Torneo de modelos", "Model tournament"),
         "ficha": L("Ficha técnica", "Model card"),
         "maquinas": L("Cómo se hizo", "How it was built"),
@@ -182,6 +196,14 @@ def titulo_seccion(clave: str) -> str:
 # como mapa de la app.
 def descripcion_seccion(clave: str) -> str:
     return {
+        "inicio": L("El Perú en 60 segundos, qué es la informalidad y un "
+                    "recorrido por la app.",
+                    "Peru in 60 seconds, what informality is, and a tour of "
+                    "the app."),
+        "investigacion": L("Brechas, penalidad, territorio y diálogo con la "
+                           "literatura.",
+                           "Gaps, penalty, geography and a dialogue with the "
+                           "literature."),
         "ingreso": L("Arma un perfil y estima su ingreso mensual típico — "
                      "regresión.",
                      "Build a worker profile and estimate its typical "
@@ -1394,7 +1416,16 @@ def seccion_ingreso(schema: dict, art: dict) -> None:
                      "MAE increase when shuffled (S/)"),
             etiquetas=etiquetas),
             30 + len(imp["variables"]) * 30 + 18)
-    chips_codigo([(L("código: el regresor y su corrección de Duan →", "code: the regressor and its Duan correction →"), "src/07_guardar_regresor.py")])
+    html("<div class='sutil' style='margin-top:12px'>" + L(
+        "¿Cuánto paga cada año de estudio, y cuánto de la brecha entre hombres "
+        "y mujeres no se explica? Está en "
+        + enlace_seccion("investigacion", "Investigación →"),
+        "How much does each school year pay, and how much of the gap between "
+        "men and women goes unexplained? See "
+        + enlace_seccion("investigacion", "Research →")) + "</div>")
+    chips_codigo([(L("código: el regresor y su corrección de Duan →",
+                     "code: the regressor and its Duan correction →"),
+                   "src/07_guardar_regresor.py")])
 
 
 # --------------------------------------------------------------------------
@@ -1439,6 +1470,13 @@ def seccion_informalidad(schema: dict, art: dict) -> None:
                   "Classification · Gradient Boosting"))
 
     _informalidad_en_vivo(schema, art)
+    html("<div class='sutil' style='margin-top:12px'>" + L(
+        "¿Qué pasa con el ingreso cuando el empleo es informal, a igual perfil? "
+        "La penalidad y las escuelas de pensamiento están en "
+        + enlace_seccion("investigacion", "Investigación →"),
+        "What happens to pay when the job is informal, for the same profile? "
+        "The penalty and the schools of thought are in "
+        + enlace_seccion("investigacion", "Research →")) + "</div>")
     chips_codigo([(L("código: entrenamiento del clasificador →",
                      "code: classifier training →"),
                    "src/06_entrenar_clasificador.py")])
@@ -3560,6 +3598,690 @@ def seccion_maquinas(schema: dict, art: dict) -> None:
 DOCENTE = "Orlando Advíncula Zeballos"
 
 
+# --------------------------------------------------------------------------
+# v2, Fase 4: «Empieza aquí» e «Investigación» (D-24 a D-30)
+# --------------------------------------------------------------------------
+def etiqueta_afirmacion(tipo: str) -> str:
+    """Hallazgo propio / consistente con la literatura / lectura nuestra."""
+    texto = {"propio": L("hallazgo propio", "own finding"),
+             "consistente": L("consistente con la literatura", "consistent with the literature"),
+             "lectura": L("lectura nuestra", "our reading")}[tipo]
+    return f"<span class='etq etq-{tipo}'>{texto}</span>"
+
+
+def _ir_a(seccion: str) -> None:
+    # Callback: corre antes del rerun, así la barra ya dibuja la sección nueva.
+    st.session_state["sec"] = seccion
+
+
+def boton_ir(seccion: str, texto: str, clave: str, primario: bool = False) -> None:
+    st.button(texto, key=clave, on_click=_ir_a, args=(seccion,),
+              type="primary" if primario else "secondary",
+              icon=":material/arrow_forward:")
+
+
+def enlace_seccion(seccion: str, texto: str) -> str:
+    """Enlace a otra pestaña dentro de la app (misma pestaña del navegador)."""
+    # Lleva idioma y tema: sincronizar_url() limpia luego los que son defecto.
+    lang, tema = st.session_state["lang"], st.session_state["theme"]
+    return (f"<a href='?sec={seccion}&lang={lang}&theme={tema}' "
+            f"target='_self'>{texto}</a>")
+
+
+def _millones(x: float) -> str:
+    return L(f"{d(x / 1e6, 1)} millones", f"{d(x / 1e6, 1)} million")
+
+
+def _pct_log(x: float) -> float:
+    """Log puntos → % de diferencia entre medias geométricas."""
+    return (math.exp(x) - 1) * 100
+
+
+def seccion_inicio(schema: dict, art: dict) -> None:
+    ctx = contexto.cargar()
+    peru = ctx.get("peru", {})
+    tasas = art["clasificador"]["tasas_observadas"]["rama"]["grupos"]
+
+    cabecera(
+        L("¿Cuánto se gana trabajando en el Perú, y con qué protección?",
+          "What does work pay in Peru, and how protected is it?"),
+        L("Una app sobre la gente que trabaja en el Perú, hecha con la gran "
+          f"encuesta de hogares del país ({glosario.termino('enaho')}). Estima "
+          "ingresos, estima la probabilidad de que un empleo sea informal y "
+          "contrasta ambos con la literatura. No hace falta saber de "
+          "estadística ni del Perú.",
+          "An app about the people who work in Peru, built on the country's "
+          f"main household survey ({glosario.termino('enaho')}). It estimates "
+          "earnings, estimates how likely a job is to be informal, and checks "
+          "both against the research literature. No statistics or Peru "
+          "background needed."),
+        L("Las cifras de esta página salen de la ENAHO 2025 ponderada con sus "
+          "factores de expansión (<code>models/ui_contexto.json</code>, "
+          "<code>src/10_contexto.py</code>); son estimaciones de la encuesta, "
+          "no la proyección oficial de población. La tasa oficial de "
+          "informalidad es del INEI, medida con la EPEN.",
+          "The figures on this page come from ENAHO 2025 weighted with its "
+          "expansion factors (<code>models/ui_contexto.json</code>, "
+          "<code>src/10_contexto.py</code>); they are survey estimates, not "
+          "the official population projection. The official informality rate "
+          "is INEI's, measured with the EPEN survey.") + ref("inei_informal"),
+        seccion="inicio",
+        eyebrow=L("Empieza aquí · el Perú en 60 segundos", "Start here · Peru in 60 seconds"))
+
+    # Tiempo 1: tres cifras y el botón del recorrido.
+    if peru:
+        cifras = [
+            tarjeta(L("Población", "Population"), _millones(peru["poblacion"]),
+                    llano=L(f"Costa {pc(peru['pct_region']['costa'], 0)}, sierra "
+                            f"{pc(peru['pct_region']['sierra'], 0)}, selva "
+                            f"{pc(peru['pct_region']['selva'], 0)}.",
+                            f"Coast {pc(peru['pct_region']['costa'], 0)}, Andes "
+                            f"{pc(peru['pct_region']['sierra'], 0)}, Amazon "
+                            f"{pc(peru['pct_region']['selva'], 0)}."),
+                    nota=L("Estimado con la ENAHO 2025.", "Estimated from ENAHO 2025.")),
+            tarjeta(L("Vive en Lima Metropolitana", "Live in Metropolitan Lima"),
+                    pc(peru["pct_lima_metropolitana"], 0),
+                    llano=L("Una sola ciudad concentra casi un tercio del país.",
+                            "A single city holds almost a third of the country."),
+                    nota=L("Estimado con la ENAHO 2025.", "Estimated from ENAHO 2025.")),
+            tarjeta(L("Empleo informal (oficial)", "Informal employment (official)"),
+                    pc(70.2, 1) + ref("inei_informal"),
+                    llano=L("Siete de cada diez empleos no tienen protección "
+                            "legal ni social.",
+                            "Seven in ten jobs lack legal or social protection."),
+                    nota=L("INEI 2025, con la EPEN.", "INEI 2025, from the EPEN survey.")),
+        ]
+        html("<div class='portada-cifras vistazo-grafico'>" + "".join(cifras) + "</div>")
+    else:
+        aviso(L("Falta <code>models/ui_contexto.json</code>: corre "
+                "<code>src/10_contexto.py</code>.",
+                "<code>models/ui_contexto.json</code> is missing: run "
+                "<code>src/10_contexto.py</code>."))
+
+    with st.container(horizontal=True, gap="small", key="inicio_cta"):
+        boton_ir("ingreso", L("Probar el estimador de ingreso", "Try the income estimator"),
+                 "cta_ingreso", primario=True)
+        boton_ir("investigacion", L("Ver la investigación", "See the research"),
+                 "cta_investigacion")
+
+    # Tiempo 2: qué es la informalidad, con personajes ficticios.
+    html("<h2>" + L("¿Qué es un empleo informal?", "What is an informal job?") + "</h2>"
+         "<div class='entradilla'>" + L(
+             f"Aquí, un {glosario.termino('informal')} es el de un independiente "
+             f"sin {glosario.termino('ruc')} o el de un dependiente al que nadie "
+             "le aporta a una pensión. No es sinónimo de ilegal ni de pobre: es "
+             "trabajo sin la red que da la formalidad.",
+             f"Here, {glosario.termino('informal')} means a self-employed person "
+             f"without a {glosario.termino('ruc')} (tax ID), or an employee with "
+             "no pension contributions. It doesn't mean illegal or poor: it means "
+             "work without the safety net formality provides.") + "</div>")
+    personajes = [
+        (L("Una vendedora de mercado", "A market vendor"), "Comercio",
+         L("Tiene su puesto hace años y vive del día a día.",
+           "She has run her stall for years and lives day to day."),
+         L("en el comercio", "in trade")),
+        (L("Un taxista", "A taxi driver"), "Transporte y almacenamiento",
+         L("Maneja su auto por la ciudad, sin empleador.",
+           "He drives his own car around the city, with no employer."),
+         L("en transporte", "in transport")),
+        (L("Un agricultor", "A farmer"), "Agropecuario y pesca",
+         L("Cultiva una parcela familiar en la sierra.",
+           "He farms a family plot in the Andes."),
+         L("en el agro y la pesca", "in farming and fishing")),
+        (L("Una trabajadora del hogar", "A domestic worker"), "Servicio doméstico",
+         L("Limpia y cocina en la casa de una familia.",
+           "She cleans and cooks in a family's home."),
+         L("en el servicio doméstico", "in domestic service")),
+    ]
+    tarjetas_p = []
+    for rol, rama, historia, donde in personajes:
+        tasa = tasas[rama]["pct_ponderado"]
+        tarjetas_p.append(
+            f"<div class='personaje'><div class='ficticio'>"
+            + L("Personaje ficticio", "Fictional character") + f"</div><h3>{rol}</h3>"
+            f"<p>{historia}</p><p><span class='tasa'>{pc(tasa, 0)}</span> "
+            + L(f"de quienes trabajan {donde} tienen un empleo informal.",
+                f"of workers {donde} hold an informal job.") + "</p></div>")
+    html("<div class='personajes'>" + "".join(tarjetas_p) + "</div>"
+         "<div class='sutil' style='margin-top:8px'>" + L(
+             "Las tasas son de la rama de cada personaje, ponderadas "
+             "(ENAHO 2025, muestra de la app). Los personajes no son personas "
+             "reales.",
+             "Rates are for each character's industry, weighted (ENAHO 2025, "
+             "the app's sample). The characters are not real people.") + "</div>")
+
+    html("<h2>" + L("¿Por qué importa?", "Why does it matter?") + "</h2>")
+    pen = ctx.get("penalidad", {}).get("log_hora", {}).get("A")
+    brecha = (L(f"A igual perfil observable, un empleo informal se asocia con un "
+                f"ingreso por hora {pc(abs(pen['pct']), 0)} menor. ",
+                f"For the same observable profile, an informal job is associated "
+                f"with {pc(abs(pen['pct']), 0)} lower hourly pay. ")
+              + etiqueta_afirmacion("propio")) if pen else ""
+    html("<ul class='entradilla'>"
+         "<li>" + L("<b>Vejez.</b> Sin aportes no se acumula pensión: el costo "
+                    "llega décadas después.",
+                    "<b>Old age.</b> No contributions means no pension: the cost "
+                    "arrives decades later.") + "</li>"
+         "<li>" + L("<b>Salud y riesgo.</b> Sin seguro contributivo, una "
+                    "enfermedad o un accidente se pagan con los ahorros.",
+                    "<b>Health and risk.</b> Without contributory insurance, an "
+                    "illness or an accident is paid out of savings.") + "</li>"
+         "<li>" + L("<b>Crédito.</b> Sin ingresos declarados cuesta más probar "
+                    "que se puede pagar un préstamo.",
+                    "<b>Credit.</b> Without declared income it is harder to show "
+                    "you can repay a loan.") + "</li>"
+         f"<li><b>{L('Ingresos.', 'Earnings.')}</b> {brecha}</li>"
+         "</ul><div class='sutil'>" + etiqueta_afirmacion("lectura") + " "
+         + L("Las tres primeras son consecuencias generales de no tener "
+             "protección, no cifras de esta app.",
+             "The first three are general consequences of lacking "
+             "protection, not figures from this app.") + "</div>")
+
+    html("<h2>" + L("¿Qué hace esta app?", "What does this app do?") + "</h2>"
+         "<div class='entradilla'>" + L(
+             f"Dos modelos de {glosario.termino('gb')}: uno estima el ingreso "
+             "mensual típico de un perfil; el otro, la probabilidad de que ese "
+             "empleo sea informal. Alrededor, la investigación que les da "
+             "contexto. Recorrido sugerido:",
+             f"Two {glosario.termino('gb')} models: one estimates a profile's "
+             "typical monthly income; the other, how likely that job is to be "
+             "informal. Around them, the research that gives them context. "
+             "Suggested tour:") + "</div>")
+    pasos = [
+        ("ingreso", L("1 · Ingreso", "1 · Income"),
+         L("Arma un perfil y mira su ingreso típico.", "Build a profile and see its typical income.")),
+        ("informalidad", L("2 · Informalidad", "2 · Informality"),
+         L("El mismo perfil: ¿qué tan probable es que sea informal?",
+           "Same profile: how likely is it to be informal?")),
+        ("investigacion", L("3 · Investigación", "3 · Research"),
+         L("Brechas, territorio y qué dice la literatura.",
+           "Gaps, geography and what the literature says.")),
+        ("torneo", L("4 · Torneo", "4 · Tournament"),
+         L("Cómo se eligió el modelo entre nueve recetas.",
+           "How the model was chosen among nine recipes.")),
+        ("ficha", L("5 · Ficha", "5 · Model card"),
+         L("Métricas, límites y lo que el modelo no puede hacer.",
+           "Metrics, limits and what the model can't do.")),
+        ("maquinas", L("6 · Cómo se hizo", "6 · Making of"),
+         L("De la encuesta del INEI a la nube, paso a paso.",
+           "From INEI's survey to the cloud, step by step.")),
+    ]
+    columnas = st.columns(3)
+    for i, (sec, titulo, texto) in enumerate(pasos):
+        with columnas[i % 3]:
+            html(f"<div class='paso-recorrido'>{texto}</div>")
+            boton_ir(sec, titulo, f"paso_{sec}")
+
+    with st.expander(L("Glosario", "Glossary"), icon=":material/menu_book:"):
+        html(glosario.lista())
+
+
+# ---------------------------------------------------------------- Investigación
+def _mapa_informalidad(ctx: dict, T_: dict) -> str | None:
+    geo = contexto.cargar_geo()
+    grupos = ctx.get("departamentos", {}).get("grupos", {})
+    if not geo or not grupos:
+        return None
+    nombres = ctx["departamentos"]["nombres"]
+    valores = {c: (g["informal_pct"]["valor"] if g["mostrar"] else None)
+               for c, g in grupos.items()}
+    visibles = sorted(v for v in valores.values() if v is not None)
+    cortes = [round(visibles[int(len(visibles) * q)]) for q in (0.2, 0.4, 0.6, 0.8)]
+    titulos = {c: L(f"{tr(nombres[c])}: {pc(g['informal_pct']['valor'], 1)} informal · "
+                    f"ingreso mediano {sol(g['ingreso_mediano']['valor'])} · n = {n(g['n'])}",
+                    f"{tr(nombres[c])}: {pc(g['informal_pct']['valor'], 1)} informal · "
+                    f"median income {sol(g['ingreso_mediano']['valor'])} · n = {n(g['n'])}")
+               for c, g in grupos.items()}
+    return graficos.mapa_departamentos(
+        geo, valores, titulos, cortes, T_,
+        L("Empleo informal por departamento (ponderado)",
+          "Informal employment by department (weighted)"))
+
+
+def _escuelas(art: dict, ctx: dict) -> None:
+    t = art["clasificador"]["tasas_observadas"]
+    pen = ctx["penalidad"]
+    med = pen["medianas_hora"]
+    esc = [
+        (L("Dualista", "Dualist"),
+         L("La informalidad son actividades marginales, separadas del sector "
+           "formal, que dan ingreso a los pobres y sirven de refugio en las crisis.",
+           "Informality is marginal activity, separate from the formal sector, "
+           "that gives the poor an income and a refuge in crises."),
+         L("Ingresos bajos en lo informal, aun a igual perfil.",
+           "Low informal earnings, even for the same profile."),
+         L(f"Mediana por hora: formal {sol(med['formal']['valor'], 2)}, informal "
+           f"{sol(med['informal']['valor'], 2)}. A igual perfil observable, "
+           f"{pc(abs(pen['log_hora']['A']['pct']), 0)} menos por hora.",
+           f"Median hourly pay: formal {sol(med['formal']['valor'], 2)}, informal "
+           f"{sol(med['informal']['valor'], 2)}. For the same observable profile, "
+           f"{pc(abs(pen['log_hora']['A']['pct']), 0)} less per hour.")),
+        (L("Estructuralista", "Structuralist"),
+         L("Microempresas y trabajadores subordinados a las grandes firmas, que "
+           "abaratan sus costos.",
+           "Micro-enterprises and workers subordinated to large firms, cutting "
+           "their costs."),
+         L("Informalidad concentrada en unidades pequeñas ligadas a las grandes.",
+           "Informality concentrated in small units tied to large ones."),
+         L(f"La informalidad es {pc(t['tamano_empresa']['grupos']['Hasta 20']['pct_ponderado'], 0)} "
+           f"en empresas de hasta 20 personas y {pc(t['tamano_empresa']['grupos']['Más de 500']['pct_ponderado'], 0)} "
+           "en las de más de 500. La encuesta no observa la subcontratación, "
+           "así que el vínculo con las grandes firmas queda sin medir.",
+           f"Informality is {pc(t['tamano_empresa']['grupos']['Hasta 20']['pct_ponderado'], 0)} "
+           f"in firms of up to 20 people and {pc(t['tamano_empresa']['grupos']['Más de 500']['pct_ponderado'], 0)} "
+           "in those over 500. The survey doesn't observe subcontracting, so "
+           "the link to large firms goes unmeasured.")),
+        (L("Legalista", "Legalist"),
+         L("Microempresarios que operan informalmente para evitar el costo, el "
+           "tiempo y el esfuerzo de registrarse (De Soto).",
+           "Micro-entrepreneurs who operate informally to avoid the cost, time "
+           "and effort of registering (De Soto)."),
+         L("Mucha informalidad entre independientes, por falta de registro.",
+           "High informality among the self-employed, from lack of registration."),
+         L(f"{pc(t['categoria']['grupos']['Independiente']['pct_ponderado'], 0)} de "
+           "los independientes no tiene RUC. La encuesta no mide cuánto cuesta "
+           "registrarse, así que no distingue si es por el trámite o por otra cosa.",
+           f"{pc(t['categoria']['grupos']['Independiente']['pct_ponderado'], 0)} of "
+           "the self-employed have no RUC. The survey doesn't measure the cost of "
+           "registering, so it can't tell whether red tape is the reason.")),
+        (L("Voluntarista", "Voluntarist"),
+         L("Informales que eligen serlo tras sopesar costos y beneficios, sin "
+           "culpar al trámite.",
+           "Informal operators who choose it after weighing costs and benefits, "
+           "without blaming red tape."),
+         L("Poca penalidad donde se elige: entre independientes.",
+           "Little penalty where it's a choice: among the self-employed.") + ref("maloney2004"),
+         L(f"La penalidad por hora es mayor entre independientes "
+           f"({pc(abs(pen['log_hora']['independientes']['pct']), 0)}) que entre "
+           f"asalariados ({pc(abs(pen['log_hora']['asalariados']['pct']), 0)}). En "
+           "promedio no favorece esa lectura, aunque los beneficios no monetarios "
+           "(horario, autonomía) no se ven en el ingreso.",
+           f"The hourly penalty is larger among the self-employed "
+           f"({pc(abs(pen['log_hora']['independientes']['pct']), 0)}) than among "
+           f"employees ({pc(abs(pen['log_hora']['asalariados']['pct']), 0)}). On "
+           "average this doesn't favor that reading, though non-monetary "
+           "benefits (schedule, autonomy) don't show up in earnings.")),
+    ]
+    tarjetas_e = "".join(
+        f"<div class='escuela'><h3>{nom}</h3><p>{que}</p>"
+        f"<p><b>{L('Predice', 'Predicts')}:</b> {pred}</p>"
+        f"<p class='datos'><b>{L('Nuestros datos', 'Our data')}:</b> {datos} "
+        f"{etiqueta_afirmacion('lectura')}</p></div>"
+        for nom, que, pred, datos in esc)
+    html("<div class='entradilla'>" + L(
+        "Cuatro escuelas explican la informalidad de manera distinta "
+        + ref("chen2012") + ". No compiten por ser la única verdad: cada una "
+        "describe mejor a una parte de los informales. Esto es lo que nuestros "
+        "datos permiten decir de cada una.",
+        "Four schools explain informality differently " + ref("chen2012")
+        + ". They don't compete to be the whole truth: each fits a part of the "
+        "informal workforce better. Here's what our data can say about each.")
+        + "</div><div class='escuelas'>" + tarjetas_e + "</div>")
+
+
+def _brechas(ctx: dict, T_: dict) -> None:
+    pen, gen, ret = ctx["penalidad"]["log_hora"], ctx["genero"], ctx["retornos"]
+    # Rótulos cortos: el detalle de cada juego de controles va en la nota.
+    et_pen = {"A": L("Mismo perfil", "Same profile"),
+              "B": L("+ rama, categoría, tamaño", "+ industry, category, size"),
+              "asalariados": L("Solo asalariados", "Employees only"),
+              "independientes": L("Solo independientes", "Self-employed only")}
+    html("<h3>" + L("Penalidad de la informalidad", "The informality penalty") + "</h3>"
+         "<div class='entradilla'>" + L(
+             f"Cuánto menos se gana por hora en un empleo informal que en uno "
+             f"formal, a igual perfil. Con su {glosario.termino('ic')}. ",
+             f"How much less an informal job pays per hour than a formal one, "
+             f"for the same profile. With its {glosario.termino('ic')}. ")
+         + etiqueta_afirmacion("propio") + "</div>")
+    grafico(graficos.barras_intervalo(
+        [(et_pen[k], pen[k]["pct"], pen[k]["pct_ic95"][0], pen[k]["pct_ic95"][1], k == "A")
+         for k in et_pen], T_,
+        L("Diferencia en el ingreso por hora, informal vs. formal",
+          "Hourly pay difference, informal vs. formal")), 240)
+    html("<div class='sutil'>" + L(
+        "«Mismo perfil»: igual educación, experiencia, sexo, área y dominio. "
+        "Es una asociación, no el efecto de formalizar a alguien: quien trabaja "
+        "en la informalidad difiere en cosas que la encuesta no ve (habilidad, "
+        "redes, preferencias). Con más controles la diferencia baja, porque "
+        "rama y tamaño también son parte de lo que separa a unos de otros.",
+        "“Same profile”: same schooling, experience, sex, area and domain. "
+        "This is an association, not the effect of formalizing someone: "
+        "informal workers differ in ways the survey doesn't see (skills, "
+        "networks, preferences). With more controls the gap shrinks, because "
+        "industry and firm size are part of what separates the two groups.")
+        + "</div>")
+
+    oax = gen["oaxaca"]["log_hora"]["A"]
+    det = oax["detalle_pooled"]
+    ms = gen["medias_por_sexo"]
+    html("<h3>" + L("Brecha de género", "The gender gap") + "</h3>"
+         "<div class='entradilla'>" + L(
+             f"Por hora, los hombres ganan ≈ {pc(_pct_log(oax['brecha']['valor']), 0)} "
+             "más que las mujeres (medias geométricas). Casi nada de esa "
+             "diferencia se explica por educación, experiencia o lugar: la "
+             "parte que no se explica es incluso mayor que la brecha. ",
+             f"Per hour, men earn ≈ {pc(_pct_log(oax['brecha']['valor']), 0)} more "
+             "than women (geometric means). Almost none of it is explained by "
+             "schooling, experience or place: the unexplained part is even "
+             "larger than the gap itself. ")
+         + etiqueta_afirmacion("propio") + "</div>")
+    filas = [(L("Brecha total", "Total gap"), oax["brecha"]["valor"] * 100,
+              oax["brecha"]["ic95"][0] * 100, oax["brecha"]["ic95"][1] * 100, False),
+             (L("Explicada", "Explained"), oax["pooled"]["explicada"]["valor"] * 100,
+              oax["pooled"]["explicada"]["ic95"][0] * 100,
+              oax["pooled"]["explicada"]["ic95"][1] * 100, False),
+             (L("No explicada", "Unexplained"), oax["pooled"]["no_explicada"]["valor"] * 100,
+              oax["pooled"]["no_explicada"]["ic95"][0] * 100,
+              oax["pooled"]["no_explicada"]["ic95"][1] * 100, True)]
+    grafico(graficos.barras_intervalo(
+        filas, T_, L("Oaxaca-Blinder, ingreso por hora (log puntos × 100)",
+                     "Oaxaca-Blinder, hourly pay (log points × 100)"),
+        fmt=lambda v: d(v, 1)), 200)
+    urb_h, urb_m = ms["Hombre"]["pct_urbano"], ms["Mujer"]["pct_urbano"]
+    html("<div class='entradilla'>" + L(
+        f"¿Por qué la parte explicada es negativa? No es la educación: ese bloque "
+        f"suma {d(det['educacion_experiencia']['valor'] * 100, 1)} a favor de los "
+        f"hombres. Es el lugar: las mujeres que trabajan son más urbanas "
+        f"({pc(urb_m, 0)} frente a {pc(urb_h, 0)}) y están más en Lima, donde se "
+        "gana más por hora; eso, por sí solo, predeciría que ganen más. ",
+        f"Why is the explained part negative? Not schooling: that block adds "
+        f"{d(det['educacion_experiencia']['valor'] * 100, 1)} in men's favor. It's "
+        f"place: working women are more urban ({pc(urb_m, 0)} vs. {pc(urb_h, 0)}) "
+        "and more concentrated in Lima, where hourly pay is higher; on its own, "
+        "that would predict they earn more. ") + etiqueta_afirmacion("propio") + "</div>")
+    nop = gen["nopo"]["A"]
+    html("<div class='sutil'>" + L(
+        f"Contraste con la literatura: {glosario.termino('nopo')} (2008) "
+        + ref("nopo2008") + " encontró para el Perú de 1986-2000 una brecha "
+        "donde la parte no explicada era menor que el total. Aquí es mayor: "
+        "el patrón es nuestro, no una réplica. Sí coincide la existencia de una "
+        "brecha no explicada a favor de los hombres, como en América Latina "
+        + ref("nopo_atal_winder2009") + ". ",
+        f"Against the literature: {glosario.termino('nopo')} (2008) "
+        + ref("nopo2008") + " found for Peru in 1986-2000 a gap whose "
+        "unexplained part was smaller than the total. Here it is larger: the "
+        "pattern is ours, not a replication. What does match is an unexplained "
+        "gap in men's favor, as across Latin America "
+        + ref("nopo_atal_winder2009") + ". ") + etiqueta_afirmacion("consistente")
+        + "</div>")
+    with st.expander(L("Capa 2: especificaciones, Ñopo y unidades",
+                       "Layer 2: specifications, Ñopo and units")):
+        filas_o = "".join(
+            f"<tr><td>{L('Por hora', 'Hourly') if y == 'log_hora' else L('Mensual', 'Monthly')}</td>"
+            f"<td>{c}</td><td>{ref_}</td>"
+            f"<td class='num'>{d(gen['oaxaca'][y][c]['brecha']['valor'], 3)}</td>"
+            f"<td class='num'>{d(gen['oaxaca'][y][c][ref_]['explicada']['valor'], 3)}</td>"
+            f"<td class='num'>{d(gen['oaxaca'][y][c][ref_]['no_explicada']['valor'], 3)}</td></tr>"
+            for y in ("log_hora", "log_mes") for c in ("A", "B")
+            for ref_ in ("pooled", "hombres", "mujeres"))
+        html("<table class='tabla-inv'><tr><th>" + L("Ingreso", "Pay") + "</th><th>"
+             + L("Controles", "Controls") + "</th><th>" + L("Referencia", "Reference")
+             + "</th><th>" + L("Brecha", "Gap") + "</th><th>" + L("Explicada", "Explained")
+             + "</th><th>" + L("No explicada", "Unexplained") + "</th></tr>"
+             + filas_o + "</table><div class='sutil' style='margin-top:8px'>" + L(
+                 "Controles A: educación, experiencia, área y dominio. B: A más rama, "
+                 "categoría y tamaño (malos controles: también son resultados). La "
+                 "parte no explicada tiene el mismo signo en las seis variantes por "
+                 f"hora. Ñopo (celdas de educación × edad × área × dominio): Δ = "
+                 f"{pc(nop['delta']['valor'] * 100, 1)}, no explicada "
+                 f"{pc(nop['d0']['valor'] * 100, 1)}, soporte común "
+                 f"{pc(nop['soporte_mujeres']['valor'] * 100, 1)} de las mujeres. "
+                 "Unidades: Oaxaca trabaja con medias de logaritmos (medias "
+                 "geométricas); Ñopo, con medias aritméticas relativas a la de "
+                 "las mujeres. Por eso sus porcentajes no coinciden y no se "
+                 "contradicen.",
+                 "Controls A: schooling, experience, area and domain. B: A plus "
+                 "industry, category and size (bad controls: they are outcomes "
+                 "too). The unexplained part keeps its sign across all six hourly "
+                 f"variants. Ñopo (cells of schooling × age × area × domain): Δ = "
+                 f"{pc(nop['delta']['valor'] * 100, 1)}, unexplained "
+                 f"{pc(nop['d0']['valor'] * 100, 1)}, common support "
+                 f"{pc(nop['soporte_mujeres']['valor'] * 100, 1)} of women. Units: "
+                 "Oaxaca works with means of logs (geometric means); Ñopo with "
+                 "arithmetic means relative to women's. That's why their "
+                 "percentages differ without contradicting each other.") + "</div>")
+
+    et_ret = {"total": L("Todos", "Everyone"), "asalariados": L("Asalariados", "Employees"),
+              "independientes": L("Independientes", "Self-employed"),
+              "formales": L("Formales", "Formal"), "informales": L("Informales", "Informal")}
+    html("<h3>" + L("Retornos a la educación", "Returns to education") + "</h3>"
+         "<div class='entradilla'>" + L(
+             f"Cuánto más se gana por hora por cada año de estudio "
+             f"({glosario.termino('retorno')}), según dónde se trabaja. ",
+             f"How much more each year of schooling pays per hour "
+             f"({glosario.termino('retorno')}), by where people work. ")
+         + etiqueta_afirmacion("propio") + "</div>")
+    grafico(graficos.barras_intervalo(
+        [(et_ret[k], ret[k]["coef"] * 100, ret[k]["ic95"][0] * 100, ret[k]["ic95"][1] * 100,
+          k == "total") for k in et_ret], T_,
+        L("Retorno por año de educación (% por hora)", "Return per year of schooling (% per hour)"),
+        fmt=lambda v: pc(v, 1)), 250)
+    html("<div class='sutil'>" + L(
+        "El orden coincide con Yamada (2007) " + ref("yamada2007")
+        + ": más retorno para asalariados que para independientes. Los niveles "
+        "de 2025 son menores que los de 2004 y que el promedio regional "
+        + ref("psacharopoulos2018") + "; con años, muestras y "
+        "especificaciones distintas, eso no se interpreta como una caída. ",
+        "The ordering matches Yamada (2007) " + ref("yamada2007")
+        + ": higher returns for employees than for the self-employed. The 2025 "
+        "levels are below 2004's and the regional average "
+        + ref("psacharopoulos2018") + "; with different years, samples and "
+        "specifications, that isn't read as a decline. ")
+        + etiqueta_afirmacion("consistente") + "</div>")
+
+
+def _territorio(ctx: dict, T_: dict) -> None:
+    svg = _mapa_informalidad(ctx, T_)
+    grupos = ctx["departamentos"]["grupos"]
+    nombres = ctx["departamentos"]["nombres"]
+    c1, c2 = st.columns([1, 1], gap="large")
+    with c1:
+        if svg:
+            grafico(svg, 620)
+        html("<div class='sutil'>" + L(
+            "Pasa el cursor por un departamento para ver su tasa, su ingreso "
+            "mediano y cuántas personas encuestadas hay detrás. Lima incluye "
+            "Lima Metropolitana y Lima provincias, como en la ENAHO. Límites: "
+            "geoBoundaries (dominio público).",
+            "Hover over a department to see its rate, median income and how "
+            "many respondents stand behind it. Lima includes Metropolitan Lima "
+            "and the Lima provinces, as in the ENAHO. Boundaries: geoBoundaries "
+            "(public domain).") + "</div>")
+    with c2:
+        orden = sorted(grupos, key=lambda c: -grupos[c]["informal_pct"]["valor"])
+        filas = "".join(
+            f"<tr><td>{tr(nombres[c])}</td>"
+            f"<td class='num'>{pc(grupos[c]['informal_pct']['valor'], 1)}</td>"
+            f"<td class='num'>{sol(grupos[c]['ingreso_mediano']['valor'])}</td>"
+            f"<td class='num'>{n(grupos[c]['n'])}</td></tr>"
+            for c in orden if grupos[c]["mostrar"])
+        html("<table class='tabla-inv'><tr><th>" + L("Departamento", "Department")
+             + "</th><th>" + L("Informal", "Informal") + "</th><th>"
+             + L("Ingreso mediano", "Median income") + "</th><th>n</th></tr>"
+             + filas + "</table>")
+    html("<div class='sutil'>" + etiqueta_afirmacion("propio") + " " + L(
+        "Ponderado con el factor de expansión; la media de los departamentos "
+        f"reproduce la tasa de la muestra ({pc(ctx['departamentos']['control_nacional'], 1)}). "
+        "Es la muestra de la app (ocupados con ingreso), por eso queda debajo "
+        "de la tasa oficial.",
+        "Weighted with the expansion factor; the department average "
+        f"reproduces the sample rate ({pc(ctx['departamentos']['control_nacional'], 1)}). "
+        "It's the app's sample (employed people with income), which is why it "
+        "sits below the official rate.") + "</div>")
+
+
+def _cruces(ctx: dict) -> None:
+    pen = ctx["penalidad"]["log_hora"]
+    filas = [
+        (L("Informalidad y bajos ingresos van juntos, aun a igual perfil.",
+           "Informality and low pay go together, even for the same profile."),
+         L("Escuela dualista", "Dualist school") + ref("chen2012"), "lectura"),
+        (L("La penalidad es mayor entre independientes que entre asalariados.",
+           "The penalty is larger among the self-employed than among employees."),
+         L("Visión voluntarista", "Voluntarist view") + ref("maloney2004"), "lectura"),
+        (L("La brecha de género no explicada supera a la brecha total.",
+           "The unexplained gender gap exceeds the total gap."),
+         L("Distinto de Ñopo (2008) para 1986-2000", "Differs from Ñopo (2008) for 1986-2000")
+         + ref("nopo2008"), "propio"),
+        (L("Existe una brecha de género no explicada a favor de los hombres.",
+           "There is an unexplained gender gap in men's favor."),
+         "Ñopo, Atal y Winder (2009)" + ref("nopo_atal_winder2009"), "consistente"),
+        (L("El retorno a la educación es mayor en asalariados que en independientes.",
+           "Returns to schooling are higher for employees than for the self-employed."),
+         "Yamada (2007)" + ref("yamada2007"), "consistente"),
+        (L("Las tasas por departamento y tamaño de empresa muestran informalidad "
+           "concentrada en unidades pequeñas y zonas rurales.",
+           "Department and firm-size rates show informality concentrated in small "
+           "units and rural areas."),
+         L("Contraste de referencia con el INEI (EPEN)", "Reference contrast with INEI (EPEN)")
+         + ref("inei_informal"), "propio"),
+    ]
+    html("<div class='entradilla'>" + L(
+        "Cada hallazgo, con su fuente y su etiqueta: <b>hallazgo propio</b> (sale "
+        "de nuestros datos), <b>consistente con la literatura</b> (una fuente "
+        "verificada dice lo mismo) o <b>lectura nuestra</b> (interpretación).",
+        "Each finding with its source and its label: <b>own finding</b> (from our "
+        "data), <b>consistent with the literature</b> (a verified source says the "
+        "same) or <b>our reading</b> (interpretation).") + "</div>"
+        "<table class='tabla-inv'><tr><th>" + L("Hallazgo", "Finding") + "</th><th>"
+        + L("Diálogo con", "In dialogue with") + "</th><th>" + L("Etiqueta", "Label")
+        + "</th></tr>" + "".join(f"<tr><td>{h}</td><td>{f}</td><td>{etiqueta_afirmacion(e)}</td></tr>"
+                                 for h, f, e in filas) + "</table>")
+    html("<div class='sutil' style='margin-top:8px'>" + L(
+        f"Penalidad por hora a igual perfil: {pc(pen['A']['pct'], 1)}. Todas las "
+        "cifras de esta pestaña son asociaciones, no efectos causales.",
+        f"Hourly penalty for the same profile: {pc(pen['A']['pct'], 1)}. Every "
+        "figure in this tab is an association, not a causal effect.") + "</div>")
+
+
+def _etica() -> None:
+    html("<div class='entradilla'>" + L(
+        "<p><b>Agregados, no personas.</b> Sexo, región y lengua se analizan "
+        "como brechas estructurales entre grupos. Ninguna cifra describe cómo es "
+        "una persona: describe cómo le va a un grupo en el mercado laboral.</p>"
+        "<p><b>El clasificador señala configuraciones de empleo, no personas.</b> "
+        "Sirve para priorizar dónde mirar (por ejemplo, qué rama o tamaño de "
+        "empresa concentra informalidad), no para fiscalizar ni para decidir "
+        "sobre alguien.</p>"
+        "<p><b>Los errores no se reparten igual.</b> Un modelo que señala mal "
+        "puede dejar fuera justo a quien necesitaba un programa, o cargar de "
+        "controles a quien no correspondía. Por eso el umbral se muestra y se "
+        "puede mover, y la ficha técnica declara sus límites.</p>"
+        "<p><b>Lo que se calcula y no se muestra.</b> Las brechas por lengua "
+        "materna están calculadas, pero no se publican hasta una revisión "
+        "cuidadosa del encuadre.</p>",
+        "<p><b>Aggregates, not people.</b> Sex, region and language are analyzed "
+        "as structural gaps between groups. No figure describes what a person is "
+        "like: it describes how a group fares in the labor market.</p>"
+        "<p><b>The classifier flags job configurations, not people.</b> It helps "
+        "prioritize where to look (say, which industry or firm size concentrates "
+        "informality), not to police or decide about anyone.</p>"
+        "<p><b>Errors aren't evenly spread.</b> A model that flags wrongly can "
+        "leave out exactly who needed a program, or pile checks on who didn't. "
+        "That's why the threshold is shown and adjustable, and the model card "
+        "states its limits.</p>"
+        "<p><b>What is computed but not shown.</b> Gaps by mother tongue are "
+        "computed but not published until the framing gets a careful review.</p>")
+        + "</div>")
+
+
+def _lengua(ctx: dict) -> None:
+    """Solo se dibuja con MOSTRAR_LENGUA en True (D-16)."""
+    grupos = ctx["lengua"]["grupos"]
+    brecha = ctx["lengua"]["brecha_ajustada"]
+    filas = "".join(
+        f"<tr><td>{tr(lg)}</td><td class='num'>{pc(g['informal_pct']['valor'], 1)}</td>"
+        f"<td class='num'>{sol(g['ingreso_mediano']['valor'])}</td>"
+        f"<td class='num'>{pc(brecha[lg]['pct'], 1) if lg in brecha else '—'}</td>"
+        f"<td class='num'>{n(g['n'])}</td></tr>"
+        for lg, g in grupos.items() if g["mostrar"])
+    html("<table class='tabla-inv'><tr><th>" + L("Lengua materna", "Mother tongue")
+         + "</th><th>" + L("Informal", "Informal") + "</th><th>"
+         + L("Ingreso mediano", "Median income") + "</th><th>"
+         + L("Brecha por hora vs. castellano", "Hourly gap vs. Spanish") + "</th><th>n</th></tr>"
+         + filas + "</table>")
+
+
+def seccion_investigacion(schema: dict, art: dict) -> None:
+    ctx = contexto.cargar()
+    cabecera(
+        L("¿Qué dicen estos datos frente a la literatura?",
+          "What do these data say against the literature?"),
+        L("Brechas de ingreso, penalidad de la informalidad y territorio, "
+          "calculados con la ENAHO 2025 y puestos en diálogo con la economía "
+          "laboral. Cada afirmación lleva su etiqueta: hallazgo propio, "
+          "consistente con la literatura o lectura nuestra.",
+          "Earnings gaps, the informality penalty and geography, computed from "
+          "ENAHO 2025 and set against labor economics research. Every claim "
+          "carries its label: own finding, consistent with the literature, or "
+          "our reading."),
+        L("Todo sale de <code>src/10_contexto.py</code> (reporte en "
+          "<code>reports/10_contexto.md</code>): muestra de la app, ponderada "
+          "con FAC500A, errores por bootstrap de conglomerados. Descriptivo o "
+          "de asociación: ninguna cifra es un efecto causal.",
+          "Everything comes from <code>src/10_contexto.py</code> (report in "
+          "<code>reports/10_contexto.md</code>): the app's sample, weighted "
+          "with FAC500A, cluster-bootstrap errors. Descriptive or associative: "
+          "no figure is a causal effect."),
+        seccion="investigacion",
+        eyebrow=L("Investigación · economía laboral", "Research · labor economics"))
+    if not ctx:
+        aviso(L("Falta <code>models/ui_contexto.json</code>: corre "
+                "<code>src/10_contexto.py</code> para ver esta pestaña.",
+                "<code>models/ui_contexto.json</code> is missing: run "
+                "<code>src/10_contexto.py</code> to see this tab."))
+        return
+
+    T_ = T()
+    pen = ctx["penalidad"]["log_hora"]["A"]
+    oax = ctx["genero"]["oaxaca"]["log_hora"]["A"]
+    ret = ctx["retornos"]
+    c1, c2 = st.columns([3, 2], gap="large")
+    with c1:
+        svg = _mapa_informalidad(ctx, T_)
+        if svg:
+            grafico(svg, 470, vistazo=True)
+    with c2:
+        vistazo_resumen(
+            [(pc(pen["pct"], 0), L("ingreso por hora de un empleo informal, a igual perfil",
+                                   "hourly pay in an informal job, same profile")),
+             (pc(_pct_log(oax["pooled"]["no_explicada"]["valor"]), 0),
+              L("de brecha de género por hora que no explican educación ni lugar",
+                "of the hourly gender gap not explained by schooling or place")),
+             (pc(ret["asalariados"]["coef"] * 100, 1) + " / " + pc(ret["independientes"]["coef"] * 100, 1),
+              L("retorno por año de estudio: asalariados / independientes",
+                "return per school year: employees / self-employed"))],
+            L("Asociaciones, no efectos causales. El detalle y sus fuentes, en las "
+              "pestañas de abajo.",
+              "Associations, not causal effects. Details and sources in the tabs "
+              "below."))
+
+    nombres = [L("Escuelas de pensamiento", "Schools of thought"),
+               L("Brechas y penalidad", "Gaps and penalty"),
+               L("Territorio", "Geography"),
+               L("Cruces con la literatura", "Links to the literature"),
+               L("Ética y límites", "Ethics and limits")]
+    if contexto.MOSTRAR_LENGUA:
+        nombres.append(L("Lengua materna", "Mother tongue"))
+    pestanas = st.tabs(nombres)
+    with pestanas[0]:
+        _escuelas(art, ctx)
+    with pestanas[1]:
+        _brechas(ctx, T_)
+    with pestanas[2]:
+        _territorio(ctx, T_)
+    with pestanas[3]:
+        _cruces(ctx)
+    with pestanas[4]:
+        _etica()
+    if contexto.MOSTRAR_LENGUA:
+        with pestanas[5]:
+            _lengua(ctx)
+    chips_codigo([(L("código: brechas, penalidad y territorio →",
+                     "code: gaps, penalty and geography →"), "src/10_contexto.py"),
+                  (L("código: el mapa →", "code: the map →"), "src/10b_mapa_geo.py")])
+
+
 def pie_creditos() -> None:
     """
     Autoría completa en TODAS las secciones: sin sidebar, el pie es el único
@@ -3680,7 +4402,11 @@ def main() -> None:
     # que se deja al final).
     st.session_state["_animar"] = seccion != st.session_state.get("_ultima_seccion")
     st.session_state["_ultima_seccion"] = seccion
-    if seccion == "ingreso":
+    if seccion == "inicio":
+        seccion_inicio(schema, art)
+    elif seccion == "investigacion":
+        seccion_investigacion(schema, art)
+    elif seccion == "ingreso":
         seccion_ingreso(schema, art)
     elif seccion == "informalidad":
         seccion_informalidad(schema, art)
