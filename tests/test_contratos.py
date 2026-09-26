@@ -214,7 +214,8 @@ def test_el_embudo_svg_muestra_motivo_y_porcentaje():
          ("fuera 3", 3, motivos[2])],
         [("Train", 400, "entrena"), ("Test", 97, "evalúa")], PALETAS["claro"])
     titulos = unescape(" ".join(re.findall(r"<title>(.*?)</title>", svg)))
-    visible = unescape(" ".join(re.findall(r"<text[^>]*>(.*?)</text>", svg)))
+    # Desde la 1.6 cifra y % van con espacio duro; aquí importa que se vean.
+    visible = unescape(" ".join(re.findall(r"<text[^>]*>(.*?)</text>", svg))).replace(" ", " ")
     for m in motivos:
         assert m in titulos
         assert m in visible, f"motivo no visible: {m}"

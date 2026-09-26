@@ -246,7 +246,10 @@ def css(T: dict[str, str]) -> str:
 .block-container {{
   padding-top: 4px !important;
   padding-bottom: var(--e12) !important;
-  max-width: 1400px;
+  /* 1.6: tope real y centrado. Sin !important el ancho «wide» de Streamlit
+     ganaba y en ultrawide el contenido llegaba a 2 500 px. */
+  max-width: 1360px !important;
+  margin-left: auto !important; margin-right: auto !important;
 }}
 
 html, body, [data-testid="stAppViewContainer"] * {{
@@ -273,7 +276,7 @@ body {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
   font-feature-settings: "tnum" 1;
 }}
 
-h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.02em; font-weight: 600; }}
+h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.015em; font-weight: 600; }}
 [data-testid="stAppViewContainer"] h1,
 [data-testid="stAppViewContainer"] h2,
 [data-testid="stAppViewContainer"] h3,
@@ -287,7 +290,7 @@ h1, h2, h3, h4 {{ color: {T['titulo']}; letter-spacing: -0.02em; font-weight: 60
 [data-testid="stAppViewContainer"] h3 {{ font-size: {F['medio']} !important; padding: 0 !important;
                                         margin: 24px 0 8px 0 !important; }}
 h1 {{ font-size: {F['titulo']}; font-weight: 700 !important; line-height: 1.12;
-      letter-spacing: -0.03em; margin: 0; max-width: 1000px;
+      letter-spacing: -0.015em; margin: 0; max-width: 1000px;
       animation: aparecer 220ms cubic-bezier(.2,.7,.2,1) both; }}
 h2 {{ font-size: {F['sub']}; font-weight: 650 !important; line-height: 1.25;
       margin: var(--e8) 0 var(--e3) 0; max-width: 46ch; }}
@@ -896,8 +899,17 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
 .tarjeta {{ transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }}
 .tarjeta:hover {{ transform: translateY(-2px); border-color: {T['acento']}55; }}
 
-.eyebrow-seccion {{ color: {T['acento_alto']}; margin-bottom: calc(-1 * var(--e2)); }}
-.entradilla {{ font-size: {F['medio']}; max-width: 70ch; color: {T['texto_medio']}; }}
+.eyebrow-seccion {{ color: {T['acento_alto']}; }}
+/* Ritmo de la cabecera de sección, igual en las cinco: eyebrow → título
+   6 px, título → entradilla 12 px (16 del hueco de Streamlit − 4). */
+/* Streamlit da −1rem de margen inferior al contenedor de un markdown: el
+   h1 desbordaba su caja y el botón de detalle quedaba 16 px por encima. */
+[data-testid="stMarkdownContainer"]:has(> .cabecera) {{ margin-bottom: 0 !important; }}
+.cabecera .eyebrow-seccion {{ margin: 0 0 6px 0; }}
+.cabecera h1 {{ margin: 0 !important; }}
+[data-testid="stElementContainer"]:has(.cab-entradilla) {{ margin-top: -4px; }}
+.st-key-cab_titulo [data-testid="stPopover"] button {{ white-space: nowrap; }}
+.entradilla {{ font-size: {F['medio']}; max-width: 75ch; color: {T['texto_medio']}; }}
 
 /* Franja de cifras clave: la portada ejecutiva */
 .franja-kpi {{
@@ -930,6 +942,9 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
   letter-spacing: -0.04em; line-height: 1; color: {T['acento_alto']};
   font-variant-numeric: tabular-nums;
 }}
+/* «S/» más chico y pegado: en la mono el espacio era casi un carácter ancho. */
+.hero-valor .moneda {{ font-size: 0.55em; margin-right: 0.12em; letter-spacing: 0;
+                      color: {T['texto_medio']}; }}
 .hero-rel {{ font-size: {F['sub']}; font-weight: 600; color: {T['texto']}; letter-spacing: -0.01em; }}
 .hero-barra {{ position: relative; height: 10px; border-radius: 999px;
               background: {T['dato_tenue']}66; }}
@@ -1048,22 +1063,37 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
   border-bottom: 1px solid transparent; transition: color 150ms, border-color 150ms;
 }}
 .marca-barra a.volver:hover {{ color: {T['acento_alto']}; border-bottom-color: {T['acento_alto']}; }}
-/* Navegación activa: fondo de acento pleno. El resto, texto medio sin borde. */
+/* Navegación: cinco pestañas separadas, cada una con su hover y su cursor;
+   la activa lleva fondo de acento pleno. Los ajustes (idioma, tema) quedan
+   aparte, a la derecha, tras una línea vertical. */
+section[data-testid="stMain"] .st-key-barra .st-key-sec [role="radiogroup"] {{ gap: 6px; }}
 section[data-testid="stMain"] .st-key-barra .st-key-sec button {{
   background: transparent !important; border-color: transparent !important;
-  padding: 6px 9px !important;
+  border-radius: var(--r-md) !important; padding: 6px 12px !important;
+  cursor: pointer; transition: background-color 150ms ease;
 }}
 section[data-testid="stMain"] .st-key-barra .st-key-sec button p {{
   color: {T['texto_medio']} !important; font-size: {F['cuerpo']} !important;
   font-weight: 500;
 }}
+section[data-testid="stMain"] .st-key-barra .st-key-sec button:hover:not([aria-checked="true"]) {{
+  background: {T['acento']}1f !important;
+}}
 section[data-testid="stMain"] .st-key-barra .st-key-sec button:hover p {{ color: {T['acento_alto']} !important; }}
+section[data-testid="stMain"] .st-key-barra .st-key-sec button:focus-visible {{
+  outline: 2px solid {T['acento']}; outline-offset: 2px;
+}}
 section[data-testid="stMain"] .st-key-barra .st-key-sec button[aria-checked="true"] {{
   background: {T['acento']} !important; border-color: {T['acento']} !important;
 }}
 section[data-testid="stMain"] .st-key-barra .st-key-sec button[aria-checked="true"] p {{
   color: {T['boton_texto']} !important; font-weight: 600;
 }}
+/* Streamlit envuelve el grupo en un div: el margen va en el envoltorio. */
+.st-key-barra > div:has(> .st-key-ajustes) {{ margin-left: auto; }}
+.st-key-ajustes {{ padding-left: var(--e4); border-left: 1px solid {T['borde_sutil']}; }}
+section[data-testid="stMain"] .st-key-barra .st-key-lang button,
+section[data-testid="stMain"] .st-key-barra .st-key-theme button {{ cursor: pointer; }}
 section[data-testid="stMain"] .st-key-barra .st-key-lang button,
 section[data-testid="stMain"] .st-key-barra .st-key-theme button {{ padding: 4px 10px !important; }}
 section[data-testid="stMain"] .st-key-barra .st-key-lang button p,
@@ -1237,6 +1267,8 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
      en cada scroll, así que se queda arriba, en el flujo. */
   .st-key-barra {{ flex-wrap: wrap !important; row-gap: var(--e2) !important;
                   position: static !important; }}
+  .st-key-ajustes {{ padding-left: 0; border-left: none; }}
+  .st-key-cab_titulo {{ flex-wrap: wrap !important; }}
   .st-key-sec {{ order: 3; width: 100% !important; max-width: 100%; overflow-x: auto; }}
   .st-key-sec > div {{ flex-wrap: nowrap !important; }}
   section[data-testid="stMain"] .st-key-barra .st-key-sec button {{ white-space: nowrap; flex-shrink: 0; }}

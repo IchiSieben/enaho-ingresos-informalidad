@@ -19,7 +19,7 @@ from __future__ import annotations
 import math
 from html import escape
 
-from i18n import L, n as _n_i18n, pc, tr
+from i18n import L, n as _n_i18n, pc, sol, tr
 
 
 def envolver(svg: str, css_iframe: str) -> str:
@@ -718,12 +718,12 @@ def dependencia_parcial(valores, efecto, tipo: str, etiqueta: str, T: dict,
                        + f"\n{relacion}{tuyo}")
             else:
                 relacion = (mas_alto if e >= pico - 1e-9 else
-                            L(f"queda S/ {_n(pico - e, 0)} por debajo del "
+                            L(f"queda {sol(pico - e, 0)} por debajo del "
                               f"valor más alto",
-                              f"S/ {_n(pico - e, 0)} below the highest value"))
+                              f"{sol(pico - e, 0)} below the highest value"))
                 tip = (v_txt + ": "
-                       + L(f"S/ {_n(e, 0)} de ingreso típico estimado",
-                           f"S/ {_n(e, 0)} estimated typical income")
+                       + L(f"{sol(e, 0)} de ingreso típico estimado",
+                           f"{sol(e, 0)} estimated typical income")
                        + f"\n{relacion}{tuyo}")
             partes.append(f"<rect class='anim-columna' "
                           f"style='animation-delay:{i * 40}ms' "

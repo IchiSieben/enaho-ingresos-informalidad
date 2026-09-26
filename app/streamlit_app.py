@@ -53,7 +53,7 @@ import graficos
 import i18n
 import referencias
 from estilos import PALETAS
-from i18n import L, d, n, pc, pct, tr
+from i18n import L, NBSP, d, n, no_cortar, pc, pct, sol, tr
 from referencias import ref
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -419,7 +419,7 @@ def sincronizar_url() -> None:
 
 
 def html(s: str) -> None:
-    st.markdown(s, unsafe_allow_html=True)
+    st.markdown(no_cortar(s), unsafe_allow_html=True)
 
 
 def tarjeta(etiqueta: str, valor: str, nota: str = "", color: str | None = None,
@@ -443,16 +443,20 @@ def cabecera(pregunta: str, llano: str, detalle: str, seccion: str,
     igual eran el mismo widget). El popover de v1.2 no guarda estado, pero se
     conserva el parámetro: las cinco llamadas lo pasan.
     """
-    if eyebrow:
-        html(f"<div class='eyebrow eyebrow-seccion'>{eyebrow}</div>")
-    html(f"<h1>{pregunta}</h1>")
-    # v1.2: el detalle va en un popover al final de la entradilla, no en un
-    # expander a todo el ancho: son ~50 px menos antes de los controles.
-    with st.container(horizontal=True, vertical_alignment="bottom", gap="small"):
-        html(f"<div class='entradilla'>{llano}</div>")
+    # 1.6: eyebrow y título en un bloque, con el «Detalle técnico» en la
+    # misma fila, alineado a la derecha y a la base del título: la misma
+    # posición en las cinco secciones, y el popover flota sin empujar nada.
+    # (Debajo de la entradilla costaba 30 px y el gráfico de Informalidad
+    # salía del primer pantallazo a 1366×768.) El ritmo 6 / 12 px lo ponen
+    # los márgenes, no el hueco fijo de 16 px entre elementos de Streamlit.
+    ceja = f"<div class='eyebrow eyebrow-seccion'>{eyebrow}</div>" if eyebrow else ""
+    with st.container(horizontal=True, vertical_alignment="bottom",
+                      gap="medium", key="cab_titulo"):
+        html(f"<div class='cabecera'>{ceja}<h1>{pregunta}</h1></div>")
         with st.popover(L("Detalle técnico", "Technical detail"),
                         icon=":material/info:", type="tertiary"):
             html(f"<div class='sutil' style='max-width:68ch'>{detalle}</div>")
+    html(f"<div class='entradilla cab-entradilla'>{llano}</div>")
 
 
 def grafico(svg: str, alto: int, vistazo: bool = False,
@@ -853,7 +857,7 @@ def franja_kpi(schema: dict, art: dict) -> None:
         (str(len(tabla)) if tabla else "—",
          L("modelos en el torneo", "models in the tournament"),
          L("mismas filas, mismos pliegues", "same rows, same folds")),
-        (f"S/ {n(mae)}", L("error medio del ingreso", "income mean abs. error"),
+        (f"{sol(mae)}", L("error medio del ingreso", "income mean abs. error"),
          L("MAE en test, por persona", "test MAE, per person")),
         (d(prauc, 2) if prauc else "—",
          L("PR-AUC informalidad", "informality PR-AUC"),
@@ -1148,19 +1152,20 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
     tope = max(ingreso, mediana_pob, media) * 1.15
     html(f"<div class='hero-cifra{clase_quieta()}'>"
          f"<div class='eyebrow'>{L('Ingreso mensual típico estimado', 'Estimated typical monthly income')}</div>"
-         f"<div class='hero-fila'><span class='hero-valor'>S/ {n(ingreso)}</span>"
+         f"<div class='hero-fila'><span class='hero-valor'><span class='moneda'>S/"
+         f"</span>{n(ingreso)}</span>"
          f"<span class='hero-rel'>{rel}</span></div>"
          f"<div class='hero-barra'>"
          f"<div class='hero-relleno' style='width:{ingreso / tope * 100:.1f}%'></div>"
          f"<div class='hero-marca{' hero-marca-der' if mediana_pob / tope > 0.7 else ''}' "
          f"style='left:{mediana_pob / tope * 100:.1f}%'>"
-         f"<span>{L('mediana país', 'national median')} S/ {n(mediana_pob)}</span></div>"
+         f"<span>{L('mediana país', 'national median')} {sol(mediana_pob)}</span></div>"
          f"</div></div>")
 
     # El ingreso típico ya es la cifra protagonista: las tarjetas dan el
     # contexto (promedio, país, casos parecidos), no lo repiten.
     tarjetas = [
-        tarjeta(L("ingreso esperado", "expected income"), f"S/ {n(media)}",
+        tarjeta(L("ingreso esperado", "expected income"), f"{sol(media)}",
                 llano=L("El promedio. Es más alto porque unos pocos "
                         "sueldos muy grandes lo jalan hacia arriba.",
                         "The average. It's higher because a few very "
@@ -1172,12 +1177,12 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
                        f"offsets training on the log scale — see “How to "
                        f"read these figures”.")),
         tarjeta(L("mediana del país", "national median"),
-                f"S/ {n(mediana_pob)}",
+                f"{sol(mediana_pob)}",
                 llano=L(f"Para comparar: la mitad de todos los "
                         f"trabajadores del país gana menos de "
-                        f"S/ {n(mediana_pob)}.",
+                        f"{sol(mediana_pob)}.",
                         f"For reference: half of all workers in Peru "
-                        f"earn less than S/ {n(mediana_pob)}.")),
+                        f"earn less than {sol(mediana_pob)}.")),
     ]
 
     # IQR de casos comparables
@@ -1198,33 +1203,33 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
             tarjetas.append(tarjeta(
                 L("casos comparables", "comparable cases")
                 + f" (<span class='pista' title='{pista}'>P25–P75</span>)",
-                f"S/ {n(comp['p25'])} – {n(comp['p75'])}",
+                f"{sol(comp['p25'])} – {n(comp['p75'])}",
                 L(f"{tr(v['sexo']).lower()}, área {tr(v['area']).lower()}, "
-                  f"{banda} años de educación · mediana S/ {n(comp['p50'])}"
+                  f"{banda} años de educación · mediana {sol(comp['p50'])}"
                   f" · n={n(comp['n'])}",
                   f"{tr(v['sexo']).lower()}, {tr(v['area']).lower()} area, "
-                  f"{banda} years of schooling · median S/ "
-                  f"{n(comp['p50'])} · n={n(comp['n'])}"),
+                  f"{banda} years of schooling · median "
+                  f"{sol(comp['p50'])} · n={n(comp['n'])}"),
                 llano=L(f"De los {n(comp['n'])} encuestados parecidos a "
                         f"este perfil, la mitad del medio gana entre "
-                        f"S/ {n(comp['p25'])} y S/ {n(comp['p75'])}: un "
-                        f"25 % gana menos que S/ {n(comp['p25'])} y un "
-                        f"25 % más que S/ {n(comp['p75'])}.",
+                        f"{sol(comp['p25'])} y {sol(comp['p75'])}: un "
+                        f"25 % gana menos que {sol(comp['p25'])} y un "
+                        f"25 % más que {sol(comp['p75'])}.",
                         f"Of the {n(comp['n'])} respondents similar to "
                         f"this profile, the middle half earns between "
-                        f"S/ {n(comp['p25'])} and S/ {n(comp['p75'])}: "
-                        f"25% earn less than S/ {n(comp['p25'])} and 25% "
-                        f"more than S/ {n(comp['p75'])}.")))
+                        f"{sol(comp['p25'])} and {sol(comp['p75'])}: "
+                        f"25% earn less than {sol(comp['p25'])} and 25% "
+                        f"more than {sol(comp['p75'])}.")))
 
     html("<div class='rejilla-tarjetas'>" + "".join(tarjetas) + "</div>")
     st.write("")
     mae = reg["metricas_test"]["mae_mediana"]
     aviso(L(f"<b>Esta cifra es un ingreso típico, no una promesa de "
-            f"sueldo.</b> En promedio se equivoca en unos S/ {n(mae)} por "
+            f"sueldo.</b> En promedio se equivoca en unos {sol(mae)} por "
             f"persona. Sirve para comparar perfiles entre sí, no para "
             f"decirle a nadie cuánto va a cobrar.",
             f"<b>This is a typical income, not a salary promise.</b> On "
-            f"average it's off by about S/ {n(mae)} per person. Use it to "
+            f"average it's off by about {sol(mae)} per person. Use it to "
             f"compare profiles, not to tell anyone what they will be "
             f"paid."))
 
@@ -1252,7 +1257,7 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
             f"ingreso anualizado y repartido en doce meses, no el del mes "
             f"de la entrevista.<br><br>"
             f"<b>Error de la estimación.</b> MAE en el conjunto de prueba: "
-            f"S/ {n(mae)}. La incertidumbre individual es grande y está "
+            f"{sol(mae)}. La incertidumbre individual es grande y está "
             f"declarada: el modelo ordena perfiles, no liquida sueldos.",
             f"<b>Why the first figure is a median, not an average.</b> The "
             f"model learns on the log of income, because a handful of "
@@ -1274,7 +1279,7 @@ def _ingreso_en_vivo(schema: dict, art: dict) -> None:
             f"mostly in farming) aren't counted. And it's an annualized "
             f"income split over twelve months, not the interview "
             f"month's.<br><br>"
-            f"<b>Estimation error.</b> Test-set MAE: S/ {n(mae)}. "
+            f"<b>Estimation error.</b> Test-set MAE: {sol(mae)}. "
             f"Individual uncertainty is large and stated up front: the "
             f"model ranks profiles, it doesn't set salaries.")
             + "</div>")
@@ -1708,7 +1713,7 @@ def seccion_torneo(schema: dict, art: dict) -> None:
                 28 + len(orden) * 32 + 30, vistazo=True)
     with col_c:
         vistazo_resumen(
-            [(f"S/ {n(gan['MAE_cv'])}",
+            [(f"{sol(gan['MAE_cv'])}",
               L(f"error medio de {gan['ID']}, la ganadora (validación cruzada)",
                 f"mean error of {gan['ID']}, the winner (cross-validation)")),
              (f"−{pc(mejora, 1)}",
@@ -2287,9 +2292,9 @@ def _ficha_regresor(reg: dict) -> None:
     m = reg["metricas_test"]
     html("<div class='rejilla-tarjetas'>"
          + tarjeta(L("MAE test (mediana)", "test MAE (median)"),
-                   f"S/ {n(m['mae_mediana'])}")
+                   f"{sol(m['mae_mediana'])}")
          + tarjeta(L("MAE test (media smearing)", "test MAE (smearing mean)"),
-                   f"S/ {n(m['mae_media_smear'])}")
+                   f"{sol(m['mae_media_smear'])}")
          + tarjeta(L("R² en soles", "R² in soles"), f"{d(m['r2_soles'], 3)}",
                    llano=L("El modelo explica esa fracción de la variación "
                            "del ingreso. Ver abajo por qué no es un valor "
@@ -2528,11 +2533,11 @@ def seccion_ficha(schema: dict, art: dict) -> None:
 # TODO(fase2): quiz de autoevaluación al pie de cada sección.
 # TODO(fase2): comparador visual E1→E9 sobre torneo.tabla.
 def _mb(b) -> str:
-    return "—" if b is None else n(b / 1e6, 1) + " MB"
+    return "—" if b is None else n(b / 1e6, 1) + NBSP + "MB"
 
 
 def _kb(b) -> str:
-    return "—" if b is None else n(b / 1024, 1) + " KB"
+    return "—" if b is None else n(b / 1024, 1) + NBSP + "KB"
 
 
 def _enlace_pie(texto: str, ruta: str) -> str:
@@ -2679,17 +2684,17 @@ def _estaciones(schema: dict, art: dict, maq: dict) -> list[dict]:
                      "that cross-validation: one number per recipe, decided "
                      "BEFORE looking at the test set."),
          "sale": (L(f"La receta {desplegada} elegida: se equivoca "
-                    f"S/ {d(ganador.get('MAE_cv', 0), 1)} al mes en promedio; "
+                    f"{sol(ganador.get('MAE_cv', 0), 1)} al mes en promedio; "
                     f"la segunda ({segundo.get('ID', '—')}) "
-                    f"S/ {d(segundo.get('MAE_cv', 0), 1)}.",
+                    f"{sol(segundo.get('MAE_cv', 0), 1)}.",
                     f"Recipe {desplegada} is chosen: it's off by "
-                    f"S/ {d(ganador.get('MAE_cv', 0), 1)} a month on average; "
+                    f"{sol(ganador.get('MAE_cv', 0), 1)} a month on average; "
                     f"the runner-up ({segundo.get('ID', '—')}), "
-                    f"S/ {d(segundo.get('MAE_cv', 0), 1)}.")
+                    f"{sol(segundo.get('MAE_cv', 0), 1)}.")
                   if tabla else "—"),
          "tarjetas": [
              (L("MAE_cv del ganador", "winner's MAE_cv"),
-              f"S/ {d(ganador.get('MAE_cv', 0), 1)}" if tabla else "—",
+              f"{sol(ganador.get('MAE_cv', 0), 1)}" if tabla else "—",
               L("Cuánto se equivoca por persona, medido sin tocar el test.",
                 "How far off it is per person, measured without touching "
                 "the test set.")),
@@ -2931,9 +2936,9 @@ def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
         t0 = perf_counter()
         mediana = float(modelo.predict(fila_ord)[0])
         paso(k, L("Deshacer el logaritmo", "Undo the log"),
-             L(f"S/ {n(mediana)} — el ingreso típico (mediana): la mitad de "
+             L(f"{sol(mediana)} — el ingreso típico (mediana): la mitad de "
                "los perfiles como este gana menos, la otra mitad más.",
-               f"S/ {n(mediana)} — the typical income (median): half of the "
+               f"{sol(mediana)} — the typical income (median): half of the "
                "profiles like this earn less, the other half more."), t0)
         k += 1
 
@@ -2943,10 +2948,10 @@ def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
         paso(k, L("Corrección de Duan", "Duan correction"),
              L(f"× {d(smear, 4)}: deshacer un logaritmo deja corto el "
                "promedio; esta constante —calculada al entrenar, nunca aquí— "
-               f"lo repara. Ingreso esperado: S/ {n(media)}.",
+               f"lo repara. Ingreso esperado: {sol(media)}.",
                f"× {d(smear, 4)}: undoing a log leaves the average short; "
                "this constant — computed at training time, never here — "
-               f"fixes it. Expected income: S/ {n(media)}."), t0)
+               f"fixes it. Expected income: {sol(media)}."), t0)
 
         # expanded=True: al completar, los pasos QUEDAN a la vista — son el
         # contenido de la sección, no un spinner que esconder.
@@ -2956,7 +2961,7 @@ def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
                       state="complete", expanded=True)
 
     tarjetas = [
-        tarjeta(L("ingreso típico", "typical income"), f"S/ {n(mediana)}",
+        tarjeta(L("ingreso típico", "typical income"), f"{sol(mediana)}",
                 color=T()["acento_alto"],
                 llano=L("El mismo número que da la pestaña «Estimación de "
                         "ingreso» con este perfil: es el mismo cálculo, visto "
@@ -2964,7 +2969,7 @@ def _rayos_x(reg: dict, fila: pd.DataFrame) -> None:
                         "The same number the “Income estimate” tab gives for "
                         "this profile: it's the same computation, seen step "
                         "by step.")),
-        tarjeta(L("ingreso esperado", "expected income"), f"S/ {n(media)}",
+        tarjeta(L("ingreso esperado", "expected income"), f"{sol(media)}",
                 llano=L("El promedio, tras la corrección de Duan del paso "
                         "final.",
                         "The average, after the final step's Duan "
@@ -3305,7 +3310,7 @@ def _maq_mueve(reg: dict, art: dict) -> None:
             html("<div class='rejilla-tarjetas'>" + tarjeta(
                 L(f"{verbo} de {escape(etiqs[i_de])} a {escape(etiqs[i_a])}",
                   f"{verbo} from {escape(etiqs[i_de])} to {escape(etiqs[i_a])}"),
-                f"≈ {signo}S/ {n(abs(delta))}",
+                f"≈ {signo}{sol(abs(delta))}",
                 nota=L("Diferencia que describe el modelo, no un efecto causal.",
                        "A difference the model describes, not a causal "
                        "effect."),
@@ -3534,16 +3539,20 @@ def barra_superior() -> None:
             L("Sección", "Section"), CLAVES_SECCION,
             format_func=titulo_corto, key="sec", required=True,
             label_visibility="collapsed", width="content")
-        st.segmented_control(
-            "Idioma / Language", list(i18n.IDIOMAS),
-            format_func=str.upper, key="lang", required=True,
-            label_visibility="collapsed", width="content")
-        # Las opciones salen de PALETAS: añadir un tema allí lo hace aparecer
-        # aquí, y quitarlo lo hace desaparecer. No hay lista que mantener.
-        st.segmented_control(
-            L("Tema", "Theme"), opciones_tema(),
-            format_func=etiqueta_tema, key="theme", required=True,
-            label_visibility="collapsed", width="content")
+        # Idioma y tema son ajustes, no navegación: van juntos, a la derecha,
+        # separados de las pestañas por una línea (CSS: .st-key-ajustes).
+        with st.container(horizontal=True, vertical_alignment="center",
+                          gap="small", key="ajustes", width="content"):
+            st.segmented_control(
+                "Idioma / Language", list(i18n.IDIOMAS),
+                format_func=str.upper, key="lang", required=True,
+                label_visibility="collapsed", width="content")
+            # Las opciones salen de PALETAS: añadir un tema allí lo hace
+            # aparecer aquí, y quitarlo lo hace desaparecer.
+            st.segmented_control(
+                L("Tema", "Theme"), opciones_tema(),
+                format_func=etiqueta_tema, key="theme", required=True,
+                label_visibility="collapsed", width="content")
 
 
 # --------------------------------------------------------------------------

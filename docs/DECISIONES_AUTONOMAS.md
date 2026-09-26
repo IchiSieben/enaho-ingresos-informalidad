@@ -53,3 +53,35 @@ vigila `tests/test_creditos.py`.
 **D-06 · Enlaces al portafolio con `target="_top"`.** En Community Cloud la
 app corre dentro de un iframe. Un enlace normal abriría el portafolio dentro
 de ese marco.
+
+## Fase 1.6 · C. Tipografía y ritmo · B. Navegación
+
+**D-07 · Espacio duro por dos vías.** `pc`, `pct`, `sol` (nuevo) y `_mb`/`_kb`
+lo ponen al formatear. Además, `html()` pasa todo por `i18n.no_cortar()`, una
+red de seguridad para la prosa escrita a mano («el 25 % gana…»). Así no hubo
+que tocar cada literal. Los rótulos de widgets no pasan por `html()` y quedan
+fuera.
+- Revertir: `NBSP = " "` en `app/i18n.py` lo desactiva todo de una vez.
+
+**D-08 · «Detalle técnico» en la fila del título, a la derecha.** Primero se
+probó justo debajo de la entradilla. Costaba 30 px y el gráfico de
+Informalidad salía del primer pantallazo a 1366×768 (774 > 768 px, medido
+con `docs/qa/medir_vistazo.py`). En la fila del título ocupa la misma posición
+en las cinco secciones y el popover flota sin mover nada. Para recuperar el
+pliegue, la entradilla pasó de 70ch a 75ch, el tope de la regla de 65–75
+caracteres. Con eso, 10/10 entran en ES y en EN.
+- Revertir a «debajo»: en `cabecera()`, sacar el popover del contenedor
+  `cab_titulo` y ponerlo después de la entradilla.
+
+**D-09 · «S/» de la cifra grande a 0,55 em y pegado.** En la monoespaciada,
+el espacio normal ocupaba casi un carácter entero. Se alinea por línea base
+con «× la mediana del país» (flex `baseline`).
+
+**D-10 · Tope de 1360 px con `!important`.** El `max-width: 1400px` ya estaba,
+pero el ancho «wide» de Streamlit lo pisaba y en 2560 px el contenido llegaba
+a los bordes.
+
+**D-11 · Pestañas.** Hay 6 px entre pestañas, fondo de acento al 12 % al pasar
+el cursor, cursor de mano, anillo de foco y la activa en acento pleno. Idioma
+y tema van en un contenedor propio (`ajustes`), a la derecha y tras una línea
+vertical. En móvil bajan a su propia fila.

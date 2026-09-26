@@ -65,14 +65,40 @@ def d(x: float, dec: int = 2) -> str:
     return s if en() else s.replace(".", ",")
 
 
+# Espacio duro entre cifra y unidad: «25 %» o «S/ 1.299» partidos en dos
+# líneas se leen como dos datos. En inglés el % va pegado y no hace falta.
+NBSP = "\u00a0"
+
+
 def pct(x: float, dec: int = 1) -> str:
     """Fracción a porcentaje: 0.975 -> «97,5 %» / «97.5%»."""
-    return d(x * 100, dec) + ("%" if en() else " %")
+    return d(x * 100, dec) + ("%" if en() else NBSP + "%")
 
 
 def pc(v: float, dec: int = 0) -> str:
     """Un número que YA es porcentaje: 41.5 -> «41,5 %» / «41.5%»."""
-    return d(v, dec) + ("%" if en() else " %")
+    return d(v, dec) + ("%" if en() else NBSP + "%")
+
+
+def sol(x: float, dec: int = 0) -> str:
+    """Soles: «S/ 1.299» / «S/ 1,299», sin corte entre el símbolo y la cifra."""
+    return "S/" + NBSP + n(x, dec)
+
+
+_SIN_CORTE = [
+    (re.compile(r"S/ (?=[\d−-])"), "S/" + NBSP),
+    (re.compile(r"(?<=\d) (?=%|(?:MB|KB|GB|ms)\b|×)"), NBSP),
+]
+
+
+def no_cortar(texto: str) -> str:
+    """
+    Red de seguridad para el texto escrito en prosa («el 25 % gana…»): los
+    helpers ya ponen el espacio duro, esto cubre lo que no pasa por ellos.
+    """
+    for patron, reemplazo in _SIN_CORTE:
+        texto = patron.sub(reemplazo, texto)
+    return texto
 
 
 # --------------------------------------------------------------------------
