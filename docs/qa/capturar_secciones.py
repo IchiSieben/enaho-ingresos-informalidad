@@ -1,7 +1,8 @@
 """Capturas de viewport por sección, idioma, tema y tamaño.
 
-Uso: python docs/qa/capturar_secciones.py <url_base> <carpeta> [temas] [idiomas]
-     temas e idiomas separados por coma (por defecto: claro / es,en).
+Uso: python docs/qa/capturar_secciones.py <url_base> <carpeta> [temas] [idiomas] [tamaños]
+     temas, idiomas y tamaños separados por coma (por defecto: claro / es,en /
+     1440x900,1366x768).
 Autoría: Yoichi Palacios Tanaka · grupo ENEI.
 """
 import sys
@@ -17,7 +18,8 @@ DEST = Path(sys.argv[2])
 TEMAS = (sys.argv[3] if len(sys.argv) > 3 else "claro").split(",")
 IDIOMAS = (sys.argv[4] if len(sys.argv) > 4 else "es,en").split(",")
 SECCIONES = ["ingreso", "informalidad", "torneo", "ficha", "maquinas"]
-TAMANOS = [(1440, 900), (1366, 768)]
+TAMANOS = [tuple(int(v) for v in t.split("x")) for t in
+           (sys.argv[5] if len(sys.argv) > 5 else "1440x900,1366x768").split(",")]
 DEST.mkdir(parents=True, exist_ok=True)
 
 with sync_playwright() as p:
@@ -28,6 +30,7 @@ with sync_playwright() as p:
                 pg = b.new_page(viewport={"width": ancho, "height": alto})
                 pg.goto(f"{BASE}/?lang={lang}&theme={tema}", timeout=120000)
                 pg.wait_for_selector(".st-key-sec button", timeout=120000)
+                pg.wait_for_selector(".pie", timeout=120000)
                 pg.wait_for_timeout(2500)
                 for s in SECCIONES:
                     pg.locator(".st-key-sec button").nth(ORDEN_BARRA.index(s)).click()
