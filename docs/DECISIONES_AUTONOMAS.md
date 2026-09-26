@@ -371,3 +371,27 @@ literatura» cite solo referencias con `verificacion == "contenido"`.
 - Los cruces de Ingreso e Informalidad eran enlaces `<a href>`: recargaban
   la página, abrían otra sesión y perdían el perfil. Ahora son botones con
   callback. Probado en Chromium: no recarga, y al volver el perfil sigue ahí.
+
+**D-35 · Alcance de «la parte no explicada supera la brecha» (2026-09-26,
+Fase 4, revisión del advisor antes del push).** El README decía que la parte
+no explicada era mayor que la brecha «en las seis especificaciones». Los
+artefactos dicen otra cosa. Por hora, la brecha es 0,262 y la parte no
+explicada es mayor en cinco de las seis variantes: B con referencia mujeres
+da 0,250. En el ingreso mensual (brecha 0,415) es menor en las seis
+(0,346–0,382).
+- Se decidió acotar el enunciado a «por hora, en la especificación
+  principal», en tres lugares: el párrafo de contraste de Investigación, la
+  fila de la tabla de cruces y el README (ES y EN). En los tres se dice
+  también que en el ingreso mensual la parte no explicada es menor.
+- Se revisó el contraste con Ñopo (2008) contra la nota verificada en
+  `referencias.py`. Perú 1986–2000: brecha de 45 %, de la que 28 puntos no se
+  explican. Es menor que el total, así que la etiqueta «hallazgo propio,
+  distinto de Ñopo» se mantiene para el resultado por hora. Nuestro Ñopo por
+  hora da lo mismo (Δ0 20,6 % > Δ 15,4 %).
+- Queda sin verificar contra el texto crudo si Ñopo (2008) usa ingreso por
+  hora o mensual. Si fuera mensual, nuestro resultado mensual coincidiría con
+  el suyo. Por eso el texto no dice que los resultados se contradigan: dice
+  que el patrón por hora es nuestro.
+- Descartado: mantener «seis de seis», que es falso, y quitar el contraste,
+  que tiene respaldo para el resultado por hora.
+- Revertir: `git revert` del commit «D-35».

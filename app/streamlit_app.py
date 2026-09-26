@@ -3995,15 +3995,19 @@ def _brechas(ctx: dict, T_: dict) -> None:
     html("<div class='sutil'>" + L(
         f"Contraste con la literatura: {glosario.termino('nopo')} (2008) "
         + ref("nopo2008") + " encontró para el Perú de 1986-2000 una brecha "
-        "donde la parte no explicada era menor que el total. Aquí es mayor: "
-        "el patrón es nuestro, no una réplica. " + etiqueta_afirmacion("propio")
+        "donde la parte no explicada era menor que el total. Aquí, por hora y "
+        "en la especificación principal, es mayor (en cinco de las seis "
+        "variantes por hora; en el ingreso mensual, menor): el patrón es "
+        "nuestro, no una réplica. " + etiqueta_afirmacion("propio")
         + " Sí coincide la existencia de una brecha no explicada a favor de los "
         "hombres, como en América Latina " + ref("nopo_atal_winder2009") + ". "
         + etiqueta_afirmacion("consistente"),
         f"Against the literature: {glosario.termino('nopo')} (2008) "
         + ref("nopo2008") + " found for Peru in 1986-2000 a gap whose "
-        "unexplained part was smaller than the total. Here it is larger: the "
-        "pattern is ours, not a replication. " + etiqueta_afirmacion("propio")
+        "unexplained part was smaller than the total. Here, per hour and in "
+        "the main specification, it is larger (in five of the six hourly "
+        "variants; for monthly pay, smaller): the pattern is ours, not a "
+        "replication. " + etiqueta_afirmacion("propio")
         + " What does match is an unexplained gap in men's favor, as across "
         "Latin America " + ref("nopo_atal_winder2009") + ". "
         + etiqueta_afirmacion("consistente")) + "</div>")
@@ -4123,8 +4127,8 @@ def _cruces(ctx: dict) -> None:
         (L("La penalidad es mayor entre independientes que entre asalariados.",
            "The penalty is larger among the self-employed than among employees."),
          L("Visión voluntarista", "Voluntarist view") + ref("maloney2004"), "lectura"),
-        (L("La brecha de género no explicada supera a la brecha total.",
-           "The unexplained gender gap exceeds the total gap."),
+        (L("Por hora, la brecha de género no explicada supera a la brecha total.",
+           "Per hour, the unexplained gender gap exceeds the total gap."),
          L("Distinto de Ñopo (2008) para 1986-2000", "Differs from Ñopo (2008) for 1986-2000")
          + ref("nopo2008"), "propio"),
         (L("Existe una brecha de género no explicada a favor de los hombres.",

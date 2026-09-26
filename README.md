@@ -53,10 +53,12 @@ reading is ours and not a cited result; the informality penalty on hourly
 income (−40.7% with human-capital and geography controls, −21.1% once
 industry, occupational category and firm size are added — the latter are
 "bad controls," themselves outcomes); the gender gap via Oaxaca-Blinder
-(0.262 log points, with an unexplained component of 0.25–0.29 log points,
-larger than the total gap and stable in sign across six specifications — a
-**finding of our own, distinct from Ñopo (2008)** for Peru 1986–2000, where
-the unexplained part was smaller than the total gap); returns to education
+(0.262 log points per hour; the unexplained component is 0.25–0.29 log
+points, positive in all six hourly specifications and larger than the total
+gap in five of them, including the main one — a **finding of our own,
+distinct from Ñopo (2008)** for Peru 1986–2000, where the unexplained part was
+smaller than the total gap; for monthly pay, our unexplained part is also
+smaller than the total); returns to education
 by segment (9.4%/year for employees vs. 4.5% for the self-employed — the
 ordering is consistent with Yamada (2007), though 2025 levels are not
 compared to his 2004 figures as a decline); a choropleth map by department
@@ -409,10 +411,12 @@ la penalidad de la informalidad sobre el ingreso por hora (−40,7 % con
 controles de capital humano y geografía, −21,1 % al sumar rama, categoría
 ocupacional y tamaño de empresa —estos últimos son «malos controles», porque
 también son resultados—); la brecha de género vía Oaxaca-Blinder (0,262 log
-puntos, con una parte no explicada de 0,25 a 0,29 log puntos, **mayor** que
-la brecha total y de signo estable en las seis especificaciones —un
-**hallazgo propio, distinto de Ñopo (2008)** para el Perú 1986–2000, donde la
-parte no explicada era menor que la brecha total—); retornos a la educación
+puntos por hora; la parte no explicada va de 0,25 a 0,29 log puntos, positiva
+en las seis especificaciones por hora y **mayor** que la brecha total en cinco
+de ellas, incluida la principal —un **hallazgo propio, distinto de Ñopo
+(2008)** para el Perú 1986–2000, donde la parte no explicada era menor que la
+brecha total; en el ingreso mensual, nuestra parte no explicada también es
+menor que el total—); retornos a la educación
 por segmento (9,4 % anual para asalariados frente a 4,5 % para
 independientes —el orden es coherente con Yamada (2007), aunque los niveles
 de 2025 no se comparan con sus cifras de 2004 como una caída—); un mapa
