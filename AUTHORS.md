@@ -38,12 +38,16 @@ redistribuyen en este repositorio (ver [`NOTICE`](NOTICE)).
 
 ## Dónde aparece la firma
 
-Desde la v1.2 la app no tiene barra lateral. La autoría se muestra en tres
-lugares:
+Desde la v1.2 la app no tiene barra lateral. Desde la 1.6 la autoría se
+muestra así:
 
-- **Barra superior**: ◆ + «Yoichi Palacios Tanaka», con un tooltip que nombra
-  al grupo ENEI y al docente.
-- **Pie de cada sección**: autoría completa (autor, integrantes del grupo y
-  docente), mapa de secciones, límite de uso y enlace al repositorio.
+- **Barra superior**: solo la marca del portafolio, el monograma «iC7» de
+  [ichisieben.dev](https://ichisieben.dev), con un enlace discreto
+  «← ichisieben.dev» para volver. Sin créditos ni tooltip.
+- **Pie de cada sección**: «Desarrollo: iC7 — Yoichi Palacios Tanaka» con
+  los roles CRediT de arriba y, aparte, el grupo del curso de ML (ENEI)
+  con sus nombres en el orden de este archivo y el docente al final. Los
+  integrantes van sin rol porque este archivo no les asigna ninguno (lo
+  verifica `tests/test_creditos.py`). También lleva el mapa de secciones,
+  el límite de uso y el enlace al repositorio.
 - **Cabecera de cada archivo de código**: sin cambios.
-

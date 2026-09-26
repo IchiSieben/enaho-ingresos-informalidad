@@ -295,8 +295,8 @@ Project produced within the **Machine Learning** course at the **ENEI**
 Delgado Ortega**. Detailed authorship and CRediT roles in
 [`AUTHORS.md`](AUTHORS.md).
 
-**Author (citable software):** Yoichi Palacios Tanaka (IchiSieben) ·
-ichisieben.dev
+**Author (citable software):** Yoichi Palacios Tanaka (IchiSieben, iC7) ·
+[ichisieben.dev](https://ichisieben.dev)
 
 ### 9. Bibliographic framework
 
@@ -607,8 +607,8 @@ Mamani**, **Magdalena Quico de la Cruz**, **Yoichi Palacios Tanaka** y
 **Edgar Delgado Ortega**. Autoría detallada y roles CRediT en
 [`AUTHORS.md`](AUTHORS.md).
 
-**Autor (software citable):** Yoichi Palacios Tanaka (IchiSieben) ·
-ichisieben.dev
+**Autor (software citable):** Yoichi Palacios Tanaka (IchiSieben, iC7) ·
+[ichisieben.dev](https://ichisieben.dev)
 
 ### 9. Marco bibliográfico
 

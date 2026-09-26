@@ -19,7 +19,7 @@ superficies apenas grises, mismos acentos oscurecidos para mantener AA.
 
 Semántica de señal en este dominio: ámbar = señalado como informal (caso
 accionable para focalización), «bueno» = sin señal (violeta en claro/oscuro,
-verde oliva en Terminal), «malo» = alerta. El acento (teal de ichi7.dev en
+verde oliva en Terminal), «malo» = alerta. El acento (teal de ichisieben.dev en
 claro/oscuro, azul Python en Terminal) es solo interacción y «tu perfil»:
 nunca significa condición laboral. Contraste AA y distinguibilidad bajo
 protanopia/deuteranopia/tritanopia verificados en tests/test_color.py.
@@ -29,7 +29,7 @@ from __future__ import annotations
 
 PALETAS: dict[str, dict[str, str]] = {
     "claro": {
-        # v1.2: identidad de ichi7.dev. Fondo con un matiz teal apenas
+        # v1.2: identidad de ichisieben.dev. Fondo con un matiz teal apenas
         # perceptible, tarjetas blancas, tinta casi negra y el teal de marca
         # oscurecido a teal-700 (#2DD4BF da 1,9:1 sobre blanco; #0F766E da
         # 5,5:1). Todos los pares de texto ≥ 4,5:1 (tests/test_color.py).
@@ -75,7 +75,7 @@ PALETAS: dict[str, dict[str, str]] = {
         "texto_medio":       "#9AABA9",
         # Aclarado para texto pequeño: .eyebrow, .et y .tarjeta-etiqueta.
         "texto_tenue":       "#7D8F8D",
-        "acento":            "#2DD4BF",   # teal de ichi7.dev, 9,6:1
+        "acento":            "#2DD4BF",   # teal de ichisieben.dev, 9,6:1
         "acento_alto":       "#5EEAD4",
         "acento_fondo":      "#0E2A27",
         "boton_texto":       "#04211E",
@@ -171,6 +171,9 @@ IMPORT_FUENTES = (
     "family=Inter:wght@400;500;600;700&"
     "family=Inter+Tight:wght@500;600;700;800&"
     "family=IBM+Plex+Mono:wght@400;500&display=swap');"
+    # Solo los tres glifos del monograma (`text=`): unos cientos de bytes.
+    "@import url('https://fonts.googleapis.com/css2?"
+    "family=JetBrains+Mono:wght@700&text=iC7&display=swap');"
 )
 
 
@@ -1021,13 +1024,30 @@ hr, [data-testid="stDivider"] {{ border-color: {T['borde_sutil']} !important; }}
   margin-bottom: var(--e4);
 }}
 .marca-barra {{
-  display: flex; align-items: baseline; gap: var(--e2);
+  display: flex; align-items: center; gap: var(--e3);
   white-space: nowrap; font-size: {F['cuerpo']}; color: {T['texto']};
 }}
-.marca-barra .rombo {{ color: {T['acento']}; font-size: 18px; }}
-.marca-barra b {{ font-weight: 650; }}
-.marca-barra .quien {{ color: {T['texto_medio']}; border-bottom: 1px dotted {T['texto_tenue']};
-                      cursor: help; }}
+/* Monograma iC7: el mismo de ichisieben.dev (Nav.astro). El trazo se dibuja
+   solo al pasar el cursor; con movimiento reducido no se anima. */
+.monograma-enlace {{ display: inline-flex; line-height: 0; }}
+.monograma {{ width: 32px; height: 32px; }}
+.monograma-caja {{ fill: {T['acento']}1f; stroke: {T['acento']}66; stroke-width: 1; }}
+.monograma-texto {{
+  font: 700 13px/1 'JetBrains Mono', ui-monospace, monospace;
+  fill: {T['acento_alto']}; stroke: {T['acento_alto']}; stroke-width: 0.6;
+  paint-order: stroke fill; stroke-dasharray: 90; stroke-dashoffset: 0;
+}}
+@keyframes ic7-trazo {{
+  0%   {{ stroke-dashoffset: 90; fill-opacity: 0; }}
+  70%  {{ stroke-dashoffset: 0;  fill-opacity: 0; }}
+  100% {{ stroke-dashoffset: 0;  fill-opacity: 1; }}
+}}
+.monograma-enlace:hover .monograma-texto {{ animation: ic7-trazo 700ms ease-out 1 both; }}
+.marca-barra a.volver {{
+  color: {T['texto_medio']}; font-size: {F['mini']}; text-decoration: none;
+  border-bottom: 1px solid transparent; transition: color 150ms, border-color 150ms;
+}}
+.marca-barra a.volver:hover {{ color: {T['acento_alto']}; border-bottom-color: {T['acento_alto']}; }}
 /* Navegación activa: fondo de acento pleno. El resto, texto medio sin borde. */
 section[data-testid="stMain"] .st-key-barra .st-key-sec button {{
   background: transparent !important; border-color: transparent !important;
@@ -1181,6 +1201,14 @@ h2 {{ border-left: 3px solid {T['acento']}; padding-left: var(--e3) !important; 
 .pie-autor {{ color: {T['texto']}; font-size: {F['cuerpo']}; }}
 .pie a {{ color: {T['acento_alto']}; text-decoration: none; }}
 .pie a:hover {{ text-decoration: underline; }}
+.pie-roles {{ font-size: {F['mini']}; color: {T['texto_medio']}; }}
+.pie-grupo {{ margin-top: var(--e3); }}
+.pie-rotulo {{ color: {T['texto_medio']}; font-weight: 600; }}
+/* Nombres en una línea separados por «·»: la lista vertical ocupaba medio pie. */
+.pie-grupo ul {{ display: flex; flex-wrap: wrap; margin: 0; padding: 0; list-style: none;
+                color: {T['texto_medio']}; }}
+.pie-grupo li {{ margin: 0; }}
+.pie-grupo li:not(:last-child)::after {{ content: "·"; margin: 0 0.6em; color: {T['texto_tenue']}; }}
 .pie-mapa {{ margin: var(--e2) 0; padding-left: 1.1em; max-width: 90ch; }}
 .pie-mapa li {{ margin: 0; }}
 .pie-mapa b {{ color: {T['texto_medio']}; font-weight: 600; }}

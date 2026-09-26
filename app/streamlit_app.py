@@ -61,9 +61,19 @@ DIR_MODELS = RAIZ / "models"
 
 VERSION = "1.2"
 AUTOR = "Yoichi Palacios Tanaka"
+# Mismo orden que AUTHORS.md. Solo nombres: AUTHORS.md no asigna roles a los
+# integrantes del grupo, y el pie no se los inventa.
 GRUPO = ["Alan Nestor Cañazaca Mamani", "Magdalena Quico de la Cruz",
-         "Edgar Delgado Ortega"]
-PORTAFOLIO = "https://ichi7.dev"
+         "Yoichi Palacios Tanaka", "Edgar Delgado Ortega"]
+# Roles CRediT del autor del software, tal cual los lista AUTHORS.md (un test
+# lo verifica: si alguien añade un rol aquí sin ponerlo allá, falla).
+ROLES_AUTOR = [("conceptualización", "conceptualization"),
+               ("metodología", "methodology"), ("software", "software"),
+               ("validación", "validation"), ("análisis formal", "formal analysis"),
+               ("curación de datos", "data curation"), ("redacción", "writing"),
+               ("visualización", "visualization"), ("despliegue", "deployment")]
+PORTAFOLIO = "https://ichisieben.dev"
+MARCA = "iC7"
 
 # --------------------------------------------------------------------------
 # Contratos con los módulos y con el artefacto
@@ -3449,21 +3459,30 @@ DOCENTE = "Orlando Advíncula Zeballos"
 def pie_creditos() -> None:
     """
     Autoría completa en TODAS las secciones: sin sidebar, el pie es el único
-    lugar que se ve en cualquier página. Lleva también el mapa de la app (qué
-    hace cada sección) y el límite de uso, que antes vivían en el sidebar.
+    lugar que se ve en cualquier página. Desde la 1.6 es también el ÚNICO
+    lugar de los créditos (la barra lleva solo la marca). Lleva además el mapa
+    de la app y el límite de uso.
+
+    `target='_top'` en el enlace al portafolio: en Community Cloud la app
+    corre dentro de un iframe, y un enlace normal abriría el portafolio
+    dentro del marco.
     """
-    grupo = " · ".join(GRUPO)
+    dominio = PORTAFOLIO.removeprefix("https://")
+    roles = ", ".join(L(es, en_) for es, en_ in ROLES_AUTOR)
+    grupo = "".join(f"<li>{nombre}</li>" for nombre in GRUPO)
     mapa = "".join(f"<li><b>{titulo_seccion(c)}</b> — {descripcion_seccion(c)}</li>"
                    for c in CLAVES_SECCION)
     html(f"<div class='pie'>"
-         f"<div class='pie-autor'>{L('Hecho por', 'Built by')} "
-         f"<b>{AUTOR}</b> · <a href='{PORTAFOLIO}' target='_blank' "
-         f"rel='noopener'>{PORTAFOLIO.removeprefix('https://')}</a> · "
-         f"<a href='{REPO}' target='_blank' rel='noopener'>"
+         f"<div class='pie-autor'>{L('Desarrollo', 'Development')}: "
+         f"<b>{MARCA} — {AUTOR}</b> · <a href='{PORTAFOLIO}' target='_top'>"
+         f"{dominio}</a> · <a href='{REPO}' target='_blank' rel='noopener'>"
          + L("Código y metodología en GitHub ↗", "Code & methodology on GitHub ↗")
          + "</a></div>"
-         f"<div>{L('Grupo del curso de Machine Learning (ENEI):', 'Machine Learning course group (ENEI, Peru):')} "
-         f"{grupo} · {L('Docente', 'Instructor')}: {DOCENTE}</div>"
+         f"<div class='pie-roles'>{L('Roles (CRediT)', 'Roles (CRediT)')}: {roles}</div>"
+         f"<div class='pie-grupo'><div class='pie-rotulo'>"
+         f"{L('Grupo del curso de ML (ENEI)', 'ML course group (ENEI, Peru)')}</div>"
+         f"<ul>{grupo}<li class='pie-docente'>{L('Docente', 'Instructor')}: "
+         f"{DOCENTE}</li></ul></div>"
          f"<ul class='pie-mapa'>{mapa}</ul>"
          f"<div>"
          + L("Herramienta demostrativa sobre microdatos públicos del INEI. No "
@@ -3474,6 +3493,26 @@ def pie_creditos() -> None:
          f"<div>{L('Datos', 'Data')}: INEI — ENAHO 2025 · "
          f"{L('Código', 'Code')}: Apache-2.0 · v{VERSION}</div>"
          f"</div>")
+
+
+def marca_barra() -> str:
+    """
+    El monograma de ichisieben.dev (mismo dibujo que Nav.astro del landing:
+    caja redondeada y «iC7» en JetBrains Mono que se traza al pasar el
+    cursor) y un enlace discreto de vuelta al portafolio, en la misma
+    pestaña (`_top`, por el iframe de Community Cloud).
+    """
+    dominio = PORTAFOLIO.removeprefix("https://")
+    return (f"<div class='marca-barra'>"
+            f"<a class='monograma-enlace' href='{PORTAFOLIO}' target='_top' "
+            f"aria-label='{MARCA} — {dominio}'>"
+            f"<svg class='monograma' viewBox='0 0 32 32' aria-hidden='true'>"
+            f"<rect x='0.75' y='0.75' width='30.5' height='30.5' rx='5' "
+            f"class='monograma-caja'></rect>"
+            f"<text x='16' y='21' text-anchor='middle' class='monograma-texto'>"
+            f"{MARCA}</text></svg></a>"
+            f"<a class='volver' href='{PORTAFOLIO}' target='_top'>← {dominio}</a>"
+            f"</div>")
 
 
 # --------------------------------------------------------------------------
@@ -3488,14 +3527,9 @@ def barra_superior() -> None:
     normal deselecciona al pulsar la opción activa, y la app quedaba sin
     sección. Sin `default`: el valor ya está en la sesión (`iniciar_estado`).
     """
-    tooltip = escape(L("Con el grupo ENEI: ", "With the ENEI group: ")
-                     + ", ".join(GRUPO) + " · "
-                     + L("Docente", "Instructor") + f": {DOCENTE}", quote=True)
     with st.container(horizontal=True, vertical_alignment="center",
                       gap="small", key="barra"):
-        st.markdown(f"<div class='marca-barra'><span class='rombo'>◆</span>"
-                    f"<span class='quien' title='{tooltip}'>{AUTOR}</span>"
-                    f"</div>", unsafe_allow_html=True, width="content")
+        st.markdown(marca_barra(), unsafe_allow_html=True, width="content")
         st.segmented_control(
             L("Sección", "Section"), CLAVES_SECCION,
             format_func=titulo_corto, key="sec", required=True,
