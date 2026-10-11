@@ -8,7 +8,7 @@
   },
   "machines": ["PC Windows", "GitHub", "Streamlit Cloud", "Hostinger", "Navegador del usuario"],
   "containers": 8,
-  "calls": 8,
+  "calls": 10,
   "flows": 3,
   "views": ["c4", "flows", "data", "deploy", "decisions"],
   "hasCore": false,
