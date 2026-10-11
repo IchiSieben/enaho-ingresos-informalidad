@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "slug": "predictor-ingresos",
+  "name": {"es": "Predictor de ingresos e informalidad", "en": "Income and informality predictor"},
+  "oneLiner": {
+    "es": "Torneo de nueve especificaciones sobre microdatos ENAHO 2025: se entrena una vez en un PC y una app en Streamlit solo lee los modelos ya ajustados.",
+    "en": "Nine-specification tournament on ENAHO 2025 microdata: trained once on a PC, with a Streamlit app that only reads the fitted models."
+  },
+  "machines": ["PC Windows", "GitHub", "Streamlit Cloud", "Hostinger", "Navegador del usuario"],
+  "containers": 8,
+  "calls": 8,
+  "flows": 3,
+  "views": ["c4", "flows", "data", "deploy", "decisions"],
+  "hasCore": false,
+  "updated": "2026-10-10",
+  "status": "done",
+  "landing": {"projectSlug": "predictor-ingresos", "order": 20}
+}

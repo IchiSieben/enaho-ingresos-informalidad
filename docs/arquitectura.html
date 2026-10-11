@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arquitectura Predictor de ingresos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a drafting-table page. One sticky tab bar; each tab is a view of the same system
+   (C4 containers → hexagonal components → data → UML flows → deployment → user stories → repository).
+   Dark-first (control room / blueprint); light theme mirrors it. */
+:root{
+  --bg:#0a1020; --paper:#111a2e; --paper2:#162238; --ink:#e7edf8; --ink2:#9fb0cc; --line:#263654; --grid:rgba(127,166,234,.07);
+  --blue:#7fa6ea; --cyan:#4cc9f0; --amber:#f0b545; --green:#5fcf8f; --red:#f08a7c; --violet:#b58cf5;
+  --blue-soft:#18284a; --cyan-soft:#0f2b3a; --amber-soft:#3a2d0f; --green-soft:#12301f; --red-soft:#3b1a16; --violet-soft:#2a1f45;
+  --font-display:"Archivo","Archivo Narrow","Arial Narrow",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#eef2f8; --paper:#ffffff; --paper2:#f5f8fd; --ink:#15213a; --ink2:#4b5873; --line:#d3dbea; --grid:rgba(31,78,156,.06);
+  --blue:#1f4e9c; --cyan:#0a7ea4; --amber:#b56f00; --green:#1d7a4b; --red:#b8382c; --violet:#6b3fc2;
+  --blue-soft:#e3ebfa; --cyan-soft:#dff3fa; --amber-soft:#fff3d6; --green-soft:#dff3e7; --red-soft:#fbe3df; --violet-soft:#ece3fb;
+  color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#eef2f8; --paper:#ffffff; --paper2:#f5f8fd; --ink:#15213a; --ink2:#4b5873; --line:#d3dbea; --grid:rgba(31,78,156,.06);
+  --blue:#1f4e9c; --cyan:#0a7ea4; --amber:#b56f00; --green:#1d7a4b; --red:#b8382c; --violet:#6b3fc2;
+  --blue-soft:#e3ebfa; --cyan-soft:#dff3fa; --amber-soft:#fff3d6; --green-soft:#dff3e7; --red-soft:#fbe3df; --violet-soft:#ece3fb;
+  color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;color:var(--ink);font-family:var(--font-body);font-size:14.5px;line-height:1.5;padding-inline:clamp(16px,3vw,40px);padding-block:18px 70px}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(26px,3.6vw,42px);font-weight:800;font-stretch:85%;letter-spacing:-.01em}
+h2{font-size:clamp(19px,2.2vw,25px);font-weight:700;font-stretch:90%}
+h3{font-size:15.5px;font-weight:700;font-stretch:90%}
+h4{font-size:13.5px;font-weight:700;font-stretch:90%;color:var(--ink2)}
+p{margin:0}
+a{color:var(--cyan)}
+code,pre{font-family:var(--font-mono)}
+code{font-size:12.5px;background:var(--paper2);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+pre{font-size:12px;line-height:1.5;background:var(--paper2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+button{font:inherit;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:22px}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:14px 30px}
+.head .sub{color:var(--ink2);max-width:66ch;margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+
+/* tabs */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:4px;overflow-x:auto;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:8px 0;scrollbar-width:thin}
+.tab{appearance:none;border:1px solid transparent;background:none;color:var(--ink2);padding:7px 12px;border-radius:8px;white-space:nowrap;font-weight:500;display:flex;gap:8px;align-items:center}
+.tab .k{font-family:var(--font-mono);font-size:10.5px;color:var(--cyan);opacity:.9}
+.tab[aria-selected="true"]{background:var(--paper);border-color:var(--line);color:var(--ink)}
+.view{display:none;gap:18px}
+.view.active{display:grid}
+
+/* panels */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:10px;min-width:0;align-content:start}
+.panel.flush{padding:0;overflow:hidden}
+.two{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.8fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--blue-soft);color:var(--blue);font-weight:500;border:1px solid transparent}
+.chip.cyan{background:var(--cyan-soft);color:var(--cyan)}.chip.amber{background:var(--amber-soft);color:var(--amber)}.chip.green{background:var(--green-soft);color:var(--green)}.chip.violet{background:var(--violet-soft);color:var(--violet)}.chip.red{background:var(--red-soft);color:var(--red)}.chip.ghost{background:transparent;border-color:var(--line);color:var(--ink2)}
+.btn{border:1px solid var(--line);background:var(--paper2);color:var(--ink);border-radius:8px;padding:7px 12px;font-weight:500;font-size:13px}
+.btn[aria-pressed="true"]{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan);color:var(--cyan)}
+.btn.sm{padding:4px 9px;font-size:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);font-weight:500}
+.tbl{overflow-x:auto}
+td .m{font-family:var(--font-mono);font-size:12px}
+.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px}
+.kv dt{color:var(--ink2);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+.kv dd{margin:0;min-width:0}
+.note{border-left:3px solid var(--cyan);padding:8px 12px;background:var(--cyan-soft);border-radius:0 8px 8px 0;font-size:13.5px}
+.note.amber{border-color:var(--amber);background:var(--amber-soft)}
+.note.green{border-color:var(--green);background:var(--green-soft)}
+.verdict{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;font-weight:600;font-family:var(--font-display);font-stretch:90%;font-size:15px}
+.verdict.ok{background:var(--green-soft);color:var(--green)}.verdict.warn{background:var(--amber-soft);color:var(--amber)}.verdict.bad{background:var(--red-soft);color:var(--red)}
+
+/* diagram */
+.dia{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.dia svg{width:100%;height:auto;display:block;font-family:var(--font-body)}
+.dia text{fill:var(--ink)}
+.dia .mono{font-family:var(--font-mono)}
+.dia .muted{fill:var(--ink2)}
+.node{cursor:pointer}
+.node rect.box{fill:var(--paper2);stroke:var(--line);stroke-width:1.2;transition:stroke .2s,filter .2s}
+.node:hover rect.box,.node.sel rect.box{stroke:var(--cyan);stroke-width:1.8;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--cyan) 45%,transparent))}
+.node.ext rect.box{stroke-dasharray:5 4}
+.node .kind{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;fill:var(--ink2)}
+.node .ttl{font-family:var(--font-display);font-weight:700;font-stretch:90%;font-size:14px}
+.node .tech{font-size:10.5px;fill:var(--ink2)}
+.node .tag{font-family:var(--font-mono);font-size:9.5px}
+.edge{fill:none;stroke:var(--line);stroke-width:1.6;transition:stroke .3s,stroke-width .3s}
+.edge.hot{stroke:var(--cyan);stroke-width:2.6;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--cyan) 60%,transparent))}
+.edge.dim{opacity:.25}
+.elabel{font-family:var(--font-mono);font-size:9.5px;fill:var(--ink2);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round}
+.pk{fill:var(--cyan);opacity:.55}
+.pk.one{opacity:1;fill:var(--amber)}
+.dia .toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:12px 12px 4px;border-bottom:1px dashed var(--line);align-items:center}
+.steps{display:grid;gap:6px;list-style:none;padding:0;margin:0;counter-reset:s}
+.steps li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:13px;opacity:.45;transition:opacity .3s}
+.steps li.on{opacity:1}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--font-mono);font-size:11px;color:var(--cyan);border:1px solid var(--line);border-radius:50%;width:20px;height:20px;display:grid;place-items:center}
+.steps li.on::before{background:var(--cyan);color:var(--bg);border-color:var(--cyan)}
+
+/* hexagonal view */
+.hex{display:grid;grid-template-columns:1fr 1fr 1.1fr 1fr 1fr;gap:10px;align-items:start}
+.col{display:grid;gap:8px}
+.col h4{text-align:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.cell{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;display:grid;gap:3px;transition:border-color .2s,box-shadow .2s}
+.cell b{font-family:var(--font-display);font-stretch:90%;font-size:13.5px;font-weight:700}
+.cell small{color:var(--ink2);font-size:11.5px}
+.cell.core{border-color:var(--blue);background:var(--blue-soft)}
+.cell.port{border-style:dashed}
+.cell.lit{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),0 0 14px color-mix(in srgb,var(--cyan) 35%,transparent)}
+.cell.off{opacity:.35}
+.routes{display:flex;flex-wrap:wrap;gap:6px}
+
+/* deploy */
+.deploy{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start}
+.deploy .arrow{align-self:center;font-family:var(--font-mono);color:var(--ink2);padding-top:40px}
+.svc{display:grid;gap:6px}
+.svc div{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:var(--paper2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px}
+.svc div .m{font-family:var(--font-mono);font-size:11px;color:var(--ink2);white-space:nowrap}
+.svc div.k{border-color:var(--cyan)}
+.svc div.x{border-color:var(--violet)}
+.hu{display:grid;gap:10px}
+.hu .card{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;font-size:13px}
+.hu .card .id{font-family:var(--font-mono);font-size:11px;color:var(--cyan)}
+.hu .card ul{margin:0;padding-left:18px;color:var(--ink2);font-size:12.5px}
+.mermaid{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;color:var(--ink2);white-space:pre}
+.foot{color:var(--ink2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+@media (max-width:980px){.two{grid-template-columns:1fr}.hex{grid-template-columns:1fr 1fr}.deploy{grid-template-columns:1fr}.deploy .arrow{display:none}}
+@media (max-width:560px){.hex{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.edge,.node rect.box,.cell{transition:none}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="eyebrow">ENAHO 2025 · scikit-learn · Streamlit</div>
+      <h1>Arquitectura del Predictor de ingresos e informalidad</h1>
+      <p class="sub">Un entrenamiento que corre una vez en un PC y una app que solo lee lo que ese entrenamiento dejó escrito. Cinco vistas: contenedores, flujos, datos, despliegue y decisiones. Haz clic en cualquier caja; reproduce un flujo para ver el recorrido.</p>
+    </div>
+    <div class="legend">
+      <span style="--c:var(--blue)">este repo</span>
+      <span style="--c:var(--violet)">otro repo o persona</span>
+      <span style="--c:var(--amber)">servicio externo</span>
+      <span style="--c:var(--cyan)">tráfico</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-v="c4" aria-selected="true"><span class="k">C4·2</span>Contenedores</button>
+    <button class="tab" role="tab" data-v="flows"><span class="k">UML</span>Flujos</button>
+    <button class="tab" role="tab" data-v="data"><span class="k">DATA</span>Datos</button>
+    <button class="tab" role="tab" data-v="deploy"><span class="k">OPS</span>Despliegue</button>
+    <button class="tab" role="tab" data-v="decisions"><span class="k">ADR</span>Decisiones</button>
+  </nav>
+
+  <section class="view active" data-v="c4">
+    <div class="two">
+      <div class="dia" id="c4dia">
+        <div class="toolbar" id="flowbar"></div>
+        <svg viewBox="0 0 1200 690" id="c4svg" aria-label="Diagrama de contenedores"></svg>
+      </div>
+      <div class="panel" id="c4panel">
+        <div class="eyebrow">Detalle</div>
+        <h3 id="pn-t">Haz clic en un contenedor</h3>
+        <p id="pn-r" style="color:var(--ink2)">Cada caja es una pieza que corre por separado: un conjunto de scripts, una carpeta de archivos, un servicio o el navegador de quien visita. Las líneas son llamadas reales: protocolo y qué viaja.</p>
+        <dl class="kv" id="pn-kv"></dl>
+        <div class="chips" id="pn-chips"></div>
+        <div id="pn-steps-wrap" hidden>
+          <div class="eyebrow" style="margin-top:6px">Flujo en curso</div>
+          <ol class="steps" id="pn-steps"></ol>
+        </div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="panel"><h3>Por qué la app no entrena</h3><p style="color:var(--ink2);font-size:13.5px">Entrenar el torneo tarda minutos y necesita los microdatos, que no se redistribuyen. La app solo necesita la carpeta <code>models/</code>: lee los modelos ya ajustados y dos JSON con todo lo que se muestra. Por eso puede vivir en un hosting gratuito.</p></div>
+      <div class="panel"><h3>Por qué dos JSON de contrato</h3><p style="color:var(--ink2);font-size:13.5px"><code>feature_schema.json</code> dice qué variables existen y sus rangos; <code>ui_artifacts.json</code> trae lo caro ya calculado. La interfaz no escribe ningún número a mano: si el modelo cambia, el formulario cambia con él.</p></div>
+      <div class="panel"><h3>Por qué nada de datos personales</h3><p style="color:var(--ink2);font-size:13.5px">Los microdatos de la encuesta se descargan del INEI y quedan fuera del repo (<code>data/</code> está ignorado por git). Lo que se publica son los modelos, que no contienen filas de personas, y los reportes agregados.</p></div>
+    </div>
+  </section>
+
+  <section class="view" data-v="flows">
+    <div class="grid2">
+      <div class="panel">
+        <div class="eyebrow">Secuencia · una predicción en la app</div>
+        <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor V as Visitante
+    participant B as Navegador
+    participant A as App Streamlit (Streamlit Cloud)
+    participant M as models/ del repo
+    V->>B: abre la app (?sec=ingreso)
+    B->>A: HTTPS, sesión nueva
+    A->>M: cargar_schema() lee feature_schema.json (en caché)
+    A->>M: cargar_modelo() joblib.load del regresor (una vez por proceso)
+    A-->>B: formulario construido desde el schema
+    V->>B: mueve un control
+    B->>A: reejecuta solo el fragment
+    A->>A: modelo.predict(fila): milisegundos
+    A->>A: media = (pred + 1) × smearing − 1
+    A-->>B: cifra, tarjetas y situador de cohorte</pre>
+      </div>
+      <div class="panel">
+        <div class="eyebrow">Secuencia · entrenar y precomputar</div>
+        <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor A as Autor (PC Windows)
+    participant S as src/ (scripts)
+    participant D as data/
+    participant M as models/
+    A->>S: run.ps1 03_fase1_preparacion
+    S->>D: lee CSV del INEI, escribe dataset_modelado.parquet
+    A->>S: 04_torneo_regresion (E1 a E9)
+    S->>D: torneo_frame.parquet
+    S->>M: _hiperparametros.json (caché tras cada algoritmo)
+    A->>S: 06, 07, 08 (clasificador, regresor, ablación)
+    S->>M: .joblib + secciones de feature_schema.json
+    A->>S: 09_precomputar_ui
+    S->>S: verifica que las OOF reproducen los umbrales
+    S->>M: ui_artifacts.json y ui_maquinas.json (solo si cuadra)</pre>
+      </div>
+      <div class="panel">
+        <div class="eyebrow">Secuencia · publicar un modelo nuevo</div>
+        <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor A as Autor (PC Windows)
+    participant G as GitHub
+    participant C as Streamlit Cloud
+    participant V as Visitante
+    A->>G: git push (models/ versionado, data/ ignorado)
+    G->>C: repo público con requirements.txt
+    C->>C: instala dependencias y sirve app/streamlit_app.py
+    V->>C: abre la demo
+    Note over C: la nube no reentrena: solo lee models/
+    Note over G,C: el redespliegue automático al hacer push es configuración de la plataforma</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" data-v="data">
+    <div class="grid2">
+      <div class="panel">
+        <div class="eyebrow">Estructura de archivos · de microdatos a artefactos</div>
+        <pre class="mermaid">flowchart LR
+    subgraph RAW["data/raw (ignorado por git)"]
+        M02["Módulo 02 hogar"]
+        M03["Módulo 03 educación"]
+        M05["Módulo 05 empleo e ingresos"]
+        M34["Módulo 34 Sumaria (solo diagnóstico)"]
+    end
+    M03 &amp; M05 --> DS["data/processed/dataset_modelado.parquet"]
+    DS --> TF["data/processed/torneo_frame.parquet"]
+    M02 &amp; M05 --> TF
+    TF --> CLF["models/clasificador_gb.joblib"]
+    TF --> REG["models/regresor_e9.joblib"]
+    TF --> RED["models/clasificador_gb_reducido.joblib"]
+    CLF &amp; REG &amp; RED --> SCH["models/feature_schema.json"]
+    TF &amp; CLF &amp; REG --> UI["models/ui_artifacts.json"]
+    UI --> MAQ["models/ui_maquinas.json"]
+    SCH &amp; UI &amp; MAQ --> APP["app/streamlit_app.py"]</pre>
+      </div>
+      <div class="panel">
+        <div class="eyebrow">El contrato entre entrenamiento y app</div>
+        <h3>Dos JSON y tres modelos</h3>
+        <div class="tbl"><table>
+          <tr><th>Archivo</th><th>Quién lo escribe</th><th>Qué contiene</th></tr>
+          <tr><td><code>feature_schema.json</code></td><td>scripts 06, 07 y 08, por secciones (<code>guardar_schema</code>)</td><td>variables, rangos, opciones, defaults, etiquetas, métricas de test, punto operativo y ablación</td></tr>
+          <tr><td><code>ui_artifacts.json</code></td><td>script 09</td><td>curva de umbral, ROC y PR, calibración, dependencia parcial, importancia por permutación, cohortes y narrativa del torneo</td></tr>
+          <tr><td><code>ui_maquinas.json</code></td><td>script 09</td><td>embudo de filas auditado y tamaños medidos de los artefactos</td></tr>
+          <tr><td><code>regresor_e9.joblib</code></td><td>script 07</td><td>Gradient Boosting con objetivo en logaritmo (<code>TransformedTargetRegressor</code>)</td></tr>
+          <tr><td><code>clasificador_gb.joblib</code></td><td>script 06</td><td>clasificador de informalidad</td></tr>
+          <tr><td><code>clasificador_gb_reducido.joblib</code></td><td>script 08</td><td>variante sin tamaño de empresa ni categoría, de la ablación</td></tr>
+          <tr><td><code>_hiperparametros.json</code></td><td>torneo y clasificador</td><td>caché de la búsqueda en grilla; borrarlo fuerza el recálculo</td></tr>
+        </table></div>
+        <p style="font-size:12.5px;color:var(--ink2)">Todos los JSON se escriben a un archivo temporal y se mueven con <code>os.replace</code>: nunca queda uno truncado.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" data-v="deploy">
+    <div class="panel">
+      <div class="eyebrow">Despliegue · lo que hay</div>
+      <h2>Entrena en local, publica el resultado y la nube solo lo sirve</h2>
+      <p style="color:var(--ink2);max-width:80ch">El entrenamiento se corre en un PC con Windows, con los microdatos descargados a mano. Lo que se versiona son los modelos y los JSON; Streamlit Cloud sirve la app desde el repo público. La página del proyecto en el portafolio enlaza a la demo.</p>
+      <div class="deploy">
+        <div class="panel" style="background:var(--paper2)">
+          <h3>Entrenamiento · PC Windows</h3>
+          <div class="svc">
+            <div class="k"><span>Python 3.12 con versiones fijadas en <code>requirements.txt</code></span><span class="m">venv</span></div>
+            <div class="k"><span><code>run.ps1</code> corre un script de <code>src/</code> y deja logs en <code>logs/</code></span><span class="m">python -u</span></div>
+            <div class="k"><span>microdatos en <code>data/raw</code>, fuera de git</span><span class="m">descarga manual</span></div>
+            <div><span>semilla 42 en división, validación y búsquedas</span><span class="m">reproducible</span></div>
+            <div><span>pruebas de contrato en <code>tests/</code></span><span class="m">pytest</span></div>
+          </div>
+        </div>
+        <div class="arrow">→ git push →</div>
+        <div class="panel" style="background:var(--paper2)">
+          <h3>Demo · Streamlit Cloud</h3>
+          <div class="svc">
+            <div class="k"><span>repo público con <code>models/</code> versionado</span><span class="m">sin datos</span></div>
+            <div class="k"><span><code>app/streamlit_app.py</code> con <code>requirements.txt</code></span><span class="m">Streamlit 1.61</span></div>
+            <div class="k"><span>tema claro por defecto en <code>.streamlit/config.toml</code></span><span class="m">sin telemetría</span></div>
+            <div class="x"><span>CI en el repo (no hay workflows)</span><span class="m">hoy: pruebas a mano</span></div>
+            <div class="x"><span>reentrenar en la nube</span><span class="m">no: solo lee</span></div>
+          </div>
+          <p style="font-size:12.5px;color:var(--ink2)">Qué cambiaría al escalar: pruebas como paso de CI antes de publicar, y los artefactos en un almacén aparte si el repo crece.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" data-v="decisions">
+    <div class="panel">
+      <div class="eyebrow">Decisiones · inferidas del código y la documentación del repo</div>
+      <h2>Cada decisión dice qué se eligió, qué se dejó y por qué</h2>
+      <div class="tbl"><table>
+        <tr><th>Decisión</th><th>Por qué</th><th>Descartado</th></tr>
+        <tr><td>Formulario dirigido por el schema</td><td>Los rangos y opciones salen del pipeline ya ajustado, así que la interfaz no puede desincronizarse del modelo</td><td>Declarar cada campo a mano en la app</td></tr>
+        <tr><td>Precomputar lo caro al entrenar</td><td>Curva de umbral, dependencia parcial y permutación se calculan una vez y viajan en un JSON de unos 46 KB; la app solo interpola</td><td>Recalcular en cada sesión de la nube</td></tr>
+        <tr><td>Verificar antes de escribir</td><td>El script 09 recalcula los umbrales desde las probabilidades out-of-fold y aborta sin escribir si no coinciden con los publicados</td><td>Confiar en que el schema y la curva siempre coinciden</td></tr>
+        <tr><td>Fragmentos de Streamlit</td><td>Mover el control de umbral reejecuta solo ese bloque, no el formulario ni la carga de artefactos</td><td>Reejecutar el script entero en cada movimiento</td></tr>
+        <tr><td>Objetivo en logaritmo dentro del artefacto</td><td><code>TransformedTargetRegressor</code> devuelve soles (mediana); la media se obtiene con el factor de smearing publicado en el schema</td><td>Que la interfaz maneje logaritmos</td></tr>
+        <tr><td>Caché de hiperparámetros tras cada algoritmo</td><td>Si la máquina se cuelga a mitad de una grilla no se pierde lo ya buscado; el regresor se puede reajustar sin repetir el torneo</td><td>Guardar la caché solo al final</td></tr>
+        <tr><td>Escritura atómica de JSON</td><td>Archivo temporal más <code>os.replace</code>: lo publicado nunca queda a medias</td><td>Escribir directo al destino</td></tr>
+        <tr><td>Paletas como datos, no variables CSS</td><td>Los gráficos viajan a iframes que no ven el CSS del padre; pasar los colores como parámetro mantiene una sola fuente</td><td>Variables CSS y bloques duplicados por tema</td></tr>
+        <tr><td>Microdatos fuera del repo</td><td>La app no necesita <code>data/</code>; se enlaza a la fuente del INEI en vez de redistribuirla</td><td>Versionar los CSV</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Arquitectura v1 · 2026-10-10 · predictor-ingresos</span>
+    <span>C4 · UML (secuencia) · datos · despliegue · decisiones</span>
+  </footer>
+</div>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- tabs ---------- */
+const tabs = [...document.querySelectorAll(".tab")], views = [...document.querySelectorAll(".view")];
+function showTab(v){
+  tabs.forEach(t=>t.setAttribute("aria-selected", String(t.dataset.v===v)));
+  views.forEach(s=>s.classList.toggle("active", s.dataset.v===v));
+  try{ localStorage.setItem("arq-tab", v); }catch(e){}
+}
+tabs.forEach(t=>t.addEventListener("click", ()=>showTab(t.dataset.v)));
+let initial = "c4"; try{ initial = localStorage.getItem("arq-tab") || "c4"; }catch(e){}
+if(location.hash && tabs.some(t=>t.dataset.v===location.hash.slice(1))) initial = location.hash.slice(1);
+if(!tabs.some(t=>t.dataset.v===initial)) initial = tabs[0].dataset.v; // stored tab may belong to another page on this origin
+showTab(initial);
+
+/* ---------- C4 containers ---------- */
+const N = {
+  inei: {x:20,y:90,w:170,h:100,kind:"externo · fuente de datos",ttl:"Microdatos INEI",tech:"ENAHO 2025 · módulos 02, 03, 05 y 34 · CSV",color:"amber",ext:true,
+         resp:"Encuesta nacional de hogares. Se descarga a mano del portal de microdatos; el repo no la redistribuye.",
+         kv:{"Formato":"CSV con separador punto y coma, latin-1","Entra por":"descarga manual a data/raw","Imprescindibles":"módulos 02, 03 y 05"}},
+  data: {x:280,y:90,w:190,h:100,kind:"carpeta local · parquet",ttl:"data/",tech:"raw · interim · processed",color:"blue",
+         resp:"Almacén intermedio del entrenamiento: CSV crudos y los parquet que pasan de un script al siguiente. Ignorada por git: la app no la necesita.",
+         kv:{"Ignorada por":".gitignore","Parquet clave":"dataset_modelado y torneo_frame","Escala":"un solo PC"}},
+  pipe: {x:560,y:90,w:190,h:110,kind:"python 3.12 · pc windows",ttl:"Pipeline de entrenamiento",tech:"src/00 a src/09 · pandas · scikit-learn · statsmodels",color:"blue",
+         resp:"Diez scripts numerados: inventario, población, preparación, torneo de nueve especificaciones, clasificador, regresor, ablación y precómputo de la interfaz.",
+         kv:{"Se corre con":"run.ps1 &lt;script&gt;","Semilla":"42 en todo","Salida":"models/ y reports/"}},
+  models: {x:860,y:90,w:220,h:110,kind:"carpeta versionada · artefactos",ttl:"models/",tech:"3 .joblib · feature_schema.json · ui_artifacts.json · ui_maquinas.json",color:"blue",
+         resp:"Lo único que la app necesita. Tres modelos ajustados y dos JSON de contrato con todo lo que la interfaz muestra, más la caché de hiperparámetros.",
+         kv:{"Tamaño":"unos 1,3 MB en total","Escritura":"atómica (tmp + os.replace)","Versionado":"sí, en el repo"}},
+  vis:  {x:20,y:450,w:170,h:100,kind:"persona · navegador",ttl:"Visitante",tech:"reclutador · cliente · curioso",color:"violet",
+         resp:"Abre la demo desde cualquier navegador, directo o desde la página del proyecto en el portafolio. No hay cuentas ni formulario de registro.",
+         kv:{"Controla":"sección, idioma y tema por URL","Envía":"un perfil de ejemplo, no datos personales"}},
+  land: {x:280,y:250,w:200,h:90,kind:"hostinger · sitio estático",ttl:"Página en el portafolio",tech:"Astro · /predictor-ingresos/",color:"violet",ext:true,
+         resp:"Ficha del proyecto en el sitio del portafolio, con el enlace a la demo y al repo. Vive en otro repo y no incrusta la app.",
+         kv:{"Enlaza a":"la demo en Streamlit Cloud","Repo":"el del portafolio, no este"}},
+  app:  {x:560,y:290,w:190,h:130,kind:"streamlit cloud · python",ttl:"App Streamlit",tech:"app/streamlit_app.py · estilos.py · graficos.py",color:"blue",
+         resp:"Cinco secciones: ingreso, informalidad, torneo, sala de máquinas y ficha técnica. Lee los modelos y los JSON, predice una fila en milisegundos y dibuja gráficos SVG propios.",
+         kv:{"Lee":"models/ del repo, nunca data/","Estado":"en la sesión; fragmentos acotan reejecuciones","Idiomas":"español e inglés"}},
+  gh:   {x:860,y:290,w:220,h:80,kind:"externo · git",ttl:"GitHub",tech:"repositorio público",color:"amber",ext:true,
+         resp:"Origen de verdad del código y de los artefactos entrenados. Sin microdatos: data/ está ignorado.",
+         kv:{"Contiene":"src, app, models, reports, docs","Licencia":"Apache-2.0"}},
+};
+const E = [
+  {id:"e1",a:"inei",as:"r",b:"data",bs:"l",l:"CSV (descarga manual)",ay:0,by:0},
+  {id:"e2",a:"data",as:"r",b:"pipe",bs:"l",l:"CSV y parquet",ay:0,by:0},
+  {id:"e3",a:"pipe",as:"r",b:"models",bs:"l",l:"joblib + JSON atómico",ay:0,by:0},
+  {id:"e4",a:"models",as:"b",b:"gh",bs:"t",l:"git push",ay:0,by:0},
+  {id:"e5",a:"gh",as:"l",b:"app",bs:"r",l:"repo público",ay:0,by:-20},
+  {id:"e6",a:"vis",as:"r",b:"app",bs:"l",l:"HTTPS · ?sec ?lang ?theme",ay:0,by:25},
+  {id:"e7",a:"vis",as:"t",b:"land",bs:"b",l:"GET /predictor-ingresos/",ay:0,by:0},
+  {id:"e8",a:"land",as:"r",b:"app",bs:"l",l:"enlace demoUrl",ay:0,by:-25},
+];
+const FLOWS = [
+  {id:"entrenar",t:"Entrenar el torneo y precomputar",steps:[["e1","Se descargan a mano los CSV del INEI a data/raw"],["e2","Los scripts 03 y 04 preparan el dataset y corren las nueve especificaciones con el mismo protocolo, dejando parquet entre etapas"],["e3","Los scripts 06, 07 y 08 guardan los modelos y las secciones del schema; el 09 verifica los umbrales y solo entonces escribe ui_artifacts.json"]]},
+  {id:"prediccion",t:"Una predicción en la app",steps:[["e7","El visitante abre la página del proyecto en el portafolio"],["e8","Sigue el enlace a la demo"],["e6","La app arma el formulario desde el schema; al mover un control, solo el fragmento reejecuta, predice con el modelo en caché y devuelve la cifra y la cohorte"]]},
+  {id:"publicar",t:"Publicar un modelo nuevo",steps:[["e3","El entrenamiento deja los modelos y JSON nuevos en models/"],["e4","Commit y push: se versionan los artefactos, no los microdatos"],["e5","Streamlit Cloud sirve el repo público con requirements.txt; no reentrena, solo lee models/"]]},
+];
+const svg = $("#c4svg"), NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs={}, parent=svg){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+function anchor(n, side, off=0){ const c=N[n]; const m={l:[c.x,c.y+c.h/2+off],r:[c.x+c.w,c.y+c.h/2+off],t:[c.x+c.w/2+off,c.y],b:[c.x+c.w/2+off,c.y+c.h]}; return m[side]; }
+function pathFor(e){
+  const [x1,y1]=anchor(e.a,e.as,e.ay), [x2,y2]=anchor(e.b,e.bs,e.by);
+  const h = (e.as==="l"||e.as==="r"), k = Math.max(40, Math.abs(h?x2-x1:y2-y1)/2);
+  const c1 = h ? [x1+(e.as==="r"?k:-k), y1] : [x1, y1+(e.as==="b"?k:-k)];
+  const c2 = (e.bs==="l"||e.bs==="r") ? [x2+(e.bs==="l"?-k:k), y2] : [x2, y2+(e.bs==="t"?-k:k)];
+  return {d:`M${x1},${y1} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${x2},${y2}`, mid:[(x1+x2)/2,(y1+y2)/2]};
+}
+const defs = el("defs");
+const mk = el("marker",{id:"arr",viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},defs);
+el("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--line)"},mk);
+const gE = el("g"), gL = el("g"), gN = el("g"), gP = el("g");
+E.forEach(e=>{
+  const p = pathFor(e);
+  const path = el("path",{id:"p-"+e.id,d:p.d,class:"edge","marker-end":"url(#arr)"},gE);
+  if(e.dash) path.setAttribute("stroke-dasharray","4 4");
+  e.path = path;
+  if(e.l){ el("text",{x:p.mid[0],y:p.mid[1]-6,class:"elabel","text-anchor":"middle"},gL).textContent = e.l; }
+  if(!reduce && !e.dash){ // ambient traffic
+    const c = el("circle",{r:"3.2",class:"pk"},gP);
+    const am = el("animateMotion",{dur:(2.8+Math.random()*1.6).toFixed(1)+"s",repeatCount:"indefinite",begin:(Math.random()*3).toFixed(1)+"s"},c);
+    const mp = el("mpath",{},am); mp.setAttribute("href","#p-"+e.id); mp.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href","#p-"+e.id);
+  }
+});
+const COL = {blue:"var(--blue)",violet:"var(--violet)",amber:"var(--amber)"};
+Object.entries(N).forEach(([id,n])=>{
+  const g = el("g",{class:"node"+(n.ext?" ext":""),"data-id":id,tabindex:"0",role:"button"},gN);
+  el("rect",{class:"box",x:n.x,y:n.y,width:n.w,height:n.h,rx:"10"},g);
+  el("rect",{x:n.x,y:n.y,width:"5",height:n.h,rx:"2.5",fill:COL[n.color]},g);
+  el("text",{x:n.x+16,y:n.y+18,class:"kind"},g).textContent = n.kind;
+  el("text",{x:n.x+16,y:n.y+38,class:"ttl"},g).textContent = n.ttl;
+  // wrap tech line
+  const words = n.tech.split(" "); let line="", ly=n.y+56, lines=[];
+  words.forEach(w=>{ if((line+" "+w).length>Math.max(18,Math.floor(n.w/6.2))){lines.push(line);line=w;} else line=(line?line+" ":"")+w; }); lines.push(line);
+  lines.slice(0, Math.floor((n.h-60)/14)).forEach((t,i)=>{ el("text",{x:n.x+16,y:ly+i*14,class:"tech"},g).textContent=t; });
+  if(id==="usr"){ ["Operador","Revisor","Validador ×4","Analista","Auditor","Admin plantillas"].forEach((r,i)=>{ const y=n.y+90+i*19; el("rect",{x:n.x+16,y:y-11,width:"110",height:"16",rx:"8",fill:"var(--violet-soft)"},g); el("text",{x:n.x+24,y:y+1,class:"tag",fill:"var(--violet)"},g).textContent=r; }); }
+  if(id==="wrk"){ ["normalizar","clasificar","extraer"].forEach((r,i)=>{ const x=n.x+16+i*64; el("rect",{x:x,y:n.y+118,width:"58",height:"18",rx:"9",fill:"var(--blue-soft)"},g); el("text",{x:x+29,y:n.y+130,class:"tag","text-anchor":"middle",fill:"var(--blue)"},g).textContent=r; }); }
+  if(id==="api"){ ["dominio","reglas","puertos"].forEach((r,i)=>{ const x=n.x+16+i*64; el("rect",{x:x,y:n.y+100,width:"58",height:"18",rx:"9",fill:"var(--blue-soft)"},g); el("text",{x:x+29,y:n.y+112,class:"tag","text-anchor":"middle",fill:"var(--blue)"},g).textContent=r; }); }
+  g.addEventListener("click", ()=>selectNode(id));
+  g.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();selectNode(id);} });
+});
+// frame labels
+el("text",{x:20,y:640,class:"mono muted","font-size":"10"}).textContent = "C4 · nivel 2 (contenedores) · tráfico ambiente = llamadas reales · clic en una caja para el detalle";
+el("text",{x:20,y:660,class:"mono muted","font-size":"10"}).textContent = "línea continua = HTTP/SQL · punteada = adaptador elegido por configuración · caja punteada = existe fuera del proyecto";
+
+function selectNode(id){
+  document.querySelectorAll(".node").forEach(n=>n.classList.toggle("sel", n.dataset.id===id));
+  const n = N[id];
+  $("#pn-t").textContent = n.ttl; $("#pn-r").textContent = n.resp;
+  $("#pn-kv").innerHTML = Object.entries(n.kv||{}).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
+  $("#pn-chips").innerHTML = `<span class="chip ${n.color==='violet'?'violet':n.color==='amber'?'amber':''}">${n.kind}</span>` + n.tech.split("·").map(t=>`<span class="chip ghost">${t.trim()}</span>`).join("");
+  $("#pn-steps-wrap").hidden = true;
+  // dim unrelated edges
+  E.forEach(e=>{ e.path.classList.toggle("dim", !(e.a===id||e.b===id)); e.path.classList.remove("hot"); });
+}
+let flowTimers = [];
+function runFlow(f){
+  flowTimers.forEach(clearTimeout); flowTimers=[];
+  document.querySelectorAll(".node").forEach(n=>n.classList.remove("sel"));
+  document.querySelectorAll("#flowbar .btn").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.f===f.id)));
+  E.forEach(e=>{ e.path.classList.remove("hot"); e.path.classList.toggle("dim", true); });
+  $("#pn-t").textContent = f.t; $("#pn-r").textContent = "Mira el recorrido en el diagrama. Cada paso enciende la llamada real que lo cumple.";
+  $("#pn-kv").innerHTML = ""; $("#pn-chips").innerHTML = "";
+  const ol = $("#pn-steps"); ol.innerHTML = f.steps.map(s=>`<li>${s[1]}</li>`).join(""); $("#pn-steps-wrap").hidden = false;
+  const gap = reduce ? 150 : 1100;
+  f.steps.forEach((s,i)=>{
+    flowTimers.push(setTimeout(()=>{
+      const e = E.find(x=>x.id===s[0]); e.path.classList.remove("dim"); e.path.classList.add("hot");
+      [...ol.children].forEach((li,k)=>li.classList.toggle("on", k===i));
+      [e.a,e.b].forEach(id=>document.querySelector(`.node[data-id="${id}"]`).classList.add("sel"));
+      if(!reduce){
+        const c = el("circle",{r:"5",class:"pk one"},gP);
+        const am = el("animateMotion",{dur:"1s",begin:"indefinite",fill:"freeze"},c);
+        const mp = el("mpath",{},am); mp.setAttribute("href","#p-"+e.id); mp.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href","#p-"+e.id);
+        am.beginElement(); setTimeout(()=>c.remove(), 1200);
+      }
+    }, i*gap));
+  });
+  flowTimers.push(setTimeout(()=>{ E.forEach(e=>e.path.classList.remove("dim")); }, f.steps.length*gap+800));
+}
+$("#flowbar").innerHTML = `<span class="chip cyan" style="align-self:center">reproducir flujo</span>` + FLOWS.map(f=>`<button class="btn sm" data-f="${f.id}" aria-pressed="false">${f.t}</button>`).join("");
+$("#flowbar").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; runFlow(FLOWS.find(f=>f.id===b.dataset.f)); });
+if(reduce && svg.pauseAnimations) svg.pauseAnimations();
+
+/* ---------- hexagonal ---------- */
+const HEX = {cols:[],cells:[],routes:[]};
+if($("#hex")){ // the hex view is optional (manual §1.5): its section may be deleted
+$("#hex").innerHTML = HEX.cols.map((c,i)=>`<div class="col"><h4>${c}</h4>${HEX.cells[i].map(x=>`<div class="cell ${x.core?'core':''} ${x.port?'port':''}" data-id="${x.id}"><b>${x.b}</b><small>${x.s}</small></div>`).join("")}</div>`).join("");
+$("#routes").innerHTML = HEX.routes.map(r=>`<button class="btn sm" data-r="${r.id}" aria-pressed="false">${r.t}</button>`).join("");
+$("#routes").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const r = HEX.routes.find(x=>x.id===b.dataset.r);
+  const same = b.getAttribute("aria-pressed")==="true";
+  document.querySelectorAll("#routes .btn").forEach(x=>x.setAttribute("aria-pressed","false"));
+  document.querySelectorAll("#hex .cell").forEach(c=>{ c.classList.remove("lit","off"); });
+  if(same) return;
+  b.setAttribute("aria-pressed","true");
+  document.querySelectorAll("#hex .cell").forEach(c=>{ c.classList.toggle("lit", r.on.includes(c.dataset.id)); c.classList.toggle("off", !r.on.includes(c.dataset.id)); });
+});
+}
+
+/* ---------- user stories ---------- */
+const HU = [];
+if($("#hulist")) $("#hulist").innerHTML = HU.map(h=>`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="id">${h.id} · semana ${h.w.slice(1)}</span><span class="chips">${h.comp.map(c=>`<span class="chip ghost">${c}</span>`).join("")}</span></div><div><b>Como</b> ${h.como}, <b>quiero</b> ${h.quiero}, <b>para</b> ${h.para}.</div><ul>${h.crit.map(c=>`<li>${c}</li>`).join("")}</ul></div>`).join("");
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+(function(){
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({startOnLoad:false, theme: dark?'dark':'default', securityLevel:'loose'});
+  function render(){ const v=document.querySelector('.view.active'); if(!v) return;
+    const n=[...v.querySelectorAll('pre.mermaid:not([data-processed])')]; if(n.length) mermaid.run({nodes:n}); }
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setTimeout(render,30)));
+  window.addEventListener('load',render);
+})();
+</script>
+</body></html>
